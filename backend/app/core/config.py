@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     linkedin_client_id: str = ""
     linkedin_client_secret: str = ""
     linkedin_redirect_uri: str = ""
+    linkedin_author_urn: str = ""
+    linkedin_access_token: str = ""
 
     cloud_tasks_queue: str = "linkedin-post-schedule"
     cloud_tasks_location: str = "us-central1"

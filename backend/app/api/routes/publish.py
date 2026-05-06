@@ -1,28 +1,45 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 
-from app.db.firestore_client import get_firestore_client
 from app.core.config import settings
 from app.models.schemas import PublishRequest
+from app.services.linkedin_service import LinkedInService
+from app.services.local_store import get_draft, save_post
 
 router = APIRouter()
+linkedin = LinkedInService()
 
 
 @router.post("")
 async def publish(req: PublishRequest) -> dict:
-    db = get_firestore_client()
-    doc = db.collection(settings.firestore_collection_drafts).document(req.draft_id).get()
-    if not doc.exists:
+    draft = get_draft(req.draft_id)
+    if not draft:
         raise HTTPException(status_code=404, detail="Draft not found")
 
-    draft = doc.to_dict()
-    # Placeholder: inject LinkedIn token and author_urn from user session/secrets.
+    if not settings.linkedin_author_urn:
+        raise HTTPException(status_code=400, detail="Missing LINKEDIN_AUTHOR_URN in backend .env")
+    if not settings.linkedin_access_token:
+        raise HTTPException(status_code=400, detail="Missing LINKEDIN_ACCESS_TOKEN in backend .env")
+
+    content = draft.get("content", "")
+    hashtags = draft.get("hashtags", [])
+    cta = draft.get("cta", "")
+    full_text = f"{content}\n\n{' '.join(hashtags)}\n\n{cta}".strip()
+
+    linkedin_resp = await linkedin.publish_post(
+        access_token=settings.linkedin_access_token,
+        author_urn=settings.linkedin_author_urn,
+        text=full_text,
+    )
+
     record = {
         "draft_id": req.draft_id,
-        "status": "queued_for_linkedin_publish",
-        "content": draft.get("content", ""),
+        "status": "published",
+        "content": content,
+        "linkedin_post_id": linkedin_resp.get("location", ""),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    db.collection(settings.firestore_collection_posts).document(req.draft_id).set(record)
-    return record
+    return save_post(record)
 
 
 @router.post("/from-scheduler")
