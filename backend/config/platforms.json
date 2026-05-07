@@ -1,0 +1,29 @@
+{
+  "platforms": {
+    "linkedin": {
+      "enabled": true,
+      "priority": 1,
+      "config_file": "platform-configs/linkedin.yaml"
+    },
+    "twitter": {
+      "enabled": false,
+      "priority": 2,
+      "config_file": "platform-configs/twitter.yaml"
+    },
+    "facebook": {
+      "enabled": false,
+      "priority": 3,
+      "config_file": "platform-configs/facebook.yaml"
+    },
+    "medium": {
+      "enabled": false,
+      "priority": 4,
+      "config_file": "platform-configs/medium.yaml"
+    },
+    "devto": {
+      "enabled": true,
+      "priority": 5,
+      "config_file": "platform-configs/devto.yaml"
+    }
+  }
+}

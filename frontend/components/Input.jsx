@@ -1,0 +1,1 @@
+export default function Input({ label, error, className='', ...props }) { return <label className="block"><span className="text-sm font-medium">{label}</span><input {...props} className={`mt-1 w-full border rounded px-3 py-2 ${error?'border-red-500':'border-gray-300'} ${className}`} />{error&&<span className="text-sm text-red-600">{error}</span>}</label>; }

@@ -2,16 +2,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "LinkedIn Post Agent"
+    app_name: str = "LinkedIn Post Generator"
     env: str = "dev"
     host: str = "0.0.0.0"
-    port: int = 8000
+    port: int = 8001
 
     gcp_project_id: str = ""
     gcp_region: str = "us-central1"
-    firestore_collection_drafts: str = "linkedin_drafts"
-    firestore_collection_posts: str = "linkedin_posts"
-    firestore_collection_analytics: str = "linkedin_analytics"
 
     vertex_model: str = "gemini-2.5-flash"
 
@@ -21,9 +18,18 @@ class Settings(BaseSettings):
     linkedin_author_urn: str = ""
     linkedin_access_token: str = ""
 
-    cloud_tasks_queue: str = "linkedin-post-schedule"
-    cloud_tasks_location: str = "us-central1"
-    cloud_run_base_url: str = ""
+    twitter_api_key: str = ""
+    twitter_api_secret: str = ""
+
+    facebook_app_id: str = ""
+    facebook_app_secret: str = ""
+
+    medium_api_key: str = ""
+
+    # 44-char URL-safe base64 Fernet key; if empty a deterministic dev key is used
+    credentials_encryption_key: str = ""
+
+    frontend_url: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(
         env_file=".env",

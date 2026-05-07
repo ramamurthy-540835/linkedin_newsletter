@@ -126,6 +126,7 @@ async def run_generation_pipeline(topic: str, audience: str, tone: str, objectiv
     out = await POST_GRAPH.ainvoke(init_state)
     return {
         "post_text": out["post_text"],
+        "draft_text": out["draft_text"],
         "hashtags": out["hashtags"],
         "cta": out["cta"],
         "compliance_notes": out.get("compliance_notes", []),

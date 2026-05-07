@@ -1,0 +1,71 @@
+[
+  {
+    "draft_id": "3de0942b-4a9b-4001-9c30-a9615f74d926",
+    "status": "queued_for_linkedin_publish",
+    "content": "Test draft content",
+    "created_at": "2026-05-06T12:32:07.437182+00:00"
+  },
+  {
+    "draft_id": "bf220543-530e-43e6-96b0-9944eb2519d0",
+    "status": "published",
+    "content": "Battling content fatigue and flat newsletter engagement? We deployed a custom AI agent to revolutionize our strategy. The results are compelling. Our AI agent delivered a 17% increase in open rates, 12% boost in click-through rates, and 25% more engagement. It also reduced drafting effort significantly. We used fine-tuned LLMs, prompt engineering, and brand-aligned knowledge bases. This approach can extend to blogs, social media, and personalized emails.",
+    "linkedin_post_id": "urn:li:share:7457772190868885504",
+    "created_at": "2026-05-06T12:44:09.322328+00:00"
+  },
+  {
+    "id": "21674ed6-7203-4fa7-a761-84bb11f57a33",
+    "title": "Niral Thiruvizha with Anna University Students",
+    "topic": "Engagement with Anna University students around innovation, AI, and real-world problem solving in agri-tech and technology domains.",
+    "audience": "Students, engineering leaders, founders, academia, AI and innovation communities.",
+    "tone": "professional",
+    "content": "Anna University students: Ready to redefine agri-tech with AI? We believe in your potential!\n\nTheir talent for AI-driven innovation, blending academic rigor with practical application, is remarkable. Agri-tech offers a critical domain for these bright minds to apply AI and solve real-world societal and economic challenges.\n\nEmpowering them requires strong collaboration. Students, academic mentors, industry leaders, and founders must unite to translate groundbreaking ideas into viable solutions.\n\nLet's prioritize hands-on AI application and robust problem-solving methodologies. Providing access to real-world datasets, industry mentorship, and dedicated innovation platforms is crucial to accelerate their impact.\n\nJoin us in nurturing the next generation of agri-tech innovators!\n\n#AI #AgriTech #Innovation #AnnaUniversity #ProblemSolving #TechForGood",
+    "hashtags": [
+      "#AI",
+      "#AgriTech",
+      "#Innovation",
+      "#AnnaUniversity",
+      "#ProblemSolving",
+      "#TechForGood"
+    ],
+    "cta": "Anna University students, what agri-tech challenge are you most eager to solve with AI?",
+    "status": "published",
+    "created_at": "2026-05-07T08:58:02.757329+00:00",
+    "updated_at": "2026-05-07T09:37:09.500214+00:00"
+  },
+  {
+    "id": "2ec4c15b-6411-4863-8413-90ed2e9daf64",
+    "title": "Niral Thiruvizha with Anna University Students",
+    "topic": "Engagement with Anna University students around innovation, AI, and real-world problem solving in agri-tech and technology domains.",
+    "audience": "Students, engineering leaders, founders, academia, AI and innovation communities.",
+    "tone": "professional",
+    "content": "How can we truly empower the next generation to innovate for real-world impact?\n\nAt Anna University, we're actively engaging students in the future of innovation, AI, and practical problem-solving, particularly in agri-tech. Through project-based learning and dynamic hackathons, we're translating AI/tech theory into actionable solutions for pressing industry challenges.\n\nOur approach emphasizes robust mentorships and industry partnerships, guiding students to develop commercially viable and impactful innovations. We envision AI-driven solutions addressing critical real-world problems ethically and sustainably, especially in sectors like agri-tech.\n\nWe're cultivating an entrepreneurial ecosystem, encouraging interdisciplinary collaboration (engineering, agriculture, etc.) to identify market gaps and develop scalable tech solutions with strong business potential. This fosters novel solutions for complex problems.\n\nJoin us in shaping purposeful tech leaders. How are you fostering innovation in your community?\n\n#AnnaUniversity #Innovation #AI #AgriTech #TechForGood #ProblemSolving #Entrepreneurship #FutureLeaders #Engineering",
+    "hashtags": [
+      "#Innovation",
+      "#AI",
+      "#AgriTech",
+      "#AnnaUniversity",
+      "#Entrepreneurship",
+      "#TechForGood",
+      "#FutureLeaders"
+    ],
+    "cta": "How are you fostering innovation in your community?",
+    "status": "draft",
+    "created_at": "2026-05-07T09:25:59.337433+00:00",
+    "updated_at": "2026-05-07T09:25:59.337433+00:00"
+  },
+  {
+    "id": "fd1d9a7b-b64a-4ca1-b6ee-c0ab1283e12f",
+    "title": "Test",
+    "topic": "AI",
+    "audience": "all",
+    "tone": "professional",
+    "content": "Test post",
+    "hashtags": [
+      "#test"
+    ],
+    "cta": "Test",
+    "status": "draft",
+    "created_at": "2026-05-07T09:36:00.664293+00:00",
+    "updated_at": "2026-05-07T09:36:00.664293+00:00"
+  }
+]

@@ -1,0 +1,1 @@
+export default function ErrorBanner({ message, onClose }) { return <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded flex justify-between"><span>{message}</span><button onClick={onClose}>x</button></div>; }

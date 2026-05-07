@@ -1,0 +1,49 @@
+name: LinkedIn
+platform_id: linkedin
+api_endpoint: https://api.linkedin.com/v2
+
+oauth:
+  client_id_env: LINKEDIN_CLIENT_ID
+  client_secret_env: LINKEDIN_CLIENT_SECRET
+  redirect_uri_env: LINKEDIN_REDIRECT_URI
+  scopes: [openid, profile, w_member_social]
+  token_endpoint: https://www.linkedin.com/oauth/v2/accessToken
+  authorize_endpoint: https://www.linkedin.com/oauth/v2/authorization
+
+post_config:
+  max_chars: 3000
+  max_hashtags: 30
+  supports_media: true
+  media_types: [image, video]
+  max_images: 10
+  max_videos: 1
+  supports_code_blocks: false
+  supports_links: true
+  requires_media_preview: false
+
+formatting:
+  line_break: "\n"
+  paragraph_break: "\n\n"
+  hashtag_prefix: "#"
+  hashtag_spacing: " "
+  mention_prefix: "@"
+  emojis_allowed: true
+  code_format: "```language\ncode\n```"
+  link_format: "[text](url)"
+
+engagement:
+  optimal_time: "9am-5pm"
+  optimal_days: [Monday, Tuesday, Wednesday, Thursday]
+  include_call_to_action: true
+  include_question: true
+  include_hashtags: true
+  hashtag_count: 5
+
+post_generation:
+  template: linkedin_professional
+  tone: professional
+  length: medium
+  min_chars: 600
+  max_chars: 2000
+  hook_required: true
+  max_lines: 20

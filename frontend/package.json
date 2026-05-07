@@ -1,5 +1,5 @@
 {
-  "name": "linkedin-post-agent-frontend",
+  "name": "linkedin-post-generator-frontend",
   "private": true,
   "version": "0.1.0",
   "scripts": {
@@ -13,9 +13,8 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "typescript": "5.6.3",
-    "@types/node": "22.7.5",
-    "@types/react": "18.3.9",
-    "@types/react-dom": "18.3.0"
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14"
   }
 }

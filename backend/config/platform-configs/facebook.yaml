@@ -1,0 +1,44 @@
+name: Facebook
+platform_id: facebook
+api_endpoint: https://graph.facebook.com/v18.0
+
+oauth:
+  client_id_env: FACEBOOK_CLIENT_ID
+  client_secret_env: FACEBOOK_CLIENT_SECRET
+  redirect_uri_env: FACEBOOK_REDIRECT_URI
+  scopes: [publish_video, pages_manage_posts, pages_read_engagement]
+  token_endpoint: https://graph.facebook.com/v18.0/oauth/access_token
+  authorize_endpoint: https://www.facebook.com/v18.0/dialog/oauth
+
+post_config:
+  max_chars: 63206
+  max_hashtags: 30
+  supports_media: true
+  media_types: [image, video]
+  max_images: 10
+  max_videos: 1
+  supports_code_blocks: false
+  supports_links: true
+
+formatting:
+  line_break: "\n"
+  paragraph_break: "\n\n"
+  hashtag_prefix: "#"
+  hashtag_spacing: " "
+  mention_prefix: "@"
+  emojis_allowed: true
+
+engagement:
+  optimal_time: "11am-1pm, 7pm-9pm"
+  optimal_days: [Wednesday, Thursday, Friday, Saturday, Sunday]
+  include_call_to_action: true
+  include_hashtags: true
+  hashtag_count: 5
+
+post_generation:
+  template: facebook_community
+  tone: friendly
+  length: long
+  min_chars: 400
+  max_chars: 2000
+  hook_required: true

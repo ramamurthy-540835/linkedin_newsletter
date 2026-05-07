@@ -1,59 +1,66 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class GeneratePostRequest(BaseModel):
+class GenerateRequest(BaseModel):
+    topic: str
+    audience: str = "LinkedIn professionals"
+    tone: str = "professional"
+
+
+class GenerateResponse(BaseModel):
+    content: str
+    hashtags: list[str]
+    cta: str
+
+
+class SavePostRequest(BaseModel):
+    title: str
     topic: str
     audience: str
-    tone: str = "professional"
-    objective: str = "engagement"
-    min_chars: int = 500
-    max_chars: int = 2000
-
-
-class GeneratePostResponse(BaseModel):
-    post_text: str
+    tone: str
+    content: str
     hashtags: list[str]
     cta: str
-    estimated_chars: int
 
 
-class DraftCreateRequest(BaseModel):
-    title: str
-    content: str
-    hashtags: list[str] = Field(default_factory=list)
-    cta: str = ""
+class SavePostResponse(BaseModel):
+    post_id: str
+    success: bool
 
 
-class Draft(BaseModel):
+class PublishRequest(BaseModel):
+    post_id: str
+    access_token: str
+
+
+class PublishResponse(BaseModel):
+    linkedin_post_id: str
+    linkedin_url: str
+    success: bool
+
+
+class Post(BaseModel):
     id: str
     title: str
+    topic: str
+    audience: str
+    tone: str
     content: str
     hashtags: list[str]
     cta: str
+    status: str
     created_at: datetime
     updated_at: datetime
 
 
-class ScheduleRequest(BaseModel):
-    draft_id: str
-    publish_at_utc: datetime
-
-
-class PublishRequest(BaseModel):
-    draft_id: str
-
-
-class AnalyticsSummary(BaseModel):
-    total_posts: int
-    total_impressions: int
-    total_reactions: int
-    total_comments: int
-    avg_engagement_rate: float
-
-
-class OAuthTokenResponse(BaseModel):
-    access_token: str
-    expires_in: int
-    token_type: str
+class PublishedPost(BaseModel):
+    id: str
+    post_id: str
+    linkedin_post_id: str
+    linkedin_url: str
+    views: int
+    likes: int
+    comments: int
+    shares: int
+    published_at: datetime

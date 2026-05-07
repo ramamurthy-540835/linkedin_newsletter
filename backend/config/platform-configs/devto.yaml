@@ -1,0 +1,41 @@
+name: Dev.to
+platform_id: devto
+api_endpoint: https://dev.to/api
+
+auth:
+  type: api_key
+  api_key_env: DEVTO_API_KEY
+  header: api-key
+
+post_config:
+  max_chars: 100000
+  supports_media: true
+  media_types: [image]
+  max_images: 50
+  supports_code_blocks: true
+  supports_links: true
+  article_format: true
+  content_format: markdown
+
+formatting:
+  line_break: "\n"
+  paragraph_break: "\n\n"
+  hashtag_prefix: "#"
+  hashtag_spacing: " "
+  emojis_allowed: true
+  code_format: "```language\ncode\n```"
+  link_format: "[text](url)"
+  heading_format: "# Heading"
+
+engagement:
+  include_call_to_action: true
+  include_tags: true
+  tag_count: 4
+
+post_generation:
+  template: devto_tutorial
+  tone: educational
+  length: long
+  min_chars: 1000
+  max_chars: 8000
+  hook_required: true

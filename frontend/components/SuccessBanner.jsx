@@ -1,0 +1,1 @@
+export default function SuccessBanner({ message, onClose }) { return <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded flex justify-between"><span>{message}</span><button onClick={onClose}>x</button></div>; }

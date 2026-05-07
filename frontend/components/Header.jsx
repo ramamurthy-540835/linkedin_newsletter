@@ -1,0 +1,1 @@
+export default function Header() { return <header className="h-16 bg-white border-b px-6 flex items-center justify-between"><div className="font-bold">LinkedIn Post Generator</div><button className="text-sm px-3 py-1 border rounded">Logout</button></header>; }

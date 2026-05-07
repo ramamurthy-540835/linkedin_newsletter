@@ -1,0 +1,30 @@
+[
+  {
+    "id": "3de0942b-4a9b-4001-9c30-a9615f74d926",
+    "title": "AI Ops Post",
+    "content": "Test draft content",
+    "hashtags": [
+      "#AI"
+    ],
+    "cta": "Thoughts?",
+    "created_at": "2026-05-06T12:31:32.459327+00:00",
+    "updated_at": "2026-05-06T12:31:32.459327+00:00"
+  },
+  {
+    "id": "bf220543-530e-43e6-96b0-9944eb2519d0",
+    "title": "Built AI Agent for LinkedIn Newsletter",
+    "content": "Battling content fatigue and flat newsletter engagement? We deployed a custom AI agent to revolutionize our strategy. The results are compelling. Our AI agent delivered a 17% increase in open rates, 12% boost in click-through rates, and 25% more engagement. It also reduced drafting effort significantly. We used fine-tuned LLMs, prompt engineering, and brand-aligned knowledge bases. This approach can extend to blogs, social media, and personalized emails.",
+    "hashtags": [
+      "#AI",
+      "#ContentStrategy",
+      "#Newsletter",
+      "#MarTech",
+      "#Engagement",
+      "#LLM",
+      "#B2BMarketing"
+    ],
+    "cta": "What is the top content challenge you want AI to solve for your team?",
+    "created_at": "2026-05-06T12:42:58.943210+00:00",
+    "updated_at": "2026-05-06T12:42:58.943210+00:00"
+  }
+]

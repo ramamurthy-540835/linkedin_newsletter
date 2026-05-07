@@ -1,0 +1,46 @@
+name: Twitter/X
+platform_id: twitter
+api_endpoint: https://api.twitter.com/2
+
+oauth:
+  client_id_env: TWITTER_CLIENT_ID
+  client_secret_env: TWITTER_CLIENT_SECRET
+  redirect_uri_env: TWITTER_REDIRECT_URI
+  scopes: [tweet.write, tweet.read, users.read]
+  token_endpoint: https://api.twitter.com/2/oauth2/token
+  authorize_endpoint: https://twitter.com/i/oauth2/authorize
+
+post_config:
+  max_chars: 280
+  max_hashtags: 10
+  supports_media: true
+  media_types: [image, video, gif]
+  max_images: 4
+  max_videos: 1
+  supports_code_blocks: false
+  supports_threads: true
+  max_thread_length: 25
+
+formatting:
+  line_break: "\n"
+  paragraph_break: "\n"
+  hashtag_prefix: "#"
+  hashtag_spacing: " "
+  mention_prefix: "@"
+  emojis_allowed: true
+  url_shortener: twitter
+
+engagement:
+  optimal_time: "8am-10am, 12pm-1pm, 5pm-6pm"
+  optimal_days: [Monday, Tuesday, Wednesday, Thursday, Friday]
+  include_call_to_action: true
+  include_hashtags: true
+  hashtag_count: 3
+
+post_generation:
+  template: twitter_thread
+  tone: casual
+  length: short
+  min_chars: 80
+  max_chars: 260
+  hook_required: true

@@ -1,0 +1,47 @@
+name: Medium
+platform_id: medium
+api_endpoint: https://api.medium.com/v1
+
+oauth:
+  client_id_env: MEDIUM_CLIENT_ID
+  client_secret_env: MEDIUM_CLIENT_SECRET
+  redirect_uri_env: MEDIUM_REDIRECT_URI
+  scopes: [publishPost, basicProfile]
+  token_endpoint: https://api.medium.com/v1/tokens
+  authorize_endpoint: https://medium.com/m/oauth/authorize
+
+post_config:
+  max_chars: 100000
+  supports_media: true
+  media_types: [image]
+  max_images: 50
+  supports_code_blocks: true
+  supports_links: true
+  article_format: true
+  content_format: html
+
+formatting:
+  line_break: "\n"
+  paragraph_break: "\n\n"
+  hashtag_prefix: "#"
+  hashtag_spacing: ","
+  mention_prefix: "@"
+  emojis_allowed: true
+  code_format: "```language\ncode\n```"
+  link_format: "[text](url)"
+  heading_format: "# Heading"
+
+engagement:
+  optimal_time: "6am-8am, 5pm-7pm"
+  optimal_days: [Tuesday, Wednesday, Thursday]
+  include_call_to_action: true
+  include_tags: true
+  tag_count: 5
+
+post_generation:
+  template: medium_article
+  tone: technical
+  length: long
+  min_chars: 1500
+  max_chars: 8000
+  hook_required: true
