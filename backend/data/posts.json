@@ -33,39 +33,24 @@
     "updated_at": "2026-05-07T09:37:09.500214+00:00"
   },
   {
-    "id": "2ec4c15b-6411-4863-8413-90ed2e9daf64",
-    "title": "Niral Thiruvizha with Anna University Students",
-    "topic": "Engagement with Anna University students around innovation, AI, and real-world problem solving in agri-tech and technology domains.",
-    "audience": "Students, engineering leaders, founders, academia, AI and innovation communities.",
+    "id": "9c51ea84-35fd-4486-875d-4ea53a541b75",
+    "title": "Niral Thiruvizha with Isha Agriculture \u2013 Coimbatore",
+    "topic": "Interaction with students during Niral Thiruvizha who showcased their work on lake restoration in Coimbatore using natural floating plants (Padar Thamarai), highlighting sustainability and real-world impact.",
+    "audience": "Sustainability leaders, environmentalists, agri-tech innovators, students, researchers, and industry professionals.",
     "tone": "professional",
-    "content": "How can we truly empower the next generation to innovate for real-world impact?\n\nAt Anna University, we're actively engaging students in the future of innovation, AI, and practical problem-solving, particularly in agri-tech. Through project-based learning and dynamic hackathons, we're translating AI/tech theory into actionable solutions for pressing industry challenges.\n\nOur approach emphasizes robust mentorships and industry partnerships, guiding students to develop commercially viable and impactful innovations. We envision AI-driven solutions addressing critical real-world problems ethically and sustainably, especially in sectors like agri-tech.\n\nWe're cultivating an entrepreneurial ecosystem, encouraging interdisciplinary collaboration (engineering, agriculture, etc.) to identify market gaps and develop scalable tech solutions with strong business potential. This fosters novel solutions for complex problems.\n\nJoin us in shaping purposeful tech leaders. How are you fostering innovation in your community?\n\n#AnnaUniversity #Innovation #AI #AgriTech #TechForGood #ProblemSolving #Entrepreneurship #FutureLeaders #Engineering",
+    "content": "Incredible to witness the power of youth-driven innovation at Niral Thiruvizha! I was profoundly impressed by students showcasing their impactful lake restoration project in Coimbatore.\n\nThey've pioneered a novel, low-cost approach using indigenous natural floating plants (Padar Thamarai) for effective bio-remediation. This sustainable ecological engineering isn't just innovative; it highlights the profound impact of student engagement in addressing real-world environmental challenges.\n\nThis project offers a tangible example of successful local ecological intervention, demonstrating strong potential for replication across various urban and rural water bodies. It also provides valuable insights for #AgriTech innovators seeking eco-friendly and resource-efficient purification methods.\n\nEvents like Niral Thiruvizha are crucial platforms for fostering knowledge exchange, facilitating dialogue, and inspiring broader professional and community engagement in environmental conservation. Let's champion these future sustainability leaders!\n\n#Sustainability #EnvironmentalSolutions #BioRemediation #YouthInnovation #NiralThiruvizha #LakeRestoration #AgriTech #Coimbatore",
     "hashtags": [
-      "#Innovation",
-      "#AI",
-      "#AgriTech",
-      "#AnnaUniversity",
-      "#Entrepreneurship",
-      "#TechForGood",
-      "#FutureLeaders"
+      "#NiralThiruvizha",
+      "#LakeRestoration",
+      "#BioRemediation",
+      "#YouthInnovation",
+      "#Sustainability",
+      "#EnvironmentalSolutions",
+      "#Coimbatore"
     ],
-    "cta": "How are you fostering innovation in your community?",
-    "status": "draft",
-    "created_at": "2026-05-07T09:25:59.337433+00:00",
-    "updated_at": "2026-05-07T09:25:59.337433+00:00"
-  },
-  {
-    "id": "fd1d9a7b-b64a-4ca1-b6ee-c0ab1283e12f",
-    "title": "Test",
-    "topic": "AI",
-    "audience": "all",
-    "tone": "professional",
-    "content": "Test post",
-    "hashtags": [
-      "#test"
-    ],
-    "cta": "Test",
-    "status": "draft",
-    "created_at": "2026-05-07T09:36:00.664293+00:00",
-    "updated_at": "2026-05-07T09:36:00.664293+00:00"
+    "cta": "What local environmental challenges in your area could benefit most from similar youth-led innovation?",
+    "status": "published",
+    "created_at": "2026-05-07T10:01:56.260285+00:00",
+    "updated_at": "2026-05-07T10:02:36.601595+00:00"
   }
 ]

@@ -1,4 +1,26 @@
 import Link from 'next/link';
-const v={primary:'bg-blue-600 text-white',secondary:'bg-gray-200 text-gray-900',danger:'bg-red-600 text-white',tertiary:'bg-white border text-gray-900'};
-const s={sm:'px-3 py-1 text-sm',md:'px-4 py-2',lg:'px-5 py-3'};
-export default function Button({href,onClick,variant='primary',size='md',disabled,children,className=''}){const c=`inline-flex items-center justify-center rounded ${v[variant]} ${s[size]} ${disabled?'opacity-60 cursor-not-allowed':''} ${className}`;return href?<Link href={href} className={c}>{children}</Link>:<button onClick={onClick} disabled={disabled} className={c}>{children}</button>;}
+
+export default function Button({ href, onClick, children, variant = 'primary', className = '', disabled = false }) {
+  const baseStyles = 'px-4 py-2 rounded-lg font-bold transition disabled:opacity-50';
+  const variantStyles = {
+    primary: 'bg-blue-600 text-white hover:bg-blue-700',
+    secondary: 'bg-gray-200 text-gray-900 hover:bg-gray-300',
+    danger: 'bg-red-600 text-white hover:bg-red-700'
+  };
+
+  const styles = `${baseStyles} ${variantStyles[variant]} ${className}`;
+
+  if (href) {
+    return (
+      <Link href={href} className={styles}>
+        {children}
+      </Link>
+    );
+  }
+
+  return (
+    <button onClick={onClick} disabled={disabled} className={styles}>
+      {children}
+    </button>
+  );
+}

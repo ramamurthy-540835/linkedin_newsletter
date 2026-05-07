@@ -257,3 +257,16 @@ async def get_post(post_id: str) -> Post:
     if not row:
         raise HTTPException(status_code=404, detail="Post not found")
     return Post(**row)
+
+
+@router.delete("/{post_id}")
+async def delete_post(post_id: str):
+    rows = []
+    if POSTS_FILE.exists():
+        rows = json.loads(POSTS_FILE.read_text(encoding="utf-8"))
+    before = len(rows)
+    rows = [r for r in rows if r.get("id") != post_id]
+    if len(rows) == before:
+        raise HTTPException(status_code=404, detail="Post not found")
+    POSTS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
+    return {"success": True, "message": "Post deleted"}

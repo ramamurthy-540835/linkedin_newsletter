@@ -57,7 +57,10 @@ export const publishPost = (postId) =>
     }),
   });
 
-export const deletePost = async () => ({ success: false });
+export const deletePost = (postId) =>
+  req(`/api/posts/${postId}`, {
+    method: 'DELETE',
+  });
 
 export const getLinkedInAuth = () => req('/api/auth/linkedin/url').then(() => ({ authenticated: true })).catch(() => ({ authenticated: false }));
 export const startLinkedInAuth = async () => {

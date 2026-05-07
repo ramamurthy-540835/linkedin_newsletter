@@ -6,7 +6,7 @@ import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorBanner from '@/components/ErrorBanner';
 import SuccessBanner from '@/components/SuccessBanner';
 import LinkedInPreview from '@/components/LinkedInPreview';
-import { getDrafts, publishPost } from '@/lib/api';
+import { getDrafts, publishPost, deletePost } from '@/lib/api';
 
 export default function PublishPage() {
   const [drafts, setDrafts] = useState([]);
@@ -32,6 +32,23 @@ export default function PublishPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (draftId) => {
+    if (!window.confirm('Delete this draft?')) return;
+    try {
+      setError(null);
+      await deletePost(draftId);
+      const updated = drafts.filter((d) => d.id !== draftId);
+      setDrafts(updated);
+      if (selectedDraft?.id === draftId) {
+        setSelectedDraft(updated.length > 0 ? updated[0] : null);
+      }
+      setSuccess('Draft deleted');
+      setTimeout(() => setSuccess(null), 2000);
+    } catch (err) {
+      setError(`Failed to delete: ${err.message}`);
     }
   };
 
@@ -85,17 +102,28 @@ export default function PublishPage() {
                 {drafts.map((draft) => (
                   <div
                     key={draft.id}
-                    onClick={() => setSelectedDraft(draft)}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition ${
+                    className={`p-4 border-2 rounded-lg transition flex justify-between items-start ${
                       selectedDraft?.id === draft.id
                         ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-blue-300 bg-white'
                     }`}
                   >
-                    <div className="font-bold text-gray-900">{draft.title || draft.topic}</div>
-                    <div className="text-sm text-gray-600 mt-1">{(draft.content || '').slice(0, 140)}...</div>
-                    <div className="text-xs text-gray-500 mt-2">
-                      Created: {draft.created_at ? new Date(draft.created_at).toLocaleDateString() : 'N/A'}
+                    <div onClick={() => setSelectedDraft(draft)} className="flex-1 cursor-pointer">
+                      <div className="font-bold text-gray-900">{draft.title || draft.topic}</div>
+                      <div className="text-sm text-gray-600 mt-1">{(draft.content || '').slice(0, 140)}...</div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        Created: {draft.created_at ? new Date(draft.created_at).toLocaleDateString() : 'N/A'}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(draft.id)}
+                      className="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-400 transition"
+                      title="Delete this draft"
+                    >
+                      Delete
+                    </button>
+                    <div className="hidden">
+                      {/* noop placeholder to keep JSX balanced */}
                     </div>
                   </div>
                 ))}
