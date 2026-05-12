@@ -11,14 +11,19 @@ import sys
 import requests
 from collections import defaultdict
 from datetime import datetime
+from dotenv import load_dotenv
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
-import anthropic
+
+# Load .env file
+load_dotenv("backend/.env.local")
+load_dotenv("backend/.env")
 
 # ── Config from env ───────────────────────────────────────────────────────────
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 LINKEDIN_TOKEN = os.getenv("LINKEDIN_ACCESS_TOKEN")
 LINKEDIN_PERSON_URN = os.getenv("LINKEDIN_AUTHOR_URN")
 MEDIUM_TOKEN = os.getenv("MEDIUM_TOKEN")
@@ -406,14 +411,12 @@ def _text_diagram_fallback(stats, ts):
         raise
 
 
-# ── Step 4: Generate post content via Claude ──────────────────────────────────
+# ── Step 4: Generate post content via Gemini ──────────────────────────────────
 def generate_content(stats):
-    """Generate LinkedIn post and Medium article using Claude."""
-    if not ANTHROPIC_KEY:
-        print("❌ ANTHROPIC_API_KEY not set")
-        raise ValueError("ANTHROPIC_API_KEY required")
-
-    client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+    """Generate LinkedIn post and Medium article using Gemini."""
+    if not GEMINI_API_KEY:
+        print("❌ GEMINI_API_KEY not set")
+        raise ValueError("GEMINI_API_KEY required")
     provider = stats["provider"]
 
     families_summary = ", ".join(
@@ -424,30 +427,27 @@ def generate_content(stats):
     low_conf = len(stats["conf_buckets"]["low"])
 
     # LinkedIn post
-    li_prompt = f"""Write a LinkedIn post about an AI model discovery agent run.
+    li_prompt = f"""Write a short LinkedIn post (max 800 chars, 2-3 sentences).
 
-Facts:
-- Provider: {provider}
-- Total models discovered: {stats['total']} across {stats['family_count']} families
-- Top families: {families_summary}
-- Well-documented models: {high_conf}
-- Models needing review: {low_conf}
-- Auto-discovered by a LangGraph agent, stored in BigQuery
+Facts: {provider} - {stats['total']} models, {stats['family_count']} families. LangGraph agent discovery. BigQuery storage. {high_conf} well-documented, {low_conf} need review.
 
-Rules:
-- Hook first line (no emoji at very start)
-- 3 short punchy paragraphs
-- Mention: LangGraph agent, BigQuery, {stats['total']} models, model families
-- End with one engaging question
-- Last line only: 5 hashtags (#AI #LLMOps #OpenAI #ModelDiscovery #GenerativeAI)
-- Plain text, no markdown, max 1200 chars"""
+Format: Hook → brief insight → engagement question. End with #AI #LLMOps #ModelDiscovery."""
 
-    li_resp = client.messages.create(
-        model="claude-opus-4-7",
-        max_tokens=500,
-        messages=[{"role": "user", "content": li_prompt}],
+    li_resp = requests.post(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        headers={"x-goog-api-key": GEMINI_API_KEY},
+        json={
+            "contents": [{"parts": [{"text": li_prompt}]}],
+            "generationConfig": {"maxOutputTokens": 1000, "temperature": 0.7, "topP": 0.95}
+        }
     )
-    linkedin_text = li_resp.content[0].text.strip()
+    li_resp.raise_for_status()
+    resp_data = li_resp.json()
+    if "candidates" not in resp_data or not resp_data["candidates"]:
+        raise ValueError(f"Invalid Gemini response: {resp_data}")
+    linkedin_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    if not linkedin_text or len(linkedin_text) < 50:
+        print(f"⚠️  Warning: LinkedIn response too short ({len(linkedin_text)} chars), may be incomplete")
 
     # Medium article (markdown)
     rows_md = "\n".join(
@@ -515,12 +515,19 @@ Tags line at end: AI, LLM, OpenAI, ModelOps, GenerativeAI
 
 Keep it informative, data-driven, developer-friendly. ~800 words."""
 
-    med_resp = client.messages.create(
-        model="claude-opus-4-7",
-        max_tokens=2000,
-        messages=[{"role": "user", "content": med_prompt}],
+    med_resp = requests.post(
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        headers={"x-goog-api-key": GEMINI_API_KEY},
+        json={
+            "contents": [{"parts": [{"text": med_prompt}]}],
+            "generationConfig": {"maxOutputTokens": 3000, "temperature": 0.7, "topP": 0.95}
+        }
     )
-    medium_content = med_resp.content[0].text.strip()
+    med_resp.raise_for_status()
+    resp_data = med_resp.json()
+    if "candidates" not in resp_data or not resp_data["candidates"]:
+        raise ValueError(f"Invalid Gemini response: {resp_data}")
+    medium_content = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
     return linkedin_text, medium_content
 
@@ -683,7 +690,7 @@ def main():
     print("\n🗺  Generating model diagram...")
     diagram_png, diagram_mmd = generate_mermaid_png(stats)
 
-    print("\n✍️  Generating content via Claude...")
+    print("\n✍️  Generating content via Gemini...")
     linkedin_text, medium_content = generate_content(stats)
 
     # Save text files locally always
