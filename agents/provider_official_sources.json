@@ -1,0 +1,58 @@
+{
+  "openai": {
+    "provider": "openai",
+    "official_domains": [
+      "developers.openai.com",
+      "platform.openai.com",
+      "openai.com"
+    ],
+    "seed_urls": [
+      "https://developers.openai.com/api/docs/models",
+      "https://developers.openai.com/api/docs/models/all",
+      "https://developers.openai.com/api/docs/models/compare",
+      "https://developers.openai.com/api/reference/resources/models/methods/list/",
+      "https://openai.com/api/pricing/"
+    ],
+    "search_queries": [
+      "site:developers.openai.com/api/docs/models OpenAI API models",
+      "site:developers.openai.com/api/docs/models/all OpenAI all models",
+      "site:developers.openai.com/api/reference/resources/models OpenAI list models",
+      "site:openai.com/api/pricing OpenAI API pricing models"
+    ]
+  },
+  "google": {
+    "provider": "google",
+    "official_domains": [
+      "ai.google.dev",
+      "cloud.google.com",
+      "docs.cloud.google.com"
+    ],
+    "seed_urls": [
+      "https://ai.google.dev/gemini-api/docs/models",
+      "https://ai.google.dev/gemini-api/docs/pricing",
+      "https://cloud.google.com/vertex-ai/generative-ai/docs/learn/models"
+    ],
+    "search_queries": [
+      "site:ai.google.dev/gemini-api/docs/models Gemini API models",
+      "site:cloud.google.com/vertex-ai/generative-ai/docs/learn/models Vertex AI Gemini models",
+      "site:ai.google.dev/gemini-api/docs/pricing Gemini pricing models"
+    ]
+  },
+  "anthropic": {
+    "provider": "anthropic",
+    "official_domains": [
+      "docs.anthropic.com",
+      "anthropic.com"
+    ],
+    "seed_urls": [
+      "https://docs.anthropic.com/en/docs/about-claude/models",
+      "https://docs.anthropic.com/en/api/messages",
+      "https://www.anthropic.com/pricing"
+    ],
+    "search_queries": [
+      "site:docs.anthropic.com/en/docs/about-claude/models Claude model IDs",
+      "site:docs.anthropic.com/en/api/messages Anthropic model parameter",
+      "site:anthropic.com/pricing Claude API models"
+    ]
+  }
+}

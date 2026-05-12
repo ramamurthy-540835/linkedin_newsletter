@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const BACKEND = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8001';
+const BACKEND = process.env.INTERNAL_API_URL || 'http://127.0.0.1:8007';
 
 async function forward(request, params) {
   const path = (params?.path || []).join('/');
@@ -17,15 +17,25 @@ async function forward(request, params) {
     cache: 'no-store',
   };
 
-  const res = await fetch(url.toString(), init);
-  const text = await res.text();
-  return new NextResponse(text, {
-    status: res.status,
-    headers: {
-      'content-type': res.headers.get('content-type') || 'application/json',
-      'cache-control': 'no-store',
-    },
-  });
+  try {
+    const res = await fetch(url.toString(), init);
+    const text = await res.text();
+    return new NextResponse(text, {
+      status: res.status,
+      headers: {
+        'content-type': res.headers.get('content-type') || 'application/json',
+        'cache-control': 'no-store',
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        detail: `Proxy upstream fetch failed: ${error?.message || 'unknown error'}`,
+        upstream: url.toString(),
+      },
+      { status: 502 }
+    );
+  }
 }
 
 export async function GET(request, { params }) { return forward(request, params); }

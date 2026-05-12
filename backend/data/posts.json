@@ -52,5 +52,26 @@
     "status": "published",
     "created_at": "2026-05-07T10:01:56.260285+00:00",
     "updated_at": "2026-05-07T10:02:36.601595+00:00"
+  },
+  {
+    "id": "a9c1a531-7bb1-41f2-978a-01fbbe4b0739",
+    "title": "Built an AI-Powered LinkedIn Post Generator",
+    "topic": "I recently built an AI-powered LinkedIn Post Generator to simplify how we create and publish content. Instead of staring at a blank screen, the tool lets you define your title, topic, audience, and tone \u2014 then generates a structured, high-quality LinkedIn post instantly with live preview and publishing workflow.",
+    "audience": "Founders, product managers, engineers, content creators, and AI enthusiasts",
+    "tone": "professional",
+    "content": "Staring at a blank screen, wondering how to craft that perfect LinkedIn post? We've all been there. That's why I'm thrilled to announce I've built an AI-powered LinkedIn Post Generator designed to banish 'blank screen syndrome' forever.\n\nThis tool allows you to define your title, topic, audience, and desired tone. Instantly, it delivers a structured, high-quality post, eliminating the endless drafting process.\n\nWhat makes it even better? A live preview ensures your content looks exactly right before you publish. The integrated publishing workflow streamlines the entire process from concept to click.\n\nWhether you're a founder sharing insights, a product manager announcing a feature, an engineer showcasing innovation, a content creator boosting engagement, or an AI enthusiast exploring new tools \u2013 this generator is built for you. It empowers efficient content creation and publishing, significantly enhancing your professional online presence.\n\nExcited to share more details soon! What's your biggest challenge in LinkedIn content creation?",
+    "hashtags": [
+      "#LinkedIn",
+      "#AITools",
+      "#ContentCreation",
+      "#LinkedInTips",
+      "#Productivity",
+      "#AI",
+      "#SocialMediaMarketing"
+    ],
+    "cta": "What's your biggest challenge in LinkedIn content creation?",
+    "status": "published",
+    "created_at": "2026-05-07T10:20:24.913502+00:00",
+    "updated_at": "2026-05-07T10:20:47.937757+00:00"
   }
 ]

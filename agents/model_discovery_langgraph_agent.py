@@ -858,10 +858,22 @@ def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
     model_families = state.get("model_families", {})
     model_context = state.get("model_context", {})
     enriched = []
+    enrichment_start = time.time()
+    enrichment_timeout = 300  # Max 5 minutes for all enrichment (17 families × ~10s each)
+    family_timeout = 40  # Max 40 seconds per family (3 retries with backoff)
 
     for family_name, models in sorted(model_families.items()):
+        # Check overall enrichment timeout
+        elapsed = time.time() - enrichment_start
+        if elapsed > enrichment_timeout:
+            error_msg = f"Enrichment timeout exceeded ({enrichment_timeout}s after {elapsed:.1f}s). Skipping remaining families."
+            state["semantic_enrichment_errors"].append(error_msg)
+            if state.get("dry_run"):
+                print(f"  ⚠ {error_msg}")
+            break
+
         state["semantic_families_attempted"] += 1
-        start_time = time.time()
+        family_start_time = time.time()
         retry_count = 0
 
         family_context = []
@@ -878,33 +890,34 @@ def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
 
         context_text = "\n".join(family_context[:10])[:8000]
 
-        prompt = f"""Analyze OpenAI model metadata and infer semantic guidance.
+        model_list = ', '.join([m.get('model_id', '') for m in models])
+        prompt = f"""You are a JSON generator. Generate a valid JSON array, no other text.
 
-Family: {family_name}
-Models: {', '.join([m.get('model_id', '') for m in models])}
+REQUIRED JSON FORMAT:
+[{{"model_id": "model-name", "model_purpose": "text", "recommended_for": [], "avoid_for": [], "user_persona": [], "selection_notes": "text", "capabilities": [], "confidence": 0.8}}]
 
-Context:
-{context_text}
+TASK: Create one object per model in this list: {model_list}
 
-Return JSON array (one object per model):
-[
-  {{
-    "model_id": "...",
-    "model_purpose": "primary use case",
-    "recommended_for": ["use case1"],
-    "avoid_for": [],
-    "user_persona": ["developer"],
-    "selection_notes": "when to use",
-    "capabilities": [],
-    "confidence": 0.7
-  }}
+RULES:
+1. Output ONLY valid JSON array, nothing else
+2. Each object must have: model_id, model_purpose, recommended_for (array), avoid_for (array), user_persona (array), selection_notes (string), capabilities (array), confidence (0.0-1.0)
+3. Use accurate model descriptions for the {family_name} family
+4. confidence: 0.8 for accurate descriptions, 0.5-0.7 for uncertain
+5. Do not wrap in markdown, backticks, or any other text
+
+Valid example for family gpt-4o: [
+{{"model_id": "gpt-4o", "model_purpose": "advanced general purpose chat and reasoning", "recommended_for": ["complex reasoning", "code generation", "analysis"], "avoid_for": ["real-time streaming", "latency-critical"], "user_persona": ["engineers", "researchers", "analysts"], "selection_notes": "Flagship model, best accuracy", "capabilities": ["vision", "function calling", "json mode"], "confidence": 0.9}}
 ]
 
-Output JSON only. If uncertain, use lower confidence (0.5-0.7).
-"""
+Generate JSON array for the {family_name} models:"""
 
         result = None
         for attempt in range(3):
+            # Check per-family timeout
+            if time.time() - family_start_time > family_timeout:
+                result = {"success": False, "error": f"Family timeout ({family_timeout}s)"}
+                break
+
             if attempt > 0:
                 backoff = [2, 5][attempt - 1]
                 if state.get("dry_run"):
@@ -914,19 +927,43 @@ Output JSON only. If uncertain, use lower confidence (0.5-0.7).
                 time.sleep(backoff)
                 retry_count = attempt
 
-            result = _call_gemini_rest(prompt, timeout=20)
+            result = _call_gemini_rest(prompt, timeout=10)
             if result["success"]:
                 break
 
-        duration = time.time() - start_time
+        duration = time.time() - family_start_time
 
         if result and result["success"]:
             text_content = result.get("text", "").strip()
+
+            # Debug: log raw response in dry_run mode
+            if state.get("dry_run") and state.get("debug_semantic", False):
+                print(f"    [DEBUG {family_name}] Raw response (first 200 chars): {text_content[:200]}")
+
             semantic_data = _parse_json(text_content, [])
+
+            # Extract array from wrapped structure if needed
+            if isinstance(semantic_data, dict):
+                # Try common wrapper keys: models, data, results, items
+                for key in ["models", "data", "results", "items"]:
+                    if key in semantic_data and isinstance(semantic_data[key], list):
+                        semantic_data = semantic_data[key]
+                        break
+
+                # If still a dict, try to extract first list value
+                if isinstance(semantic_data, dict) and not isinstance(semantic_data, list):
+                    # Last attempt: get first value that's a list
+                    for v in semantic_data.values():
+                        if isinstance(v, list):
+                            semantic_data = v
+                            break
 
             if isinstance(semantic_data, list) and len(semantic_data) > 0:
                 enriched_count = 0
                 for sem_item in semantic_data:
+                    if not isinstance(sem_item, dict):
+                        continue
+
                     mid = sem_item.get("model_id", "").lower()
                     matching_model = next(
                         (m for m in models if m.get("model_id", "").lower() == mid),
@@ -955,23 +992,52 @@ Output JSON only. If uncertain, use lower confidence (0.5-0.7).
                         matching_model["official_context"] = context_text[:300]
                         enriched_count += 1
 
-                state["semantic_families_completed"] += 1
-                if state.get("dry_run"):
-                    print(
-                        f"  ✓ {family_name}: {len(models)} models ({duration:.1f}s, {enriched_count} enriched)"
-                    )
+                if enriched_count > 0:
+                    state["semantic_families_completed"] += 1
+                    if state.get("dry_run"):
+                        print(
+                            f"  ✓ {family_name}: {len(models)} models ({duration:.1f}s, {enriched_count} enriched)"
+                        )
+                else:
+                    error_msg = f"{family_name}: No matching models in response"
+                    state["semantic_enrichment_errors"].append(error_msg)
+                    if state.get("dry_run"):
+                        print(f"  ⚠ {error_msg}")
             else:
-                # Response parsed but empty or invalid structure
-                error_msg = f"{family_name}: Empty or invalid JSON array (got {type(semantic_data).__name__})"
+                # Response parsed but empty or invalid structure - use fallback enrichment
+                error_msg = f"{family_name}: Empty or invalid JSON array (got {type(semantic_data).__name__}), using fallback"
                 state["semantic_enrichment_errors"].append(error_msg)
                 if state.get("dry_run"):
                     print(f"  ⚠ {error_msg}")
 
+                # Fallback: assign default semantic fields
+                for model in models:
+                    model["model_purpose"] = f"{family_name} model"
+                    model["recommended_for"] = ["general use"]
+                    model["avoid_for"] = []
+                    model["user_persona"] = ["developers"]
+                    model["selection_notes"] = "Default enrichment (Gemini response incomplete)"
+                    model["capabilities"] = []
+                    model["semantic_confidence"] = 0.3
+                    model["official_context"] = context_text[:300]
+
         else:
+            # API call failed - use fallback enrichment
             error_msg = f"{family_name}: {result.get('error', 'Unknown error') if result else 'No response'} (retries: {retry_count})"
             state["semantic_enrichment_errors"].append(error_msg)
             if state.get("dry_run"):
                 print(f"  ⚠ {error_msg} ({duration:.1f}s)")
+
+            # Fallback: assign default semantic fields
+            for model in models:
+                model["model_purpose"] = f"{family_name} model"
+                model["recommended_for"] = ["general use"]
+                model["avoid_for"] = []
+                model["user_persona"] = ["developers"]
+                model["selection_notes"] = f"Default enrichment (API error: {error_msg[:30]})"
+                model["capabilities"] = []
+                model["semantic_confidence"] = 0.3
+                model["official_context"] = context_text[:300]
 
         enriched.extend(models)
 

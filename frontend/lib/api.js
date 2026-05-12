@@ -1,10 +1,19 @@
 import { API_URL } from './constants';
 
 async function req(path, opts = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
+  const requestInit = {
     headers: { 'Content-Type': 'application/json' },
     ...opts,
-  });
+  };
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, requestInit);
+  } catch (directErr) {
+    // Fall back to Next.js proxy when direct backend URL is unreachable.
+    res = await fetch(`/api/proxy${path}`, requestInit);
+  }
+
   if (!res.ok) {
     let detail = '';
     try {
@@ -71,3 +80,14 @@ export const startLinkedInAuth = async () => {
 export const getPlatformCredentials = () => req('/api/admin/platforms').catch(() => ({}));
 export const configurePlatform = (platform, data) => req(`/api/admin/platforms/${platform}`, { method: 'POST', body: JSON.stringify(data) });
 export const testPlatform = (platform) => req(`/api/admin/platforms/${platform}/validate`, { method: 'POST', body: JSON.stringify({}) });
+
+// SerpAPI endpoints
+export const searchSerp = (q, key) => req(`/api/serp/search?q=${encodeURIComponent(q)}&key=${key || ''}`);
+export const scrapeProfile = (url, key) => req(`/api/serp/profile/scrape?linkedin_url=${encodeURIComponent(url)}&key=${key || ''}`);
+
+// Claude API helper
+// JSON parse helper
+export const parseJSON = (text) => {
+  const clean = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(clean);
+};

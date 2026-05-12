@@ -1,7 +1,10 @@
+import threading
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
+from app.api.routes.models import ensure_models_table
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name)
@@ -15,6 +18,12 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api")
+
+
+@app.on_event("startup")
+async def startup_seed_models() -> None:
+    # Do not block API boot on BigQuery availability/auth.
+    threading.Thread(target=ensure_models_table, daemon=True).start()
 
 
 @app.get("/health")

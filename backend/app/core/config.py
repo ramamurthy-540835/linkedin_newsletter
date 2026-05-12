@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     medium_api_key: str = ""
 
+    serp_api_key: str = ""
+
     # 44-char URL-safe base64 Fernet key; if empty a deterministic dev key is used
     credentials_encryption_key: str = ""
 

@@ -15,6 +15,7 @@ export default function PublishPage() {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [publishResult, setPublishResult] = useState(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   useEffect(() => {
     fetchDrafts();
@@ -38,8 +39,6 @@ export default function PublishPage() {
   };
 
   const handleDelete = async (draftId) => {
-    if (!window.confirm('Delete this draft?')) return;
-
     try {
       setError(null);
       await deletePost(draftId);
@@ -133,7 +132,7 @@ export default function PublishPage() {
                   </div>
 
                   <button
-                    onClick={() => handleDelete(draft.id)}
+                    onClick={() => setPendingDeleteId(draft.id)}
                     className="ml-2 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded border border-red-200 hover:border-red-400 transition"
                     title="Delete this draft"
                   >
@@ -210,6 +209,31 @@ export default function PublishPage() {
                 {publishing ? '⏳ Publishing...' : '🚀 Publish to LinkedIn'}
               </Button>
             )}
+          </Card>
+        )}
+
+        {pendingDeleteId && (
+          <Card>
+            <div className="flex flex-wrap gap-2 items-center justify-between">
+              <div className="text-sm font-semibold text-gray-700">Delete this draft?</div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    handleDelete(pendingDeleteId);
+                    setPendingDeleteId(null);
+                  }}
+                  className="px-3 py-1 bg-red-600 text-white rounded text-sm font-semibold"
+                >
+                  Yes, delete
+                </button>
+                <button
+                  onClick={() => setPendingDeleteId(null)}
+                  className="px-3 py-1 bg-gray-200 text-gray-800 rounded text-sm font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
           </Card>
         )}
       </div>

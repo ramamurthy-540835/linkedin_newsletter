@@ -1,1 +1,1 @@
-export const API_URL = '/api/proxy';
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://10.100.15.44:8007';

@@ -1,0 +1,106 @@
+
+> linkedin-post-generator-frontend@0.1.0 dev
+> next dev -p 3000 -p 3007
+
+  ▲ Next.js 14.2.15
+  - Local:        http://localhost:3007
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 1473ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1485ms (497 modules)
+ GET / 200 in 1769ms
+ ○ Compiling /admin/settings ...
+ ✓ Compiled /admin/settings in 630ms (514 modules)
+ ✓ Compiled /api/proxy/[...path] in 392ms (285 modules)
+ GET /api/proxy/api/serp/search?q=LinkedIn&key=2f39b3c44b6e1181b068826f001adf0169950372126abd302bbb6f9de71ed7dc 200 in 3836ms
+ GET /api/proxy/api/serp/search?q=LinkedIn&key=2f39b3c44b6e1181b068826f001adf0169950372126abd302bbb6f9de71ed7dc 200 in 136ms
+ GET /api/proxy/api/serp/search?q=LinkedIn&key=2f39b3c44b6e1181b068826f001adf0169950372126abd302bbb6f9de71ed7dc 200 in 117ms
+ POST /api/proxy/api/config/keys 200 in 63ms
+ POST /api/proxy/api/ai/generate 200 in 3594ms
+ ⚠ Duplicate page detected. app/page.js and app/page.jsx resolve to /
+ ⚠ Duplicate page detected. app/admin/settings/page.js and app/admin/settings/page.jsx resolve to /admin/settings
+ ✓ Compiled in 1894ms (490 modules)
+ ⨯ Error: The default export is not a React Component in page: "/"
+    at rU (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:9654)
+    at async /home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:10412
+    at async Promise.all (index 0)
+    at async rU (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:10117)
+    at async rW (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:12695)
+    at async r0 (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:16189)
+    at async doRender (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1413:30)
+    at async cacheEntry.responseCache.get.routeKind (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1574:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1482:28)
+    at async DevServer.renderPageComponent (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1908:24)
+    at async DevServer.renderToResponseImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1946:32)
+    at async DevServer.pipeImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:921:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:817:17)
+    at async /home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  page: '/'
+}
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 1120ms (716 modules)
+ ⨯ Error: The default export is not a React Component in page: "/"
+    at rU (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:9654)
+    at async /home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:10412
+    at async Promise.all (index 0)
+    at async rU (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:10117)
+    at async rW (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:12695)
+    at async r0 (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:16189)
+    at async doRender (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1413:30)
+    at async cacheEntry.responseCache.get.routeKind (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1574:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1482:28)
+    at async DevServer.renderPageComponent (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1908:24)
+    at async DevServer.renderToResponseImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1946:32)
+    at async DevServer.pipeImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:921:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:817:17)
+    at async /home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  page: '/'
+}
+ ⨯ Error: The default export is not a React Component in page: "/"
+    at rU (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:9654)
+    at async /home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:10412
+    at async Promise.all (index 0)
+    at async rU (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:10117)
+    at async rW (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:12695)
+    at async r0 (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/compiled/next-server/app-page.runtime.dev.js:39:16189)
+    at async doRender (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1413:30)
+    at async cacheEntry.responseCache.get.routeKind (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1574:28)
+    at async DevServer.renderToResponseWithComponentsImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1482:28)
+    at async DevServer.renderPageComponent (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1908:24)
+    at async DevServer.renderToResponseImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:1946:32)
+    at async DevServer.pipeImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:921:25)
+    at async NextNodeServer.handleCatchallRenderRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/next-server.js:272:17)
+    at async DevServer.handleRequestImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/base-server.js:817:17)
+    at async /home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/dev/next-dev-server.js:339:20
+    at async Span.traceAsyncFn (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/trace/trace.js:154:20)
+    at async DevServer.handleRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/dev/next-dev-server.js:336:24)
+    at async invokeRender (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:173:21)
+    at async handleRequest (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:350:24)
+    at async requestHandlerImpl (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/router-server.js:374:13)
+    at async Server.requestListener (/home/appadmin/projects/Ram_Projects/linkedin_newsletter/frontend/node_modules/next/dist/server/lib/start-server.js:141:13) {
+  page: '/'
+}
+ ⨯ Error: The default export is not a React Component in page: "/"
+    at async Promise.all (index 0)
+digest: "2856749053"
+ ⨯ Error: The default export is not a React Component in page: "/"
+    at async Promise.all (index 0)
+digest: "2856749053"
+ GET / 500 in 110ms
+[?25h

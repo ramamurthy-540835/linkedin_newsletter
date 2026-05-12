@@ -1,0 +1,16 @@
+INFO:     Started server process [874608]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8007 (Press CTRL+C to quit)
+INFO:     127.0.0.1:42872 - "GET /health HTTP/1.1" 200 OK
+[models] Cleared existing rows from ai_models
+[models] Seeded 23 models: 17 Google, 3 Anthropic, 3 OpenAI
+INFO:     ::ffff:10.100.10.23:0 - "GET /api/serp/search?q=LinkedIn&key=2f39b3c44b6e1181b068826f001adf0169950372126abd302bbb6f9de71ed7dc HTTP/1.1" 200 OK
+INFO:     ::ffff:10.100.10.23:0 - "GET /api/serp/search?q=LinkedIn&key=2f39b3c44b6e1181b068826f001adf0169950372126abd302bbb6f9de71ed7dc HTTP/1.1" 200 OK
+INFO:     ::ffff:10.100.10.23:0 - "GET /api/serp/search?q=LinkedIn&key=2f39b3c44b6e1181b068826f001adf0169950372126abd302bbb6f9de71ed7dc HTTP/1.1" 200 OK
+INFO:     ::ffff:10.100.10.23:0 - "POST /api/config/keys HTTP/1.1" 200 OK
+INFO:     ::ffff:10.100.10.23:0 - "POST /api/ai/generate HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [874608]
