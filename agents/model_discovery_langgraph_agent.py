@@ -845,7 +845,19 @@ def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
     provider = state.get("target_provider", "openai").lower()
 
     if skip_enrichment or provider != "openai":
-        state["enriched_models"] = state.get("approved_records", [])
+        # Still add default enrichment fields even when skipping enrichment
+        approved = state.get("approved_records", [])
+        for model in approved:
+            model["model_purpose"] = model.get("model_purpose", f"{model.get('family', 'unknown')} model")
+            model["recommended_for"] = model.get("recommended_for", ["general use"])
+            model["avoid_for"] = model.get("avoid_for", [])
+            model["user_persona"] = model.get("user_persona", ["developers"])
+            model["selection_notes"] = model.get("selection_notes", "Default (enrichment skipped)")
+            model["capabilities"] = model.get("capabilities", [])
+            model["semantic_confidence"] = model.get("semantic_confidence", 0.3)
+            model["official_context"] = model.get("official_context", "")
+
+        state["enriched_models"] = approved
         state["semantic_enrichment_enabled"] = not skip_enrichment
         state["semantic_enrichment_completed"] = True
         return state
