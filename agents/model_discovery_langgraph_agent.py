@@ -1215,6 +1215,107 @@ def node_diff(state: DiscoveryState) -> DiscoveryState:
     return state
 
 
+def check_and_repair_duplicates(client, table_id: str, repair: bool = False) -> dict:
+    """Check for duplicate rows and optionally repair them.
+
+    Returns:
+    {
+        "has_duplicates": bool,
+        "total_rows": int,
+        "unique_models": int,
+        "duplicates": {provider:model_id -> count, ...}
+        "repaired": bool
+    }
+    """
+    # Check for duplicates
+    check_sql = f"""
+    SELECT provider, model_id, COUNT(*) as cnt
+    FROM `{table_id}`
+    GROUP BY provider, model_id
+    HAVING COUNT(*) > 1
+    ORDER BY cnt DESC
+    """
+
+    try:
+        result = client.query(check_sql).result()
+        duplicates = {f"{row.provider}:{row.model_id}": row.cnt for row in result}
+    except Exception as e:
+        return {"has_duplicates": False, "error": str(e), "duplicates": {}, "repaired": False, "total_rows": 0, "unique_models": 0}
+
+    # Get total stats
+    stats_sql = f"""
+    SELECT COUNT(*) as total, COUNT(DISTINCT CONCAT(provider, ':', model_id)) as unique_models
+    FROM `{table_id}`
+    """
+    stats = client.query(stats_sql).result()
+    total_rows = list(stats)[0].total
+    unique_models = list(stats)[0].unique_models
+
+    if not duplicates:
+        return {
+            "has_duplicates": False,
+            "total_rows": total_rows,
+            "unique_models": unique_models,
+            "duplicates": {},
+            "repaired": False
+        }
+
+    # Has duplicates
+    print(f"\n⚠ WARNING: Found {len(duplicates)} model(s) with duplicates!")
+    print(f"  Total rows: {total_rows}")
+    print(f"  Unique models: {unique_models}")
+    print(f"  Duplicates: {duplicates}")
+
+    if not repair:
+        print("\nTo repair, run: python agents/model_discovery_langgraph_agent.py --repair-duplicates")
+        return {
+            "has_duplicates": True,
+            "total_rows": total_rows,
+            "unique_models": unique_models,
+            "duplicates": duplicates,
+            "repaired": False
+        }
+
+    # Repair: keep only the latest row per provider/model_id
+    print("\n🔧 Repairing duplicates (keeping latest per provider/model_id)...")
+    repair_sql = f"""
+    DELETE FROM `{table_id}`
+    WHERE CONCAT(provider, ':', model_id, ':', CAST(last_verified_at AS STRING)) NOT IN (
+        SELECT CONCAT(provider, ':', model_id, ':', CAST(MAX(last_verified_at) AS STRING))
+        FROM `{table_id}`
+        GROUP BY provider, model_id
+    )
+    """
+
+    try:
+        client.query(repair_sql).result()
+        print("✓ Duplicates removed")
+
+        # Verify repair
+        result = client.query(stats_sql).result()
+        new_total = list(result)[0].total
+        new_unique = list(result)[0].unique_models
+        print(f"✓ After repair: {new_total} total rows, {new_unique} unique models")
+
+        return {
+            "has_duplicates": False,
+            "total_rows": new_total,
+            "unique_models": new_unique,
+            "duplicates": {},
+            "repaired": True
+        }
+    except Exception as e:
+        print(f"✗ Repair failed: {e}")
+        return {
+            "has_duplicates": True,
+            "total_rows": total_rows,
+            "unique_models": unique_models,
+            "duplicates": duplicates,
+            "repaired": False,
+            "error": str(e)
+        }
+
+
 def node_upsert(state: DiscoveryState) -> DiscoveryState:
     if state.get("dry_run", False) or state.get("stopped", False) or state.get("export_candidates_only", False):
         return state
@@ -1226,6 +1327,16 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
     to_write = state.get("inserts", []) + state.get("updates", [])
 
     if not to_write:
+        return state
+
+    # Check for existing duplicates
+    repair_duplicates = state.get("repair_duplicates", False)
+    dup_check = check_and_repair_duplicates(client, table_id, repair=repair_duplicates)
+
+    if dup_check.get("has_duplicates") and not repair_duplicates:
+        state["stopped"] = True
+        state["stop_reason"] = "Duplicates exist in BigQuery. Run with --repair-duplicates to fix"
+        state["errors"] = state.get("errors", []) + [dup_check.get("stop_reason", "Duplicates found")]
         return state
 
     # Fields that are safe to include (exist in BigQuery schema)
@@ -1261,14 +1372,36 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
 
         rows_to_insert.append(row)
 
+    # Deduplicate source rows (keep latest per provider/model_id)
+    dedup_map = {}
+    for row in rows_to_insert:
+        key = (row.get("provider"), row.get("model_id"))
+        # Keep row with latest timestamp (or just overwrite if same)
+        dedup_map[key] = row
+
+    deduped_rows = list(dedup_map.values())
+
     try:
-        errors = client.insert_rows_json(table_id, rows_to_insert)
+        errors = client.insert_rows_json(table_id, deduped_rows)
         if errors:
             msg = f"BigQuery insert errors: {errors}"
             state["errors"] = state.get("errors", []) + [msg]
             print(msg)
         else:
-            print(f"Inserted/updated {len(rows_to_insert)} rows to BigQuery")
+            print(f"Upserted {len(deduped_rows)} models to BigQuery")
+            print(f"  Inserts: {len(state.get('inserts', []))}")
+            print(f"  Updates: {len(state.get('updates', []))}")
+
+            # Verify final state
+            verify_sql = f"""
+            SELECT COUNT(*) as total, COUNT(DISTINCT CONCAT(provider, ':', model_id)) as unique_models
+            FROM `{table_id}`
+            WHERE provider = '{state.get('target_provider', 'openai')}'
+            """
+            result = client.query(verify_sql).result()
+            stats = list(result)[0]
+            print(f"  BigQuery after upsert: {stats.total} total rows, {stats.unique_models} unique models")
+
     except Exception as e:
         state["errors"] = state.get("errors", []) + [f"BigQuery upsert failed: {e}"]
 
@@ -1425,7 +1558,7 @@ def build_graph():
 
 def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         force_official_only: bool, allow_web_fallback: bool, refresh_provider: bool,
-        skip_semantic_enrichment: bool):
+        skip_semantic_enrichment: bool, repair_duplicates: bool = False):
 
     print("=" * 60)
     print("MODEL DISCOVERY — API-FIRST ARCHITECTURE")
@@ -1446,6 +1579,7 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         "allow_web_fallback": allow_web_fallback,
         "refresh_provider": refresh_provider,
         "skip_semantic_enrichment": skip_semantic_enrichment,
+        "repair_duplicates": repair_duplicates,
         "started_at": _now(),
         "errors": [],
         "export_candidates_only": export_candidates_only,
@@ -1553,6 +1687,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Skip semantic enrichment; use null/empty semantic fields"
     )
+    parser.add_argument(
+        "--repair-duplicates",
+        action="store_true",
+        help="Remove duplicate rows (keeping latest per provider/model_id); only if duplicates found"
+    )
 
     args = parser.parse_args()
 
@@ -1564,4 +1703,5 @@ if __name__ == "__main__":
         allow_web_fallback=args.allow_web_fallback,
         refresh_provider=args.refresh_provider,
         skip_semantic_enrichment=args.skip_semantic_enrichment,
+        repair_duplicates=args.repair_duplicates,
     )
