@@ -289,7 +289,49 @@ def _call_gemini_rest(prompt: str, timeout: int = 20) -> dict:
 print("Gemini REST API ready")
 
 
+def node_load_from_json(state: DiscoveryState) -> DiscoveryState:
+    """Load normalized models from candidates JSON file and skip all discovery/enrichment."""
+    if not state.get("load_from_json", False):
+        return state
+
+    provider = state.get("target_provider", "openai").lower()
+    json_path = f"agents/model_discovery_candidates_{provider}.json"
+
+    try:
+        with open(json_path, "r") as f:
+            data = json.load(f)
+
+        # Try both keys: enriched_models (new) and normalized_models (existing)
+        normalized_models = data.get("normalized_models", data.get("enriched_models", []))
+        if normalized_models:
+            # Load models directly - they're already fully enriched
+            state["normalized_models"] = normalized_models
+            state["enriched_models"] = normalized_models
+            state["approved_records"] = normalized_models
+            state["structured_models"] = normalized_models
+            state["semantic_enrichment_completed"] = True
+            state["load_from_json_success"] = True
+
+            print(f"✓ Loaded {len(normalized_models)} models from {json_path}")
+            print("  Skipping discovery, scraping, normalization, and enrichment")
+
+            return state
+        else:
+            print(f"⚠ No models found in {json_path}")
+    except FileNotFoundError:
+        print(f"⚠ Candidates file not found: {json_path}")
+    except Exception as e:
+        print(f"⚠ Error loading JSON: {str(e)[:100]}")
+
+    # If load fails, continue with normal discovery
+    return state
+
+
 def node_provider_seed(state: DiscoveryState) -> DiscoveryState:
+    # Skip if loading from JSON
+    if state.get("load_from_json") and state.get("enriched_models"):
+        return state
+
     provider = state.get("target_provider", "openai").lower()
     if provider not in PROVIDER_CONFIG:
         state["stopped"] = True
@@ -611,6 +653,9 @@ def _classify_anthropic_model(model_id: str) -> tuple[str, str, str]:
 
 
 def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
+    # Skip if loading from JSON
+    if state.get("load_from_json_success"):
+        return state
     if state.get("stopped", False):
         return state
 
@@ -677,6 +722,9 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
 
 
 def node_official_docs_discovery(state: DiscoveryState) -> DiscoveryState:
+    # Skip if loading from JSON
+    if state.get("load_from_json_success"):
+        return state
     if state.get("stopped", False):
         return state
 
@@ -735,6 +783,9 @@ def node_official_docs_discovery(state: DiscoveryState) -> DiscoveryState:
 
 
 def node_gemini_fallback(state: DiscoveryState) -> DiscoveryState:
+    # Skip if loading from JSON
+    if state.get("load_from_json_success"):
+        return state
     if state.get("stopped", False):
         return state
 
@@ -816,6 +867,10 @@ Return ONLY the JSON object."""
 
 def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
     if state.get("stopped", False):
+        return state
+
+    # Skip if loading from JSON (already normalized)
+    if state.get("load_from_json_success"):
         return state
 
     provider = state.get("target_provider", "openai").lower()
@@ -910,6 +965,9 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
 
 def node_gather_official_metadata(state: DiscoveryState) -> DiscoveryState:
     """Gather official documentation context for models (non-blocking)."""
+    # Skip if loading from JSON
+    if state.get("load_from_json_success"):
+        return state
     if state.get("stopped", False):
         return state
 
@@ -965,6 +1023,9 @@ def node_gather_official_metadata(state: DiscoveryState) -> DiscoveryState:
 
 def node_batch_models_by_family(state: DiscoveryState) -> DiscoveryState:
     """Group models by family for efficient semantic enrichment."""
+    # Skip if loading from JSON (already enriched)
+    if state.get("load_from_json_success"):
+        return state
     if state.get("stopped", False):
         return state
 
@@ -984,8 +1045,16 @@ def node_batch_models_by_family(state: DiscoveryState) -> DiscoveryState:
 
 def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
     """Enrich models with semantic metadata via Gemini REST API (non-blocking, with retry)."""
+    # Skip if loading from JSON (already enriched)
+    if state.get("load_from_json_success"):
+        return state
     if state.get("stopped", False):
         return state
+
+    # Skip if loading from JSON (already enriched)
+    if state.get("load_from_json") and state.get("semantic_enrichment_completed"):
+        if state.get("enriched_models"):
+            return state
 
     skip_enrichment = state.get("skip_semantic_enrichment", False)
     provider = state.get("target_provider", "openai").lower()
@@ -1735,6 +1804,7 @@ def node_audit(state: DiscoveryState) -> DiscoveryState:
 
 def build_graph():
     g = StateGraph(DiscoveryState)
+    g.add_node("load_json", node_load_from_json)
     g.add_node("seed", node_provider_seed)
     g.add_node("structured", node_official_structured_discovery)
     g.add_node("docs", node_official_docs_discovery)
@@ -1752,7 +1822,8 @@ def build_graph():
     g.add_node("upsert", node_upsert)
     g.add_node("audit", node_audit)
 
-    g.set_entry_point("seed")
+    g.set_entry_point("load_json")
+    g.add_edge("load_json", "seed")
     g.add_edge("seed", "structured")
     g.add_edge("structured", "docs")
     g.add_edge("docs", "fallback")
@@ -1775,7 +1846,8 @@ def build_graph():
 
 def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         force_official_only: bool, allow_web_fallback: bool, refresh_provider: bool,
-        skip_semantic_enrichment: bool, repair_duplicates: bool = False, debug: bool = False):
+        skip_semantic_enrichment: bool, repair_duplicates: bool = False, debug: bool = False,
+        load_from_json: bool = False):
 
     print("=" * 60)
     print("MODEL DISCOVERY — API-FIRST ARCHITECTURE")
@@ -1793,6 +1865,7 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         "intelligence_model": "gemini-2.5-flash",
         "dry_run": dry_run,
         "debug": debug,
+        "load_from_json": load_from_json,
         "force_official_only": force_official_only,
         "allow_web_fallback": allow_web_fallback,
         "refresh_provider": refresh_provider,
@@ -1915,6 +1988,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Enable debug output (shows family field validation, enrichment details)"
     )
+    parser.add_argument(
+        "--load-from-json",
+        action="store_true",
+        help="Load enriched models from candidates JSON and insert to BigQuery (skip discovery)"
+    )
 
     args = parser.parse_args()
 
@@ -1928,4 +2006,5 @@ if __name__ == "__main__":
         skip_semantic_enrichment=args.skip_semantic_enrichment,
         repair_duplicates=args.repair_duplicates,
         debug=args.debug,
+        load_from_json=args.load_from_json,
     )

@@ -2,3 +2,5 @@ requests
 google-cloud-bigquery
 langgraph
 python-dotenv
+anthropic
+matplotlib
