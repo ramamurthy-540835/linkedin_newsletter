@@ -17,10 +17,9 @@ from typing import Any, TypedDict
 from urllib.parse import urljoin, urlparse
 
 import requests
+import time
 from dotenv import load_dotenv
 from google.cloud import bigquery
-from langchain_core.messages import HumanMessage
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import END, StateGraph
 
 
@@ -31,17 +30,40 @@ def _now() -> str:
 def _parse_json(text: str, default: Any):
     if not text:
         return default
+
+    # Remove markdown code blocks
     clean = text.replace("```json", "").replace("```", "").strip()
+
+    # Try direct parse first
     try:
         return json.loads(clean)
     except Exception:
-        m = re.search(r"(\{.*\}|\[.*\])", clean, re.DOTALL)
+        pass
+
+    # Try extracting JSON array or object
+    try:
+        m = re.search(r"(\[.*\])", clean, re.DOTALL)
         if m:
-            try:
-                return json.loads(m.group(1))
-            except Exception:
-                return default
-        return default
+            return json.loads(m.group(1))
+    except Exception:
+        pass
+
+    try:
+        m = re.search(r"(\{.*\})", clean, re.DOTALL)
+        if m:
+            return json.loads(m.group(1))
+    except Exception:
+        pass
+
+    # Last resort: look for array start and extract to end
+    try:
+        idx = clean.find("[")
+        if idx >= 0:
+            return json.loads(clean[idx:])
+    except Exception:
+        pass
+
+    return default
 
 
 def _source_domain(url: str) -> str:
@@ -216,17 +238,55 @@ normalize_env()
 
 print("Using Gemini key:", "YES" if os.getenv("GOOGLE_API_KEY") else "NO")
 
-if not os.getenv("GOOGLE_API_KEY"):
+GEMINI_API_KEY = os.getenv("GOOGLE_API_KEY")
+if not GEMINI_API_KEY:
     raise RuntimeError("Missing GOOGLE_API_KEY (mapped from GEMINI_API_KEY)")
 
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=os.environ["GOOGLE_API_KEY"],
-    temperature=0,
-)
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
-_preflight = llm.invoke("Say hello")
-print(f"Gemini ready: {_preflight.content[:50]}")
+
+def _call_gemini_rest(prompt: str, timeout: int = 20) -> dict:
+    """Call Gemini REST API directly (non-blocking, with timeout)."""
+    payload = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ],
+        "generationConfig": {
+            "temperature": 0,
+            "maxOutputTokens": 2000,
+        },
+    }
+
+    try:
+        resp = requests.post(
+            f"{GEMINI_API_URL}?key={GEMINI_API_KEY}",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=timeout,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        candidates = data.get("candidates", [])
+        if candidates:
+            content = candidates[0].get("content", {})
+            parts = content.get("parts", [])
+            if parts:
+                return {"success": True, "text": parts[0].get("text", "")}
+
+        return {"success": False, "error": "No content in response"}
+
+    except requests.Timeout:
+        return {"success": False, "error": "Timeout"}
+    except Exception as e:
+        return {"success": False, "error": str(e)[:100]}
+
+
+print("Gemini REST API ready")
 
 
 def node_provider_seed(state: DiscoveryState) -> DiscoveryState:
@@ -777,7 +837,7 @@ def node_batch_models_by_family(state: DiscoveryState) -> DiscoveryState:
 
 
 def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
-    """Enrich models with semantic metadata via Gemini (timeout-safe, non-blocking)."""
+    """Enrich models with semantic metadata via Gemini REST API (non-blocking, with retry)."""
     if state.get("stopped", False):
         return state
 
@@ -801,6 +861,8 @@ def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
 
     for family_name, models in sorted(model_families.items()):
         state["semantic_families_attempted"] += 1
+        start_time = time.time()
+        retry_count = 0
 
         family_context = []
         for model in models:
@@ -814,13 +876,15 @@ def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
                 f"Family: {family_name}. Models: {', '.join([m.get('model_id', '') for m in models[:5]])}"
             ]
 
+        context_text = "\n".join(family_context[:10])[:8000]
+
         prompt = f"""Analyze OpenAI model metadata and infer semantic guidance.
 
 Family: {family_name}
-Models: {[m.get('model_id', '') for m in models]}
+Models: {', '.join([m.get('model_id', '') for m in models])}
 
 Context:
-{chr(10).join(family_context[:5])}
+{context_text}
 
 Return JSON array (one object per model):
 [
@@ -839,11 +903,29 @@ Return JSON array (one object per model):
 Output JSON only. If uncertain, use lower confidence (0.5-0.7).
 """
 
-        try:
-            resp = llm.invoke([HumanMessage(content=prompt)])
-            semantic_data = _parse_json(resp.content, [])
+        result = None
+        for attempt in range(3):
+            if attempt > 0:
+                backoff = [2, 5][attempt - 1]
+                if state.get("dry_run"):
+                    print(
+                        f"  Semantic enrichment retry ({family_name}, attempt {attempt + 1}, backoff {backoff}s)"
+                    )
+                time.sleep(backoff)
+                retry_count = attempt
 
-            if isinstance(semantic_data, list) and semantic_data:
+            result = _call_gemini_rest(prompt, timeout=20)
+            if result["success"]:
+                break
+
+        duration = time.time() - start_time
+
+        if result and result["success"]:
+            text_content = result.get("text", "").strip()
+            semantic_data = _parse_json(text_content, [])
+
+            if isinstance(semantic_data, list) and len(semantic_data) > 0:
+                enriched_count = 0
                 for sem_item in semantic_data:
                     mid = sem_item.get("model_id", "").lower()
                     matching_model = next(
@@ -870,20 +952,28 @@ Output JSON only. If uncertain, use lower confidence (0.5-0.7).
                         matching_model["semantic_confidence"] = float(
                             sem_item.get("confidence", 0.5)
                         )
-                        matching_model["official_context"] = " ".join(
-                            family_context[:2]
-                        )[:300]
+                        matching_model["official_context"] = context_text[:300]
+                        enriched_count += 1
 
                 state["semantic_families_completed"] += 1
+                if state.get("dry_run"):
+                    print(
+                        f"  ✓ {family_name}: {len(models)} models ({duration:.1f}s, {enriched_count} enriched)"
+                    )
+            else:
+                # Response parsed but empty or invalid structure
+                error_msg = f"{family_name}: Empty or invalid JSON array (got {type(semantic_data).__name__})"
+                state["semantic_enrichment_errors"].append(error_msg)
+                if state.get("dry_run"):
+                    print(f"  ⚠ {error_msg}")
 
-            enriched.extend(models)
-
-        except Exception as e:
-            error_msg = f"{family_name}: {str(e)[:60]}"
+        else:
+            error_msg = f"{family_name}: {result.get('error', 'Unknown error') if result else 'No response'} (retries: {retry_count})"
             state["semantic_enrichment_errors"].append(error_msg)
             if state.get("dry_run"):
-                print(f"Semantic enrichment warning ({error_msg})")
-            enriched.extend(models)
+                print(f"  ⚠ {error_msg} ({duration:.1f}s)")
+
+        enriched.extend(models)
 
     state["enriched_models"] = enriched
     state["semantic_enrichment_completed"] = True
