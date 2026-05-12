@@ -44,7 +44,7 @@ class ModelRecord:
 @dataclass
 class AgentState:
     """LangGraph state for model discovery workflow"""
-    provider_filter: list[str] = field(default_factory=lambda: ["openai", "anthropic", "google"])
+    provider_filter: list[str] = field(default_factory=lambda: ["openai", "google"])
     dry_run: bool = False
     started_at: str = ""
     ended_at: str = ""
@@ -221,10 +221,6 @@ def build_search_queries(state: AgentState) -> AgentState:
             "site:developers.openai.com/docs/models latest OpenAI model list",
             "site:openai.com/models GPT-4 GPT-4o GPT-3.5 latest models",
         ],
-        "anthropic": [
-            "site:docs.anthropic.com/en/docs/about-claude/models Claude latest models",
-            "site:anthropic.com Claude model IDs documentation",
-        ],
         "google": [
             "site:cloud.google.com/vertex-ai/generative-ai/docs/models Gemini latest models",
             "site:ai.google.dev Gemini models API documentation",
@@ -246,6 +242,11 @@ def validate_queries_with_gemini(state: AgentState) -> AgentState:
     logger.info("Node 2: Validating queries with Gemini...")
 
     if state.stopped:
+        return state
+
+    if state.dry_run:
+        logger.info("[DRY RUN] Approving all queries without validation.")
+        state.validated_queries = state.queries
         return state
 
     gemini_key = os.getenv("GEMINI_API_KEY")
@@ -288,6 +289,11 @@ def serpapi_search(state: AgentState) -> AgentState:
     if state.stopped:
         return state
 
+    if state.dry_run:
+        logger.info("[DRY RUN] Skipping SerpAPI searches. No models will be discovered.")
+        state.serp_results = {}
+        return state
+
     serpapi_key = os.getenv("SERPAPI_KEY")
     if not serpapi_key:
         state.stopped = True
@@ -325,6 +331,11 @@ def validate_serp_results_with_gemini(state: AgentState) -> AgentState:
     logger.info("Node 4: Validating SerpAPI results with Gemini...")
 
     if state.stopped:
+        return state
+
+    if state.dry_run:
+        logger.info("[DRY RUN] Approving all SERP results without validation.")
+        state.approved_results = state.serp_results
         return state
 
     gemini_key = os.getenv("GEMINI_API_KEY")
@@ -375,9 +386,6 @@ def extract_models(state: AgentState) -> AgentState:
             r"\btext-embedding-[a-zA-Z0-9.\-]+",
             r"\bomni-[a-zA-Z0-9.\-]+",
             r"\brealtime-[a-zA-Z0-9.\-]+",
-        ],
-        "anthropic": [
-            r"\bclaude-[a-zA-Z0-9.\-]+",
         ],
         "google": [
             r"\bmodels/gemini-[a-zA-Z0-9.\-]+",
@@ -464,9 +472,6 @@ def normalize_and_classify(state: AgentState) -> AgentState:
             "embedding": "embedding,semantic_search,rag",
             "default": "chat,coding,analysis,enterprise",
         },
-        "anthropic": {
-            "default": "coding,architecture,analysis,enterprise",
-        },
         "google": {
             "embedding": "embedding,semantic_search,rag",
             "imagen": "image_generation,creative",
@@ -519,6 +524,11 @@ def validate_final_records_with_gemini(state: AgentState) -> AgentState:
     logger.info("Node 7: Validating final records with Gemini...")
 
     if state.stopped:
+        return state
+
+    if state.dry_run:
+        logger.info("[DRY RUN] Approving all extracted records without validation.")
+        state.approved_records = state.extracted_models
         return state
 
     gemini_key = os.getenv("GEMINI_API_KEY")
@@ -852,18 +862,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Don't write to BigQuery"
+        help="Don't write to BigQuery or call external APIs"
     )
     parser.add_argument(
         "--provider",
-        choices=["openai", "anthropic", "google"],
+        choices=["openai", "google", "gemini"],
         action="append",
         dest="providers",
-        help="Filter by provider (can use multiple times)"
+        help="Filter by provider (can use multiple times). 'gemini' is an alias for 'google'."
     )
 
     args = parser.parse_args()
 
-    providers = args.providers or ["openai", "anthropic", "google"]
+    raw_providers = args.providers or ["openai", "google"]
+    providers = list(set(["google" if p == "gemini" else p for p in raw_providers]))
 
     run_agent(provider_filter=providers, dry_run=args.dry_run)
