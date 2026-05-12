@@ -1247,9 +1247,9 @@ def check_and_repair_duplicates(client, table_id: str, repair: bool = False) -> 
     SELECT COUNT(*) as total, COUNT(DISTINCT CONCAT(provider, ':', model_id)) as unique_models
     FROM `{table_id}`
     """
-    stats = client.query(stats_sql).result()
-    total_rows = list(stats)[0].total
-    unique_models = list(stats)[0].unique_models
+    stats_list = list(client.query(stats_sql).result())
+    total_rows = stats_list[0].total
+    unique_models = stats_list[0].unique_models
 
     if not duplicates:
         return {
@@ -1292,9 +1292,9 @@ def check_and_repair_duplicates(client, table_id: str, repair: bool = False) -> 
         print("✓ Duplicates removed")
 
         # Verify repair
-        result = client.query(stats_sql).result()
-        new_total = list(result)[0].total
-        new_unique = list(result)[0].unique_models
+        result_list = list(client.query(stats_sql).result())
+        new_total = result_list[0].total
+        new_unique = result_list[0].unique_models
         print(f"✓ After repair: {new_total} total rows, {new_unique} unique models")
 
         return {
