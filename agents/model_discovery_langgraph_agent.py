@@ -1250,7 +1250,13 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
         # Add temporal fields
         row["missing_scan_count"] = rec.get("missing_scan_count", 0)
         row["last_seen_at"] = _now()
-        row["first_seen_at"] = rec.get("first_seen_at", _now())
+
+        # Convert datetime to ISO string if needed
+        first_seen = rec.get("first_seen_at", _now())
+        if hasattr(first_seen, 'isoformat'):
+            first_seen = first_seen.isoformat()
+        row["first_seen_at"] = first_seen
+
         row["discovery_tier"] = rec.get("discovery_tier", 1)
 
         rows_to_insert.append(row)
