@@ -1376,8 +1376,16 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
     dedup_map = {}
     for row in rows_to_insert:
         key = (row.get("provider"), row.get("model_id"))
-        # Keep row with latest timestamp (or just overwrite if same)
-        dedup_map[key] = row
+        # Keep row with latest last_verified_at
+        if key not in dedup_map:
+            dedup_map[key] = row
+        else:
+            existing = dedup_map[key]
+            current_time = row.get("last_verified_at", "")
+            existing_time = existing.get("last_verified_at", "")
+            # Keep the one with later timestamp (string comparison works for ISO format)
+            if current_time > existing_time:
+                dedup_map[key] = row
 
     deduped_rows = list(dedup_map.values())
 
