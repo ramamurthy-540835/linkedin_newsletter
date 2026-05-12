@@ -225,6 +225,116 @@ def node_provider_seed(state: DiscoveryState) -> DiscoveryState:
     return state
 
 
+def _classify_openai_model(model_id: str) -> tuple[str, str, str]:
+    """Classify OpenAI model into family, version, and release_stage."""
+    mid = model_id.lower().strip()
+
+    # o-series: o3, o4-mini, etc.
+    if mid.startswith("o") and re.match(r"^o[0-9]", mid):
+        family = "o-series"
+        version = mid
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # GPT-5 variants
+    if mid.startswith("gpt-5"):
+        family = "gpt-5"
+        version = mid[4:]
+        if re.search(r"-\d{4}-\d{2}-\d{2}$", mid):
+            release_stage = "versioned"
+        else:
+            release_stage = "stable"
+        return family, version, release_stage
+
+    # GPT-4o variants (check before GPT-4)
+    if mid.startswith("gpt-4o"):
+        family = "gpt-4o"
+        version = mid[4:]
+        if re.search(r"-\d{4}-\d{2}-\d{2}$", mid):
+            release_stage = "versioned"
+        else:
+            release_stage = "stable"
+        return family, version, release_stage
+
+    # GPT-4.1, GPT-4 Turbo, GPT-4
+    if mid.startswith("gpt-4"):
+        family = "gpt-4"
+        version = mid[4:]
+        if re.search(r"-\d{4}-\d{2}-\d{2}$", mid):
+            release_stage = "versioned"
+        else:
+            release_stage = "stable"
+        return family, version, release_stage
+
+    # GPT-3.5 variants
+    if mid.startswith("gpt-3"):
+        family = "gpt-3.5"
+        version = mid[4:]
+        if re.search(r"-\d{4}-\d{2}-\d{2}$", mid):
+            release_stage = "versioned"
+        else:
+            release_stage = "stable"
+        return family, version, release_stage
+
+    # Text embedding
+    if mid.startswith("text-embedding-"):
+        family = "text-embedding"
+        version = mid[len("text-embedding-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Whisper audio
+    if mid.startswith("whisper-"):
+        family = "whisper"
+        version = mid[len("whisper-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # TTS
+    if mid.startswith("tts-"):
+        family = "tts"
+        version = mid[len("tts-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # GPT audio realtime
+    if mid.startswith("gpt-audio"):
+        family = "gpt-audio"
+        version = mid[len("gpt-audio-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # GPT realtime
+    if mid.startswith("gpt-realtime"):
+        family = "gpt-realtime"
+        version = mid[len("gpt-realtime-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # DALL-E
+    if mid.startswith("dall-e-"):
+        family = "dall-e"
+        version = mid[len("dall-e-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Sora video
+    if mid.startswith("sora-"):
+        family = "sora"
+        version = mid[len("sora-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Moderation
+    if mid.startswith("omni-moderation-"):
+        family = "omni-moderation"
+        version = mid[len("omni-moderation-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    return "unknown", mid, "stable"
+
+
 def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
     if state.get("stopped", False):
         return state
@@ -252,7 +362,7 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
 
             if provider == "openai":
                 for item in data.get("data", []):
-                    mid = item.get("id", "").strip().lower()
+                    mid = item.get("id", "").strip()
                     if mid:
                         structured.append({
                             "model_id": mid,
@@ -260,12 +370,13 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
                             "source": "openai_api",
                             "confidence": 1.0,
                             "discovery_tier": 1,
+                            "raw_item": item,
                         })
             elif provider in ["mistral", "cohere", "openrouter"]:
                 for item in (data.get("data") if isinstance(data.get("data"), list) else [data]):
                     mid = item.get("id") if isinstance(item, dict) else str(item)
                     if mid:
-                        mid = str(mid).strip().lower()
+                        mid = str(mid).strip()
                         structured.append({
                             "model_id": mid,
                             "source_url": api_url,
@@ -294,6 +405,14 @@ def node_official_docs_discovery(state: DiscoveryState) -> DiscoveryState:
     if state.get("stopped", False):
         return state
 
+    structured_used = state.get("structured_source_used", False)
+    if structured_used:
+        if state.get("dry_run"):
+            print("Tier 1 succeeded. Skipping Tier 2 docs discovery.")
+        state["docs_models"] = []
+        state["docs_source_used"] = False
+        return state
+
     provider = state.get("target_provider", "openai").lower()
     config = PROVIDER_CONFIG.get(provider, {})
     doc_urls = config.get("doc_urls", [])
@@ -319,7 +438,7 @@ def node_official_docs_discovery(state: DiscoveryState) -> DiscoveryState:
             regex = provider_model_regex(provider)
             found = set()
             for match in regex.finditer(text):
-                mid = match.group(0).strip().lower()
+                mid = match.group(0).strip()
                 found.add(mid)
 
             for mid in found:
@@ -347,6 +466,13 @@ def node_gemini_fallback(state: DiscoveryState) -> DiscoveryState:
     structured_used = state.get("structured_source_used", False)
     docs_used = state.get("docs_source_used", False)
     allow_fallback = state.get("allow_web_fallback", False)
+
+    if structured_used and not allow_fallback:
+        if state.get("dry_run"):
+            print("Tier 1 succeeded. Skipping Tier 3 Gemini fallback.")
+        state["fallback_models"] = []
+        state["fallback_used"] = False
+        return state
 
     if (structured_used or docs_used) and not allow_fallback:
         state["fallback_models"] = []
@@ -428,8 +554,8 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
 
     dedup = {}
     for model in all_models:
-        mid = model.get("model_id", "").strip().lower()
-        if not mid or not regex.match(mid):
+        mid = model.get("model_id", "").strip()
+        if not mid or not regex.match(mid.lower()):
             continue
 
         key = (provider, mid)
@@ -438,8 +564,16 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
 
     normalized = []
     for model in dedup.values():
-        mid = model.get("model_id", "").strip().lower()
-        fam, ver = _derive_family_version(provider, mid)
+        mid = model.get("model_id", "").strip()
+        mid_lower = mid.lower()
+
+        if provider == "openai":
+            fam, ver, release_stage = _classify_openai_model(mid)
+        else:
+            fam, ver = _derive_family_version(provider, mid_lower)
+            release_stage = "stable"
+
+        is_latest = mid.endswith("-latest") or mid.endswith("-latest-preview")
 
         rec = {
             "provider": provider,
@@ -447,9 +581,10 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
             "display_name": mid,
             "family": fam,
             "version": ver,
-            "release_stage": "stable",
+            "release_stage": release_stage,
             "status": "current",
             "is_active": True,
+            "is_latest": is_latest,
             "source_url": model.get("source_url", ""),
             "source_domain": _source_domain(model.get("source_url", "")),
             "confidence": model.get("confidence", 0.5),
@@ -461,7 +596,7 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
                     "version": ver,
                     "release_date": None,
                     "status": "current",
-                    "release_stage": "stable",
+                    "release_stage": release_stage,
                     "source_url": model.get("source_url", ""),
                     "discovered_at": _now(),
                     "verified_at": _now(),
@@ -845,13 +980,13 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
     print("\n" + "=" * 60)
     print("DISCOVERY RESULTS")
     print("=" * 60)
-    print(f"Tier 1 (structured API): {out.get('structured_models_count', 0)} models")
-    print(f"Tier 2 (official docs): {out.get('docs_models_count', 0)} models")
-    print(f"Tier 3 (Gemini fallback): {out.get('fallback_models_count', 0)} models")
-    print(f"Normalized: {out.get('normalized_count', 0)} models")
-    print(f"Missing (pending deprecation): {out.get('missing_models_count', 0)}")
-    print(f"Deprecated (>= 3 misses): {out.get('deprecated_count', 0)}")
-    print(f"BigQuery: inserts={out.get('inserts_count', 0)}, updates={out.get('updates_count', 0)}, skips={out.get('skips_count', 0)}")
+    print(f"Tier 1 (structured API): {len(out.get('structured_models', []))} models")
+    print(f"Tier 2 (official docs): {len(out.get('docs_models', []))} models")
+    print(f"Tier 3 (Gemini fallback): {len(out.get('fallback_models', []))} models")
+    print(f"Normalized: {len(out.get('normalized_models', []))} models")
+    print(f"Missing (pending deprecation): {len(out.get('missing_models', []))}")
+    print(f"Deprecated (>= 3 misses): {len(out.get('deprecated', []))}")
+    print(f"BigQuery: inserts={len(out.get('inserts', []))}, updates={len(out.get('updates', []))}, skips={len(out.get('skips', []))}")
     print(f"Schema migrations: {len(out.get('schema_migrations', []))}")
     print(f"Errors: {len(out.get('errors', []))}")
     if out.get('errors'):
