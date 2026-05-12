@@ -318,6 +318,16 @@ def _classify_openai_model(model_id: str) -> tuple[str, str, str]:
         release_stage = "stable"
         return family, version, release_stage
 
+    # GPT Image generation models (gpt-image-1, gpt-image-2, etc.)
+    if mid.startswith("gpt-image-"):
+        family = "gpt-image"
+        version = mid[len("gpt-image-"):]
+        if re.search(r"-\d{4}-\d{2}-\d{2}$", mid):
+            release_stage = "versioned"
+        else:
+            release_stage = "stable"
+        return family, version, release_stage
+
     # Sora video
     if mid.startswith("sora-"):
         family = "sora"
@@ -325,10 +335,45 @@ def _classify_openai_model(model_id: str) -> tuple[str, str, str]:
         release_stage = "stable"
         return family, version, release_stage
 
-    # Moderation
+    # Moderation models
     if mid.startswith("omni-moderation-"):
-        family = "omni-moderation"
+        family = "moderation"
         version = mid[len("omni-moderation-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Computer use / agent tools
+    if mid.startswith("computer-use-"):
+        family = "agent-tools"
+        version = mid[len("computer-use-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # ChatGPT models
+    if mid.startswith("chatgpt-"):
+        family = "chatgpt"
+        version = mid[len("chatgpt-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Legacy Babbage models
+    if mid.startswith("babbage-"):
+        family = "legacy"
+        version = mid[len("babbage-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Legacy DaVinci models
+    if mid.startswith("davinci-"):
+        family = "legacy"
+        version = mid[len("davinci-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Omni models (general, catch-all for omni-* prefix)
+    if mid.startswith("omni-"):
+        family = "omni"
+        version = mid[len("omni-"):]
         release_stage = "stable"
         return family, version, release_stage
 
@@ -563,12 +608,16 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
             dedup[key] = model
 
     normalized = []
+    unknown_models = []
+
     for model in dedup.values():
         mid = model.get("model_id", "").strip()
         mid_lower = mid.lower()
 
         if provider == "openai":
             fam, ver, release_stage = _classify_openai_model(mid)
+            if fam == "unknown":
+                unknown_models.append(mid)
         else:
             fam, ver = _derive_family_version(provider, mid_lower)
             release_stage = "stable"
@@ -608,6 +657,11 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
     state["normalized_models"] = normalized
     state["approved_records"] = normalized
     print(f"Normalized {len(normalized)} models")
+
+    if unknown_models and state.get("dry_run", False):
+        print(f"WARNING: {len(unknown_models)} unknown model families:")
+        for mid in sorted(unknown_models):
+            print(f"  - {mid}")
 
     if len(normalized) == 0:
         state["stopped"] = True
