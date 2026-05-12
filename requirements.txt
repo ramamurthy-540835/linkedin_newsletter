@@ -1,4 +1,4 @@
 requests
 google-cloud-bigquery
-google-generativeai
 langgraph
+python-dotenv

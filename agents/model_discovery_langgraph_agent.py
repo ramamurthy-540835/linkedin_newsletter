@@ -788,9 +788,9 @@ def run_agent(provider_filter: list[str] = None, dry_run: bool = False):
         missing_deps.append("google-cloud-bigquery")
 
     try:
-        import google.generativeai
+        from google import genai
     except ImportError:
-        missing_deps.append("google-generativeai")
+        missing_deps.append("google-generativeai (provides google.genai)")
 
     try:
         from langgraph.graph import StateGraph
@@ -803,9 +803,17 @@ def run_agent(provider_filter: list[str] = None, dry_run: bool = False):
         sys.exit(1)
 
     # Check environment
-    if not os.getenv("SERPAPI_KEY"):
-        logger.error("SERPAPI_KEY not set")
-        sys.exit(1)
+    serpapi_key = os.getenv("SERPAPI_KEY")
+    if not serpapi_key:
+        serapi_key_fallback = os.getenv("SERAPI_KEY")
+        if serapi_key_fallback:
+            logger.warning("SERPAPI_KEY not found, using SERAPI_KEY as a fallback. Please correct the typo.")
+            os.environ["SERPAPI_KEY"] = serapi_key_fallback
+        elif not dry_run:
+            logger.error("SERPAPI_KEY not set")
+            sys.exit(1)
+        else:
+            logger.warning("SERPAPI_KEY not set. Continuing for dry-run.")
 
     if not os.getenv("GEMINI_API_KEY"):
         logger.error("GEMINI_API_KEY not set")
@@ -813,7 +821,7 @@ def run_agent(provider_filter: list[str] = None, dry_run: bool = False):
 
     # Create initial state
     initial_state = AgentState(
-        provider_filter=provider_filter or ["openai", "anthropic", "google"],
+        provider_filter=provider_filter or ["openai", "google"],
         dry_run=dry_run,
     )
 
@@ -856,6 +864,15 @@ def run_agent(provider_filter: list[str] = None, dry_run: bool = False):
 
 
 if __name__ == "__main__":
+    try:
+        from dotenv import load_dotenv
+        if load_dotenv(dotenv_path=".env.local"):
+            logger.info("Loaded environment variables from .env.local")
+        else:
+            logger.warning(".env.local not found, using system environment.")
+    except ImportError:
+        logger.warning("python-dotenv not installed, cannot load .env.local. Run: pip install python-dotenv")
+
     parser = argparse.ArgumentParser(
         description="AI Model Discovery Agent using LangGraph + Gemini + SerpAPI"
     )
@@ -874,7 +891,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    raw_providers = args.providers or ["openai", "google"]
+    raw_providers = args.providers or ["google"]
     providers = list(set(["google" if p == "gemini" else p for p in raw_providers]))
 
     run_agent(provider_filter=providers, dry_run=args.dry_run)
