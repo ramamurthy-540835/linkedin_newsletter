@@ -1,901 +1,913 @@
 #!/usr/bin/env python3
 """
-AI Model Discovery Agent using LangGraph + Gemini 2.5 Flash + SerpAPI + BigQuery
-Discovers latest AI models from OpenAI, Anthropic, and Google/Vertex with Gemini validation.
+Model Discovery Agent — API-First Architecture
+Tier 1: Official structured APIs (confidence 1.0)
+Tier 2: Allowlisted official documentation pages (confidence 0.9)
+Tier 3: Gemini reasoning fallback (confidence 0.7)
 """
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+import argparse
 import json
 import os
 import re
-import sys
-import time
-import argparse
 from datetime import datetime, timezone
-from typing import Any
-from dataclasses import dataclass, asdict, field
-import logging
+from typing import Any, TypedDict
+from urllib.parse import urljoin, urlparse
 
 import requests
-from pydantic import BaseModel
+from dotenv import load_dotenv
 from google.cloud import bigquery
-from google import genai
-from langgraph.graph import StateGraph
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+from langchain_core.messages import HumanMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.graph import END, StateGraph
 
 
-@dataclass
-class ModelRecord:
-    model_id: str
-    provider: str
-    display_name: str
-    use_case: str
-    speed_score: int
-    cost_tier: int
-    is_default: bool
-    is_active: bool
-    notes: str
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
 
 
-@dataclass
-class AgentState:
-    """LangGraph state for model discovery workflow"""
-    provider_filter: list[str] = field(default_factory=lambda: ["openai", "google"])
-    dry_run: bool = False
-    started_at: str = ""
-    ended_at: str = ""
-
-    # Workflow state
-    queries: dict[str, list[str]] = field(default_factory=dict)
-    validated_queries: dict[str, list[str]] = field(default_factory=dict)
-    serp_results: dict[str, list[dict]] = field(default_factory=dict)
-    approved_results: dict[str, list[dict]] = field(default_factory=dict)
-    extracted_models: list[ModelRecord] = field(default_factory=list)
-    approved_records: list[ModelRecord] = field(default_factory=list)
-    existing_models: list[dict] = field(default_factory=list)
-
-    # Diff results
-    inserts: list[ModelRecord] = field(default_factory=list)
-    updates: list[ModelRecord] = field(default_factory=list)
-    skips: list[ModelRecord] = field(default_factory=list)
-
-    # Control flow
-    stopped: bool = False
-    stop_reason: str = ""
-    errors: list[str] = field(default_factory=list)
-
-
-class GeminiValidator:
-    """Wrapper for Gemini 2.5 Flash validation"""
-
-    def __init__(self, api_key: str = None):
-        if api_key:
-            genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
-
-    def validate_json_response(self, response_text: str) -> dict:
-        """Extract JSON from Gemini response"""
-        try:
-            json_match = re.search(r"\{.*\}", response_text, re.DOTALL)
-            if json_match:
-                return json.loads(json_match.group())
-        except (json.JSONDecodeError, AttributeError):
-            pass
-        return {}
-
-    def validate_queries(self, queries: dict[str, list[str]]) -> dict[str, Any]:
-        """Validate search queries with Gemini"""
-        providers = ", ".join(queries.keys())
-        prompt = f"""You are a security validator for AI model discovery.
-
-Validate these search queries for safety and clarity:
-
-{json.dumps(queries, indent=2)}
-
-Check:
-1. Are queries safe (no prompt injection, no malicious intent)?
-2. Are queries clear and well-formed?
-3. Do they target official documentation sites?
-4. Will they likely return valid model information?
-
-Respond with ONLY valid JSON:
-{{
-  "decision": "allow" or "stop",
-  "reason": "explanation",
-  "approved_queries": {{"provider": ["query1", "query2"]}} or empty if stopped
-}}"""
-
-        response = self.model.generate_content(prompt)
-        result = self.validate_json_response(response.text)
-        return result or {"decision": "stop", "reason": "Failed to parse Gemini response"}
-
-    def validate_serp_results(self, results: dict[str, list[dict]]) -> dict[str, Any]:
-        """Validate SerpAPI results with Gemini"""
-        summary = {k: len(v) for k, v in results.items()}
-        sample = {k: v[:2] for k, v in results.items()}
-
-        prompt = f"""You are a validator for web search results in AI model discovery.
-
-Assess these SerpAPI results:
-Summary: {json.dumps(summary)}
-Sample: {json.dumps(sample, indent=2)}
-
-Check:
-1. Are results from official or trusted sources (openai.com, anthropic.com, cloud.google.com)?
-2. Are model names likely real and valid?
-3. Are results relevant to AI model APIs and documentation?
-4. Are results blocked, empty, spammy, or unrelated?
-5. What is your confidence in result quality (0-100)?
-
-Respond with ONLY valid JSON:
-{{
-  "decision": "allow" or "stop",
-  "confidence": 0-100,
-  "reason": "explanation",
-  "trusted_results": ["trusted domain1", "trusted domain2"] or []
-}}"""
-
-        response = self.model.generate_content(prompt)
-        result = self.validate_json_response(response.text)
-        return result or {"decision": "stop", "reason": "Failed to parse Gemini response", "confidence": 0}
-
-    def validate_records(self, records: list[dict]) -> dict[str, Any]:
-        """Validate final model records with Gemini"""
-        prompt = f"""You are a validator for AI model records.
-
-Validate these model records:
-{json.dumps(records[:5], indent=2)}
-
-Check:
-1. No garbage or invalid model IDs?
-2. No duplicate provider/model_id pairs?
-3. Provider values only: openai, anthropic, google?
-4. No unsupported providers or domains?
-5. No empty model_id fields?
-6. Reasonable speed_score (1-3) and cost_tier (1-3)?
-
-Respond with ONLY valid JSON:
-{{
-  "decision": "allow" or "stop",
-  "reason": "explanation",
-  "approved_records": record count or 0
-}}"""
-
-        response = self.model.generate_content(prompt)
-        result = self.validate_json_response(response.text)
-        return result or {"decision": "stop", "reason": "Failed to parse Gemini response"}
-
-
-class SerpAPIClient:
-    """Wrapper for SerpAPI searches"""
-
-    def __init__(self, api_key: str):
-        if not api_key:
-            raise ValueError("SERPAPI_KEY not set")
-        self.api_key = api_key
-
-    def search(self, query: str, retries: int = 3) -> list[dict]:
-        """Execute SerpAPI search with retries"""
-        url = "https://serpapi.com/search.json"
-        params = {
-            "engine": "google",
-            "q": query,
-            "api_key": self.api_key,
-            "num": 10,
-        }
-
-        for attempt in range(retries):
+def _parse_json(text: str, default: Any):
+    if not text:
+        return default
+    clean = text.replace("```json", "").replace("```", "").strip()
+    try:
+        return json.loads(clean)
+    except Exception:
+        m = re.search(r"(\{.*\}|\[.*\])", clean, re.DOTALL)
+        if m:
             try:
-                response = requests.get(url, params=params, timeout=15)
-                response.raise_for_status()
-                data = response.json()
-
-                results = []
-                for item in data.get("organic_results", []):
-                    results.append({
-                        "title": item.get("title", ""),
-                        "snippet": item.get("snippet", ""),
-                        "link": item.get("link", ""),
-                        "domain": item.get("domain", ""),
-                    })
-                return results
-            except Exception as e:
-                logger.warning(f"SerpAPI attempt {attempt + 1} failed: {e}")
-                if attempt < retries - 1:
-                    time.sleep(2 ** attempt)
-
-        return []
+                return json.loads(m.group(1))
+            except Exception:
+                return default
+        return default
 
 
-def build_search_queries(state: AgentState) -> AgentState:
-    """Node 1: Build provider-specific search queries"""
-    logger.info("Node 1: Building search queries...")
+def _source_domain(url: str) -> str:
+    m = re.match(r"^https?://([^/]+)", (url or "").strip().lower())
+    return m.group(1) if m else ""
 
-    queries = {
-        "openai": [
-            "site:platform.openai.com/docs/models latest OpenAI GPT model IDs API",
-            "site:developers.openai.com/docs/models latest OpenAI model list",
-            "site:openai.com/models GPT-4 GPT-4o GPT-3.5 latest models",
+
+def _is_official_domain(provider: str, source_url: str, official_domains_list: list[str]) -> bool:
+    domain = _source_domain(source_url)
+    if not domain:
+        return False
+    allowed = set()
+    for d in official_domains_list:
+        allowed.add(_source_domain(d if d.startswith("http") else f"https://{d}"))
+    return domain in allowed
+
+
+PROVIDER_CONFIG = {
+    "openai": {
+        "api_catalog": "https://api.openai.com/v1/models",
+        "api_key_env": "OPENAI_API_KEY",
+        "doc_urls": [
+            "https://platform.openai.com/docs/models",
+            "https://openai.com/api/pricing/",
         ],
-        "google": [
-            "site:cloud.google.com/vertex-ai/generative-ai/docs/models Gemini latest models",
-            "site:ai.google.dev Gemini models API documentation",
-            "site:cloud.google.com Gemini Flash Gemini Pro model IDs",
+        "official_domains": ["platform.openai.com", "openai.com", "api.openai.com"],
+    },
+    "google": {
+        "api_catalog": None,
+        "doc_urls": [
+            "https://ai.google.dev/gemini-api/docs/models",
+            "https://ai.google.dev/gemini-api/docs/pricing",
         ],
-    }
+        "official_domains": ["ai.google.dev", "cloud.google.com"],
+    },
+    "anthropic": {
+        "api_catalog": None,
+        "doc_urls": [
+            "https://docs.anthropic.com/en/docs/about-claude/models",
+            "https://www.anthropic.com/pricing",
+        ],
+        "official_domains": ["docs.anthropic.com", "anthropic.com"],
+    },
+    "openrouter": {
+        "api_catalog": "https://openrouter.ai/api/v1/models",
+        "api_key_env": None,
+        "doc_urls": [],
+        "official_domains": ["openrouter.ai"],
+    },
+    "mistral": {
+        "api_catalog": "https://api.mistral.ai/v1/models",
+        "api_key_env": "MISTRAL_API_KEY",
+        "doc_urls": ["https://docs.mistral.ai/getting-started/models/"],
+        "official_domains": ["docs.mistral.ai", "api.mistral.ai"],
+    },
+    "cohere": {
+        "api_catalog": "https://api.cohere.ai/v1/models",
+        "api_key_env": "COHERE_API_KEY",
+        "doc_urls": ["https://docs.cohere.com/v2/docs/models"],
+        "official_domains": ["docs.cohere.com", "api.cohere.ai"],
+    },
+}
 
-    state.queries = {
-        k: v for k, v in queries.items()
-        if k in state.provider_filter
-    }
-    state.started_at = datetime.now(timezone.utc).isoformat()
+BLOCKED_PATH_TOKENS = ["/python/", "/java/", "/ruby/", "/go/", "/sdk/",
+                       "/reference/", "/resources/", "/methods/"]
+
+
+def provider_model_regex(provider: str) -> re.Pattern:
+    p = provider.lower()
+    if p == "openai":
+        return re.compile(r"^(gpt-[a-z0-9.-]+|o[0-9][a-z0-9.-]*|text-embedding-[a-z0-9.-]+|whisper-[a-z0-9.-]+|tts-[a-z0-9.-]+|dall-e-[a-z0-9.-]+)$", re.I)
+    if p == "google":
+        return re.compile(r"^(models/)?(gemini|imagen|veo|gemma)-[a-z0-9.-]+$", re.I)
+    if p == "anthropic":
+        return re.compile(r"^claude-[a-z0-9.-]+$", re.I)
+    return re.compile(r"^[a-z0-9][a-z0-9._/-]{1,80}$", re.I)
+
+
+def _derive_family_version(provider: str, model_id: str) -> tuple[str, str]:
+    m = model_id.strip().lower()
+    p = provider.strip().lower()
+    if p == "openai":
+        if m.startswith("gpt-"):
+            rest = m[4:]
+            parts = rest.split("-")
+            family = f"gpt-{parts[0]}" if parts else "gpt"
+            return family, rest
+        if re.match(r"^o[0-9]", m):
+            return "o-series", m
+        if m.startswith("text-embedding-"):
+            return "text-embedding", m[len("text-embedding-"):]
+        if m.startswith("whisper-"):
+            return "whisper", m[len("whisper-"):]
+        if m.startswith("tts-"):
+            return "tts", m[len("tts-"):]
+        if m.startswith("dall-e-"):
+            return "dall-e", m[len("dall-e-"):]
+    if p == "google":
+        base = m[len("models/"):] if m.startswith("models/") else m
+        for fam in ["gemini", "imagen", "veo", "gemma"]:
+            if base.startswith(f"{fam}-"):
+                return fam, base[len(fam) + 1:]
+        return "google-model", base
+    return p, m
+
+
+class DiscoveryState(TypedDict, total=False):
+    target_provider: str
+    intelligence_model: str
+    dry_run: bool
+    force_official_only: bool
+    allow_web_fallback: bool
+    refresh_provider: bool
+    started_at: str
+    ended_at: str
+    run_id: str
+
+    structured_models: list[dict]
+    docs_models: list[dict]
+    fallback_models: list[dict]
+    structured_source_used: bool
+    docs_source_used: bool
+    fallback_used: bool
+
+    normalized_models: list[dict]
+    approved_records: list[dict]
+    rejected_records: list[dict]
+    rejection_reasons: dict
+
+    existing_models: list[dict]
+    missing_models: list[dict]
+    deprecated_candidates: list[dict]
+
+    inserts: list[dict]
+    updates: list[dict]
+    skips: list[dict]
+    deprecated: list[dict]
+
+    schema_migrations: list[str]
+    errors: list[str]
+    stopped: bool
+    stop_reason: str
+    export_candidates_only: bool
+    candidate_json_path: str
+
+
+def normalize_env() -> None:
+    load_dotenv(".env.local", override=True)
+    if os.getenv("GEMINI_API_KEY"):
+        os.environ["GOOGLE_API_KEY"] = os.getenv("GEMINI_API_KEY", "")
+    if os.getenv("SERAPI_KEY"):
+        os.environ["SERPAPI_KEY"] = os.getenv("SERAPI_KEY", "")
+    os.environ.pop("GOOGLE_GENAI_API_KEY", None)
+
+
+normalize_env()
+
+print("Using Gemini key:", "YES" if os.getenv("GOOGLE_API_KEY") else "NO")
+
+if not os.getenv("GOOGLE_API_KEY"):
+    raise RuntimeError("Missing GOOGLE_API_KEY (mapped from GEMINI_API_KEY)")
+
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    google_api_key=os.environ["GOOGLE_API_KEY"],
+    temperature=0,
+)
+
+_preflight = llm.invoke("Say hello")
+print(f"Gemini ready: {_preflight.content[:50]}")
+
+
+def node_provider_seed(state: DiscoveryState) -> DiscoveryState:
+    provider = state.get("target_provider", "openai").lower()
+    if provider not in PROVIDER_CONFIG:
+        state["stopped"] = True
+        state["stop_reason"] = f"Unknown provider: {provider}"
+        return state
+    if state.get("dry_run", False):
+        print(f"Provider seed loaded: {provider}")
+    return state
+
+
+def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
+    if state.get("stopped", False):
+        return state
+
+    provider = state.get("target_provider", "openai").lower()
+    config = PROVIDER_CONFIG.get(provider, {})
+    api_url = config.get("api_catalog")
+    api_key_env = config.get("api_key_env")
+
+    structured = []
+    source_used = False
+    error_reason = None
+
+    if api_url:
+        api_key = os.getenv(api_key_env) if api_key_env else None
+
+        headers = {}
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+
+        try:
+            resp = requests.get(api_url, headers=headers, timeout=10)
+            resp.raise_for_status()
+            data = resp.json()
+
+            if provider == "openai":
+                for item in data.get("data", []):
+                    mid = item.get("id", "").strip().lower()
+                    if mid:
+                        structured.append({
+                            "model_id": mid,
+                            "source_url": api_url,
+                            "source": "openai_api",
+                            "confidence": 1.0,
+                            "discovery_tier": 1,
+                        })
+            elif provider in ["mistral", "cohere", "openrouter"]:
+                for item in (data.get("data") if isinstance(data.get("data"), list) else [data]):
+                    mid = item.get("id") if isinstance(item, dict) else str(item)
+                    if mid:
+                        mid = str(mid).strip().lower()
+                        structured.append({
+                            "model_id": mid,
+                            "source_url": api_url,
+                            "source": f"{provider}_api",
+                            "confidence": 1.0,
+                            "discovery_tier": 1,
+                        })
+
+            source_used = len(structured) > 0
+            print(f"Tier 1 ({provider} API): found {len(structured)} models")
+        except Exception as e:
+            error_reason = f"Tier 1 ({provider} API) failed: {str(e)[:100]}"
+            print(error_reason)
+    else:
+        error_reason = f"Tier 1: no API catalog for {provider}"
+
+    state["structured_models"] = structured
+    state["structured_source_used"] = source_used
+    if error_reason and state.get("dry_run"):
+        print(error_reason)
 
     return state
 
 
-def validate_queries_with_gemini(state: AgentState) -> AgentState:
-    """Node 2: Validate search queries with Gemini"""
-    logger.info("Node 2: Validating queries with Gemini...")
-
-    if state.stopped:
+def node_official_docs_discovery(state: DiscoveryState) -> DiscoveryState:
+    if state.get("stopped", False):
         return state
 
-    if state.dry_run:
-        logger.info("[DRY RUN] Approving all queries without validation.")
-        state.validated_queries = state.queries
+    provider = state.get("target_provider", "openai").lower()
+    config = PROVIDER_CONFIG.get(provider, {})
+    doc_urls = config.get("doc_urls", [])
+    official_domains = config.get("official_domains", [])
+
+    if not doc_urls:
+        state["docs_models"] = []
+        state["docs_source_used"] = False
         return state
 
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
-        state.stopped = True
-        state.stop_reason = "GEMINI_API_KEY not set"
-        state.errors.append(state.stop_reason)
-        return state
-
-    try:
-        validator = GeminiValidator(gemini_key)
-        result = validator.validate_queries(state.queries)
-
-        decision = result.get("decision", "stop")
-        reason = result.get("reason", "Unknown reason")
-
-        logger.info(f"Gemini query validation: {decision} - {reason}")
-
-        if decision != "allow":
-            state.stopped = True
-            state.stop_reason = f"Query validation failed: {reason}"
-            state.errors.append(state.stop_reason)
-            return state
-
-        state.validated_queries = result.get("approved_queries", state.queries)
-        return state
-
-    except Exception as e:
-        logger.error(f"Query validation error: {e}")
-        state.stopped = True
-        state.stop_reason = f"Query validation error: {str(e)}"
-        state.errors.append(str(e))
-        return state
-
-
-def serpapi_search(state: AgentState) -> AgentState:
-    """Node 3: Execute SerpAPI searches"""
-    logger.info("Node 3: Executing SerpAPI searches...")
-
-    if state.stopped:
-        return state
-
-    if state.dry_run:
-        logger.info("[DRY RUN] Skipping SerpAPI searches. No models will be discovered.")
-        state.serp_results = {}
-        return state
-
-    serpapi_key = os.getenv("SERPAPI_KEY")
-    if not serpapi_key:
-        state.stopped = True
-        state.stop_reason = "SERPAPI_KEY not set"
-        state.errors.append(state.stop_reason)
-        return state
-
-    try:
-        client = SerpAPIClient(serpapi_key)
-        results = {}
-
-        for provider, queries in state.validated_queries.items():
-            provider_results = []
-            for query in queries:
-                logger.info(f"Searching: {provider} - {query[:60]}...")
-                search_results = client.search(query)
-                provider_results.extend(search_results)
-
-            results[provider] = provider_results
-            logger.info(f"{provider}: {len(provider_results)} results")
-
-        state.serp_results = results
-        return state
-
-    except Exception as e:
-        logger.error(f"SerpAPI search error: {e}")
-        state.stopped = True
-        state.stop_reason = f"SerpAPI search error: {str(e)}"
-        state.errors.append(str(e))
-        return state
-
-
-def validate_serp_results_with_gemini(state: AgentState) -> AgentState:
-    """Node 4: Validate SerpAPI results with Gemini"""
-    logger.info("Node 4: Validating SerpAPI results with Gemini...")
-
-    if state.stopped:
-        return state
-
-    if state.dry_run:
-        logger.info("[DRY RUN] Approving all SERP results without validation.")
-        state.approved_results = state.serp_results
-        return state
-
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
-        state.stopped = True
-        state.stop_reason = "GEMINI_API_KEY not set"
-        state.errors.append(state.stop_reason)
-        return state
-
-    try:
-        validator = GeminiValidator(gemini_key)
-        result = validator.validate_serp_results(state.serp_results)
-
-        decision = result.get("decision", "stop")
-        confidence = result.get("confidence", 0)
-        reason = result.get("reason", "Unknown reason")
-
-        logger.info(f"Gemini SerpAPI validation: {decision}, confidence={confidence}% - {reason}")
-
-        if decision != "allow" or confidence < 70:
-            state.stopped = True
-            state.stop_reason = f"Low confidence SerpAPI results: {reason} (confidence={confidence}%)"
-            state.errors.append(state.stop_reason)
-            return state
-
-        state.approved_results = state.serp_results
-        return state
-
-    except Exception as e:
-        logger.error(f"SerpAPI validation error: {e}")
-        state.stopped = True
-        state.stop_reason = f"SerpAPI validation error: {str(e)}"
-        state.errors.append(str(e))
-        return state
-
-
-def extract_models(state: AgentState) -> AgentState:
-    """Node 5: Extract model IDs from validated results"""
-    logger.info("Node 5: Extracting model IDs...")
-
-    if state.stopped:
-        return state
-
-    patterns = {
-        "openai": [
-            r"\bgpt-[a-zA-Z0-9.\-]+",
-            r"\bo[0-9][a-zA-Z0-9.\-]*",
-            r"\btext-embedding-[a-zA-Z0-9.\-]+",
-            r"\bomni-[a-zA-Z0-9.\-]+",
-            r"\brealtime-[a-zA-Z0-9.\-]+",
-        ],
-        "google": [
-            r"\bmodels/gemini-[a-zA-Z0-9.\-]+",
-            r"\bgemini-[a-zA-Z0-9.\-]+",
-            r"\bmodels/imagen-[a-zA-Z0-9.\-]+",
-            r"\bimagen-[a-zA-Z0-9.\-]+",
-            r"\bmodels/veo-[a-zA-Z0-9.\-]+",
-            r"\bveo-[a-zA-Z0-9.\-]+",
-            r"\bmodels/gemma-[a-zA-Z0-9.\-]+",
-            r"\bgemma-[a-zA-Z0-9.\-]+",
-        ],
-    }
-
-    extracted = set()
-    for provider, results in state.approved_results.items():
-        if provider not in patterns:
+    docs = []
+    for url in doc_urls:
+        if any(token in url for token in BLOCKED_PATH_TOKENS):
+            if state.get("dry_run"):
+                print(f"Blocking SDK wrapper URL: {url}")
             continue
 
-        combined_text = "\n".join([
-            f"{r['title']} {r['snippet']} {r['link']}"
-            for r in results
-        ])
+        try:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            text = resp.text[:10000]
 
-        for pattern in patterns[provider]:
-            for match in re.finditer(pattern, combined_text, re.IGNORECASE):
-                model_id = match.group().strip().rstrip(".,);:")
-                if provider == "google" and not model_id.startswith("models/"):
-                    if model_id.startswith(("gemini-", "imagen-", "veo-", "gemma-")):
-                        model_id = f"models/{model_id}"
-                extracted.add((provider, model_id))
+            regex = provider_model_regex(provider)
+            found = set()
+            for match in regex.finditer(text):
+                mid = match.group(0).strip().lower()
+                found.add(mid)
 
-    logger.info(f"Extracted {len(extracted)} unique model IDs")
+            for mid in found:
+                docs.append({
+                    "model_id": mid,
+                    "source_url": url,
+                    "source": "official_docs",
+                    "confidence": 0.9,
+                    "discovery_tier": 2,
+                })
 
-    if not extracted:
-        state.stopped = True
-        state.stop_reason = "No models extracted from search results"
-        state.errors.append(state.stop_reason)
-        return state
+            print(f"Tier 2 ({url}): found {len(found)} model IDs")
+        except Exception as e:
+            print(f"Tier 2 ({url}) failed: {str(e)[:100]}")
 
-    # Convert to ModelRecord (will be normalized next)
-    models = [
-        ModelRecord(
-            model_id=model_id,
-            provider=provider,
-            display_name=model_id.replace("models/", "").replace("-", " ").title(),
-            use_case="",
-            speed_score=0,
-            cost_tier=0,
-            is_default=False,
-            is_active=True,
-            notes=f"Discovered via SerpAPI on {datetime.now(timezone.utc).isoformat()}"
-        )
-        for provider, model_id in extracted
-    ]
-
-    state.extracted_models = models
+    state["docs_models"] = docs
+    state["docs_source_used"] = len(docs) > 0
     return state
 
 
-def normalize_and_classify(state: AgentState) -> AgentState:
-    """Node 6: Normalize and classify model records"""
-    logger.info("Node 6: Normalizing and classifying models...")
-
-    if state.stopped:
+def node_gemini_fallback(state: DiscoveryState) -> DiscoveryState:
+    if state.get("stopped", False):
         return state
 
-    def classify_model(model_id: str) -> tuple[int, int, bool]:
-        """Return (speed_score, cost_tier, is_default)"""
-        m = model_id.lower()
+    structured_used = state.get("structured_source_used", False)
+    docs_used = state.get("docs_source_used", False)
+    allow_fallback = state.get("allow_web_fallback", False)
 
-        is_default = "flash" in m and "2.5" in m
+    if (structured_used or docs_used) and not allow_fallback:
+        state["fallback_models"] = []
+        state["fallback_used"] = False
+        return state
 
-        if any(x in m for x in ["mini", "nano", "lite", "flash", "haiku"]):
-            return 3, 1, is_default
-        if any(x in m for x in ["opus", "pro", "o3", "o4", "5.5", "deep-research"]):
-            return 1, 3, is_default
-        if "sonnet" in m or "gpt-4o" in m:
-            return 2, 2, is_default
+    provider = state.get("target_provider", "openai").lower()
+    config = PROVIDER_CONFIG.get(provider, {})
+    official_domains = config.get("official_domains", [])
 
-        return 2, 2, is_default
+    prompt = f"""Return only a JSON object with one field:
+{{"official_urls": [...]}}
 
-    use_cases = {
-        "openai": {
-            "embedding": "embedding,semantic_search,rag",
-            "default": "chat,coding,analysis,enterprise",
-        },
-        "google": {
-            "embedding": "embedding,semantic_search,rag",
-            "imagen": "image_generation,creative",
-            "veo": "video_generation,creative",
-            "gemma": "chat,cost,automation",
-            "default": "chat,general,reasoning,enterprise",
-        },
-    }
+Find the top 5 official {provider.upper()} model catalog pages.
+Must be from these domains: {', '.join(official_domains)}
+Include only URLs with current model information.
+
+Return ONLY the JSON object."""
+
+    try:
+        resp = llm.invoke([HumanMessage(content=prompt)])
+        urls_data = _parse_json(resp.content, {})
+        urls = urls_data.get("official_urls", [])
+    except Exception as e:
+        print(f"Tier 3 (Gemini) failed: {e}")
+        state["fallback_models"] = []
+        state["fallback_used"] = False
+        return state
+
+    fallback = []
+    for url in urls:
+        if not _is_official_domain(provider, url, official_domains):
+            continue
+        if any(token in url for token in BLOCKED_PATH_TOKENS):
+            continue
+
+        try:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            text = resp.text[:10000]
+
+            regex = provider_model_regex(provider)
+            found = set()
+            for match in regex.finditer(text):
+                mid = match.group(0).strip().lower()
+                found.add(mid)
+
+            for mid in found:
+                fallback.append({
+                    "model_id": mid,
+                    "source_url": url,
+                    "source": "fallback_docs",
+                    "confidence": 0.7,
+                    "discovery_tier": 3,
+                })
+        except Exception:
+            pass
+
+    state["fallback_models"] = fallback
+    state["fallback_used"] = len(fallback) > 0
+    if state.get("dry_run"):
+        print(f"Tier 3 (Gemini fallback): found {len(fallback)} models")
+
+    return state
+
+
+def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
+    if state.get("stopped", False):
+        return state
+
+    provider = state.get("target_provider", "openai").lower()
+    regex = provider_model_regex(provider)
+
+    all_models = (
+        state.get("structured_models", []) +
+        state.get("docs_models", []) +
+        state.get("fallback_models", [])
+    )
+
+    dedup = {}
+    for model in all_models:
+        mid = model.get("model_id", "").strip().lower()
+        if not mid or not regex.match(mid):
+            continue
+
+        key = (provider, mid)
+        if key not in dedup or model.get("confidence", 0) > dedup[key].get("confidence", 0):
+            dedup[key] = model
 
     normalized = []
-    for model in state.extracted_models:
-        speed, cost, is_default = classify_model(model.model_id)
+    for model in dedup.values():
+        mid = model.get("model_id", "").strip().lower()
+        fam, ver = _derive_family_version(provider, mid)
 
-        use_case = "chat,general,automation"
-        provider_uc = use_cases.get(model.provider, {})
+        rec = {
+            "provider": provider,
+            "model_id": mid,
+            "display_name": mid,
+            "family": fam,
+            "version": ver,
+            "release_stage": "stable",
+            "status": "current",
+            "is_active": True,
+            "source_url": model.get("source_url", ""),
+            "source_domain": _source_domain(model.get("source_url", "")),
+            "confidence": model.get("confidence", 0.5),
+            "discovery_tier": model.get("discovery_tier", 3),
+            "discovered_at": _now(),
+            "last_verified_at": _now(),
+            "version_history": [
+                {
+                    "version": ver,
+                    "release_date": None,
+                    "status": "current",
+                    "release_stage": "stable",
+                    "source_url": model.get("source_url", ""),
+                    "discovered_at": _now(),
+                    "verified_at": _now(),
+                }
+            ],
+        }
+        normalized.append(rec)
 
-        if "embedding" in model.model_id:
-            use_case = provider_uc.get("embedding", use_case)
-        elif model.provider == "google":
-            if "imagen" in model.model_id:
-                use_case = provider_uc.get("imagen", use_case)
-            elif "veo" in model.model_id:
-                use_case = provider_uc.get("veo", use_case)
-            elif "gemma" in model.model_id:
-                use_case = provider_uc.get("gemma", use_case)
-            else:
-                use_case = provider_uc.get("default", use_case)
-        else:
-            use_case = provider_uc.get("default", use_case)
+    state["normalized_models"] = normalized
+    state["approved_records"] = normalized
+    print(f"Normalized {len(normalized)} models")
 
-        normalized.append(ModelRecord(
-            model_id=model.model_id,
-            provider=model.provider,
-            display_name=model.display_name,
-            use_case=use_case,
-            speed_score=speed,
-            cost_tier=cost,
-            is_default=is_default,
-            is_active=True,
-            notes=model.notes
-        ))
+    if len(normalized) == 0:
+        state["stopped"] = True
+        state["stop_reason"] = "No models discovered from any tier"
 
-    state.extracted_models = normalized
-    logger.info(f"Normalized {len(normalized)} models")
     return state
 
 
-def validate_final_records_with_gemini(state: AgentState) -> AgentState:
-    """Node 7: Validate final model records with Gemini"""
-    logger.info("Node 7: Validating final records with Gemini...")
-
-    if state.stopped:
+def node_version_history_merge(state: DiscoveryState) -> DiscoveryState:
+    if state.get("stopped", False):
         return state
 
-    if state.dry_run:
-        logger.info("[DRY RUN] Approving all extracted records without validation.")
-        state.approved_records = state.extracted_models
+    existing_by_key = {(r["provider"], r["model_id"]): r for r in state.get("existing_models", [])}
+
+    for rec in state.get("approved_records", []):
+        key = (rec["provider"], rec["model_id"])
+        old = existing_by_key.get(key)
+
+        if old:
+            rec["first_seen_at"] = old.get("first_seen_at", _now())
+
+            old_vh = old.get("version_history", []) or []
+            new_vh = rec.get("version_history", [])
+
+            merged_vh = list(old_vh)
+            for new_entry in new_vh:
+                if not any(h.get("version") == new_entry.get("version") for h in old_vh):
+                    merged_vh.append(new_entry)
+
+            rec["version_history"] = merged_vh
+        else:
+            rec["first_seen_at"] = _now()
+
+    return state
+
+
+def node_safe_deprecation(state: DiscoveryState) -> DiscoveryState:
+    if state.get("stopped", False):
         return state
 
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if not gemini_key:
-        state.stopped = True
-        state.stop_reason = "GEMINI_API_KEY not set"
-        state.errors.append(state.stop_reason)
+    provider = state.get("target_provider", "openai").lower()
+    existing = {(r["provider"], r["model_id"]): r for r in state.get("existing_models", [])}
+    approved_keys = {(r["provider"], r["model_id"]) for r in state.get("approved_records", [])}
+
+    missing = []
+    for key, old_rec in existing.items():
+        if old_rec.get("provider") != provider:
+            continue
+
+        if key not in approved_keys:
+            missing_count = old_rec.get("missing_scan_count", 0) + 1
+
+            if missing_count >= 3:
+                old_rec["model_status"] = "deprecated"
+                old_rec["is_active"] = False
+                old_rec["missing_scan_count"] = missing_count
+                state["deprecated"] = state.get("deprecated", []) + [old_rec]
+            else:
+                old_rec["missing_scan_count"] = missing_count
+                missing.append(old_rec)
+
+    state["missing_models"] = missing
+
+    if state.get("dry_run"):
+        print(f"Safe deprecation: {len(missing)} candidates (< 3 misses), {len(state.get('deprecated', []))} deprecated (>= 3 misses)")
+
+    return state
+
+
+def node_fetch_existing(state: DiscoveryState) -> DiscoveryState:
+    if state.get("stopped", False):
+        state["existing_models"] = []
         return state
+
+    project = os.getenv("GOOGLE_CLOUD_PROJECT", "ctoteam")
+    client = bigquery.Client(project=project)
 
     try:
-        records_dict = [asdict(m) for m in state.extracted_models]
-        validator = GeminiValidator(gemini_key)
-        result = validator.validate_records(records_dict)
-
-        decision = result.get("decision", "stop")
-        reason = result.get("reason", "Unknown reason")
-
-        logger.info(f"Gemini record validation: {decision} - {reason}")
-
-        if decision != "allow":
-            state.stopped = True
-            state.stop_reason = f"Record validation failed: {reason}"
-            state.errors.append(state.stop_reason)
-            return state
-
-        state.approved_records = state.extracted_models
-        return state
-
-    except Exception as e:
-        logger.error(f"Record validation error: {e}")
-        state.stopped = True
-        state.stop_reason = f"Record validation error: {str(e)}"
-        state.errors.append(str(e))
-        return state
-
-
-def fetch_existing_bigquery_models(state: AgentState) -> AgentState:
-    """Node 8: Fetch existing models from BigQuery"""
-    logger.info("Node 8: Fetching existing models from BigQuery...")
-
-    if state.stopped:
-        return state
-
-    try:
-        project = os.getenv("GOOGLE_CLOUD_PROJECT", "ctoteam")
-        client = bigquery.Client(project=project)
-
         query = f"""
-        SELECT model_id, provider, display_name, use_case, speed_score, cost_tier, is_default, is_active, notes
-        FROM `{project}.linkedin_studio.ai_models`
+        SELECT * FROM `{project}.linkedin_studio.ai_models`
         """
-
-        results = client.query(query).result()
-        existing = [dict(row) for row in results]
-
-        state.existing_models = existing
-        logger.info(f"Fetched {len(existing)} existing models from BigQuery")
-        return state
-
+        rows = client.query(query).result()
+        state["existing_models"] = [dict(r) for r in rows]
     except Exception as e:
-        logger.warning(f"Failed to fetch existing models: {e}")
-        state.existing_models = []
+        state["errors"] = state.get("errors", []) + [f"BigQuery fetch: {e}"]
+        state["existing_models"] = []
+
+    return state
+
+
+def node_schema_check(state: DiscoveryState) -> DiscoveryState:
+    if state.get("dry_run", False) or state.get("stopped", False) or state.get("export_candidates_only", False):
         return state
 
+    project = os.getenv("GOOGLE_CLOUD_PROJECT", "ctoteam")
+    client = bigquery.Client(project=project)
+    table_id = f"{project}.linkedin_studio.ai_models"
 
-def diff_records(state: AgentState) -> AgentState:
-    """Node 9: Diff approved records against existing models"""
-    logger.info("Node 9: Diffing records...")
-
-    if state.stopped:
-        return state
-
-    existing_keys = {
-        (m["provider"], m["model_id"])
-        for m in state.existing_models
+    required_cols = {
+        "missing_scan_count": "INT64",
+        "last_seen_at": "TIMESTAMP",
+        "first_seen_at": "TIMESTAMP",
+        "discovery_tier": "INT64",
     }
 
-    inserts = []
-    updates = []
-    skips = []
+    try:
+        table = client.get_table(table_id)
+        existing_cols = {field.name: field.field_type for field in table.schema}
+    except Exception as e:
+        state["errors"] = state.get("errors", []) + [f"BigQuery schema check failed: {e}"]
+        return state
 
-    for record in state.approved_records:
-        key = (record.provider, record.model_id)
+    migrations = []
+    for col_name, col_type in required_cols.items():
+        if col_name not in existing_cols:
+            try:
+                alter_sql = f"ALTER TABLE `{table_id}` ADD COLUMN {col_name} {col_type}"
+                client.query(alter_sql).result()
+                migrations.append(f"Added {col_name} {col_type}")
+                print(f"Schema: Added column {col_name}")
+            except Exception as e:
+                msg = f"Failed to add column {col_name}: {e}"
+                state["errors"] = state.get("errors", []) + [msg]
+                print(msg)
 
-        if key not in existing_keys:
-            inserts.append(record)
-        else:
-            existing = next(
-                (m for m in state.existing_models if m["provider"] == record.provider and m["model_id"] == record.model_id),
-                None
-            )
-            if existing:
-                if asdict(record) != existing:
-                    updates.append(record)
-                else:
-                    skips.append(record)
-            else:
-                inserts.append(record)
-
-    state.inserts = inserts
-    state.updates = updates
-    state.skips = skips
-
-    logger.info(f"Diff results: {len(inserts)} inserts, {len(updates)} updates, {len(skips)} skips")
+    state["schema_migrations"] = migrations
     return state
 
 
-def merge_to_bigquery(state: AgentState) -> AgentState:
-    """Node 10: Merge records to BigQuery"""
-    logger.info("Node 10: Merging to BigQuery...")
+def node_diff(state: DiscoveryState) -> DiscoveryState:
+    existing = {(r["provider"], r["model_id"]): r for r in state.get("existing_models", [])}
+    inserts, updates, skips = [], [], []
 
-    if state.stopped:
+    for rec in state.get("approved_records", []):
+        k = (rec["provider"], rec["model_id"])
+        old = existing.get(k)
+
+        if not old:
+            inserts.append(rec)
+        elif any(old.get(f) != rec.get(f) for f in [
+            "display_name", "source_url", "source_domain", "family", "version",
+            "release_stage", "confidence", "discovery_tier"
+        ]):
+            updates.append(rec)
+        else:
+            skips.append(rec)
+
+    state["inserts"] = inserts
+    state["updates"] = updates
+    state["skips"] = skips
+
+    if state.get("dry_run"):
+        print(f"Diff: inserts={len(inserts)}, updates={len(updates)}, skips={len(skips)}")
+
+    return state
+
+
+def node_upsert(state: DiscoveryState) -> DiscoveryState:
+    if state.get("dry_run", False) or state.get("stopped", False) or state.get("export_candidates_only", False):
         return state
 
-    if not state.inserts and not state.updates:
-        logger.info("No inserts or updates needed")
+    project = os.getenv("GOOGLE_CLOUD_PROJECT", "ctoteam")
+    client = bigquery.Client(project=project)
+    table_id = f"{project}.linkedin_studio.ai_models"
+
+    to_write = state.get("inserts", []) + state.get("updates", [])
+
+    if not to_write:
         return state
+
+    rows_to_insert = []
+    for rec in to_write:
+        row = {
+            "model_id": rec.get("model_id"),
+            "provider": rec.get("provider"),
+            "display_name": rec.get("display_name"),
+            "family": rec.get("family"),
+            "version": rec.get("version"),
+            "release_stage": rec.get("release_stage"),
+            "status": rec.get("status"),
+            "is_active": rec.get("is_active"),
+            "source_url": rec.get("source_url"),
+            "source_domain": rec.get("source_domain"),
+            "confidence": rec.get("confidence"),
+            "discovery_tier": rec.get("discovery_tier"),
+            "discovered_at": rec.get("discovered_at"),
+            "last_verified_at": rec.get("last_verified_at"),
+            "first_seen_at": rec.get("first_seen_at"),
+            "missing_scan_count": rec.get("missing_scan_count", 0),
+            "last_seen_at": _now(),
+            "version_history": rec.get("version_history", []),
+        }
+        rows_to_insert.append(row)
 
     try:
-        project = os.getenv("GOOGLE_CLOUD_PROJECT", "ctoteam")
-        client = bigquery.Client(project=project)
-
-        if state.dry_run:
-            logger.info(f"[DRY RUN] Would insert {len(state.inserts)} and update {len(state.updates)} records")
-            return state
-
-        merge_sql = f"""
-        MERGE `{project}.linkedin_studio.ai_models` T
-        USING (
-        """
-
-        all_records = state.inserts + state.updates
-        values = []
-
-        for record in all_records:
-            values.append(
-                f"({record.model_id!r}, {record.provider!r}, {record.display_name!r}, "
-                f"{record.use_case!r}, {record.speed_score}, {record.cost_tier}, "
-                f"{record.is_default}, {record.is_active}, {record.notes!r})"
-            )
-
-        merge_sql += "SELECT * FROM UNNEST([\n"
-        merge_sql += ",\n".join(f"  STRUCT<model_id STRING, provider STRING, display_name STRING, use_case STRING, speed_score INT64, cost_tier INT64, is_default BOOL, is_active BOOL, notes STRING>{v}" for v in values)
-        merge_sql += f"\n]) AS S\n"
-
-        merge_sql += """
-        ON T.provider = S.provider AND T.model_id = S.model_id
-        WHEN MATCHED THEN
-          UPDATE SET
-            display_name = S.display_name,
-            use_case = S.use_case,
-            speed_score = S.speed_score,
-            cost_tier = S.cost_tier,
-            is_default = S.is_default,
-            is_active = S.is_active,
-            notes = S.notes
-        WHEN NOT MATCHED THEN
-          INSERT (model_id, provider, display_name, use_case, speed_score, cost_tier, is_default, is_active, notes)
-          VALUES (model_id, provider, display_name, use_case, speed_score, cost_tier, is_default, is_active, notes)
-        """
-
-        job = client.query(merge_sql)
-        job.result()
-
-        logger.info(f"Merged {len(all_records)} records to BigQuery")
-        return state
-
+        errors = client.insert_rows_json(table_id, rows_to_insert)
+        if errors:
+            msg = f"BigQuery insert errors: {errors}"
+            state["errors"] = state.get("errors", []) + [msg]
+            print(msg)
+        else:
+            print(f"Inserted/updated {len(rows_to_insert)} rows to BigQuery")
     except Exception as e:
-        logger.error(f"BigQuery merge error: {e}")
-        state.errors.append(f"BigQuery merge error: {str(e)}")
-        return state
+        state["errors"] = state.get("errors", []) + [f"BigQuery upsert failed: {e}"]
+
+    return state
 
 
-def write_audit(state: AgentState) -> AgentState:
-    """Node 11: Writing audit file"""
-    logger.info("Node 11: Writing audit file...")
+def node_export_candidates(state: DiscoveryState) -> DiscoveryState:
+    provider = state.get("target_provider", "openai").lower()
+    run_id = state.get("run_id", "")
+    candidate_path = f"agents/model_discovery_candidates_{provider}.json"
 
-    state.ended_at = datetime.now(timezone.utc).isoformat()
+    payload = {
+        "run_id": run_id,
+        "started_at": state.get("started_at", ""),
+        "target_provider": provider,
+        "structured_source_used": state.get("structured_source_used", False),
+        "docs_source_used": state.get("docs_source_used", False),
+        "fallback_used": state.get("fallback_used", False),
+        "normalized_models": state.get("normalized_models", []),
+        "approved_records": state.get("approved_records", []),
+        "rejected_records": state.get("rejected_records", []),
+        "missing_models": state.get("missing_models", []),
+        "deprecated_candidates": state.get("deprecated_candidates", []),
+        "planned_bigquery_actions": {
+            "inserts": state.get("inserts", []),
+            "updates": state.get("updates", []),
+            "skips": state.get("skips", []),
+            "deprecated": state.get("deprecated", []),
+        },
+        "dry_run": state.get("dry_run", False),
+    }
+
+    with open(candidate_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+    state["candidate_json_path"] = candidate_path
+    print(f"Candidate JSON written to {candidate_path}")
+
+    if state.get("export_candidates_only", False):
+        state["stopped"] = True
+        state["stop_reason"] = "Export candidates only mode"
+    elif len(state.get("approved_records", [])) == 0:
+        state["stopped"] = True
+        state["stop_reason"] = "No approved records to write"
+
+    return state
+
+
+def node_audit(state: DiscoveryState) -> DiscoveryState:
+    state["ended_at"] = _now()
 
     audit = {
-        "started_at": state.started_at,
-        "ended_at": state.ended_at,
-        "queries_count": sum(len(q) for q in state.queries.values()),
-        "serp_results_count": sum(len(r) for r in state.serp_results.values()),
-        "approved_records_count": len(state.approved_records),
-        "inserts_count": len(state.inserts),
-        "updates_count": len(state.updates),
-        "skips_count": len(state.skips),
-        "stopped": state.stopped,
-        "stop_reason": state.stop_reason,
-        "errors": state.errors,
-        "dry_run": state.dry_run,
+        "started_at": state.get("started_at", ""),
+        "ended_at": state.get("ended_at", ""),
+        "target_provider": state.get("target_provider", ""),
+        "intelligence_model": "gemini-2.5-flash",
+        "run_id": state.get("run_id", ""),
+
+        "structured_source_used": state.get("structured_source_used", False),
+        "docs_source_used": state.get("docs_source_used", False),
+        "fallback_used": state.get("fallback_used", False),
+
+        "structured_models_count": len(state.get("structured_models", [])),
+        "docs_models_count": len(state.get("docs_models", [])),
+        "fallback_models_count": len(state.get("fallback_models", [])),
+        "normalized_count": len(state.get("normalized_models", [])),
+
+        "approved_records_count": len(state.get("approved_records", [])),
+        "missing_models_count": len(state.get("missing_models", [])),
+        "deprecated_candidates_count": len(state.get("deprecated_candidates", [])),
+
+        "inserts_count": len(state.get("inserts", [])),
+        "updates_count": len(state.get("updates", [])),
+        "skips_count": len(state.get("skips", [])),
+        "deprecated_count": len(state.get("deprecated", [])),
+
+        "schema_migrations": state.get("schema_migrations", []),
+        "errors": state.get("errors", []),
+        "stopped": state.get("stopped", False),
+        "stop_reason": state.get("stop_reason", ""),
+        "dry_run": state.get("dry_run", False),
     }
 
-    audit_path = "/home/appadmin/projects/Ram_Projects/linkedin_newsletter/agents/model_discovery_audit.json"
-    os.makedirs(os.path.dirname(audit_path), exist_ok=True)
-
-    with open(audit_path, "w") as f:
+    audit_path = "agents/model_discovery_audit.json"
+    with open(audit_path, "w", encoding="utf-8") as f:
         json.dump(audit, f, indent=2)
+    print(f"Audit written to {audit_path}")
 
-    logger.info(f"Audit written to {audit_path}")
-    return state
-
-
-def end_node(state: AgentState) -> AgentState:
-    """Node 12: End"""
-    logger.info("Node 12: Workflow complete")
     return state
 
 
 def build_graph():
-    """Build LangGraph"""
-    graph = StateGraph(AgentState)
+    g = StateGraph(DiscoveryState)
+    g.add_node("seed", node_provider_seed)
+    g.add_node("structured", node_official_structured_discovery)
+    g.add_node("docs", node_official_docs_discovery)
+    g.add_node("fallback", node_gemini_fallback)
+    g.add_node("normalize", node_model_normalization)
+    g.add_node("fetch_existing", node_fetch_existing)
+    g.add_node("version_history", node_version_history_merge)
+    g.add_node("safe_deprecation", node_safe_deprecation)
+    g.add_node("schema_check", node_schema_check)
+    g.add_node("diff", node_diff)
+    g.add_node("export", node_export_candidates)
+    g.add_node("upsert", node_upsert)
+    g.add_node("audit", node_audit)
 
-    graph.add_node("build_search", build_search_queries)
-    graph.add_node("validate_queries", validate_queries_with_gemini)
-    graph.add_node("serpapi_search", serpapi_search)
-    graph.add_node("validate_serp", validate_serp_results_with_gemini)
-    graph.add_node("extract", extract_models)
-    graph.add_node("normalize", normalize_and_classify)
-    graph.add_node("validate_records", validate_final_records_with_gemini)
-    graph.add_node("fetch_bq", fetch_existing_bigquery_models)
-    graph.add_node("diff", diff_records)
-    graph.add_node("merge", merge_to_bigquery)
-    graph.add_node("audit", write_audit)
-    graph.add_node("end", end_node)
+    g.set_entry_point("seed")
+    g.add_edge("seed", "structured")
+    g.add_edge("structured", "docs")
+    g.add_edge("docs", "fallback")
+    g.add_edge("fallback", "normalize")
+    g.add_edge("normalize", "fetch_existing")
+    g.add_edge("fetch_existing", "version_history")
+    g.add_edge("version_history", "safe_deprecation")
+    g.add_edge("safe_deprecation", "schema_check")
+    g.add_edge("schema_check", "diff")
+    g.add_edge("diff", "export")
+    g.add_edge("export", "upsert")
+    g.add_edge("upsert", "audit")
+    g.add_edge("audit", END)
 
-    graph.add_edge("build_search", "validate_queries")
-    graph.add_edge("validate_queries", "serpapi_search")
-    graph.add_edge("serpapi_search", "validate_serp")
-    graph.add_edge("validate_serp", "extract")
-    graph.add_edge("extract", "normalize")
-    graph.add_edge("normalize", "validate_records")
-    graph.add_edge("validate_records", "fetch_bq")
-    graph.add_edge("fetch_bq", "diff")
-    graph.add_edge("diff", "merge")
-    graph.add_edge("merge", "audit")
-    graph.add_edge("audit", "end")
-
-    graph.set_entry_point("build_search")
-    return graph.compile()
+    return g.compile()
 
 
-def run_agent(provider_filter: list[str] = None, dry_run: bool = False):
-    """Run the model discovery agent"""
+def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
+        force_official_only: bool, allow_web_fallback: bool, refresh_provider: bool):
 
-    # Check dependencies
-    missing_deps = []
-    try:
-        import requests
-    except ImportError:
-        missing_deps.append("requests")
+    print("=" * 60)
+    print("MODEL DISCOVERY — API-FIRST ARCHITECTURE")
+    print("=" * 60)
+    print(f"Target provider: {target_provider}")
+    print(f"Intelligence model: gemini-2.5-flash")
+    print(f"Tier 1: Official structured APIs (confidence 1.0)")
+    print(f"Tier 2: Allowlisted documentation pages (confidence 0.9)")
+    print(f"Tier 3: Gemini reasoning fallback (confidence 0.7)")
+    print("=" * 60)
 
-    try:
-        from google.cloud import bigquery
-    except ImportError:
-        missing_deps.append("google-cloud-bigquery")
+    app = build_graph()
+    state: DiscoveryState = {
+        "target_provider": target_provider.lower(),
+        "intelligence_model": "gemini-2.5-flash",
+        "dry_run": dry_run,
+        "force_official_only": force_official_only,
+        "allow_web_fallback": allow_web_fallback,
+        "refresh_provider": refresh_provider,
+        "started_at": _now(),
+        "errors": [],
+        "export_candidates_only": export_candidates_only,
+        "run_id": datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ"),
+        "stopped": False,
+        "stop_reason": "",
+        "structured_models": [],
+        "docs_models": [],
+        "fallback_models": [],
+        "normalized_models": [],
+        "approved_records": [],
+        "rejected_records": [],
+        "inserts": [],
+        "updates": [],
+        "skips": [],
+        "deprecated": [],
+        "missing_models": [],
+        "deprecated_candidates": [],
+    }
 
-    try:
-        from google import genai
-    except ImportError:
-        missing_deps.append("google-generativeai (provides google.genai)")
+    out = app.invoke(state)
 
-    try:
-        from langgraph.graph import StateGraph
-    except ImportError:
-        missing_deps.append("langgraph")
-
-    if missing_deps:
-        logger.error(f"Missing dependencies: {', '.join(missing_deps)}")
-        logger.error(f"Install with: pip install {' '.join(missing_deps)}")
-        sys.exit(1)
-
-    # Check environment
-    serpapi_key = os.getenv("SERPAPI_KEY")
-    if not serpapi_key:
-        serapi_key_fallback = os.getenv("SERAPI_KEY")
-        if serapi_key_fallback:
-            logger.warning("SERPAPI_KEY not found, using SERAPI_KEY as a fallback. Please correct the typo.")
-            os.environ["SERPAPI_KEY"] = serapi_key_fallback
-        elif not dry_run:
-            logger.error("SERPAPI_KEY not set")
-            sys.exit(1)
-        else:
-            logger.warning("SERPAPI_KEY not set. Continuing for dry-run.")
-
-    if not os.getenv("GEMINI_API_KEY"):
-        logger.error("GEMINI_API_KEY not set")
-        sys.exit(1)
-
-    # Create initial state
-    initial_state = AgentState(
-        provider_filter=provider_filter or ["openai", "google"],
-        dry_run=dry_run,
-    )
-
-    # Build and run graph
-    graph = build_graph()
-
-    logger.info("Starting model discovery agent...")
-    state = graph.invoke(initial_state)
-
-    # Print results
-    print("\n" + "="*60)
-    print("MODEL DISCOVERY RESULTS")
-    print("="*60)
-    # The final state from invoke is a dictionary-like object, so we use key access.
-    # It may be keyed by the final node name (e.g., 'end').
-    final_state = state.get("end", state)
-
-    print(f"DISCOVERED: {len(final_state['approved_records'])}")
-    print(f"INSERTS: {len(final_state['inserts'])}")
-    print(f"UPDATES: {len(final_state['updates'])}")
-    print(f"SKIPS: {len(final_state['skips'])}")
-    print(f"STOPPED: {final_state['stopped']}")
-    if final_state['stopped']:
-        print(f"STOP_REASON: {final_state['stop_reason']}")
-    print(f"AUDIT_FILE: agents/model_discovery_audit.json")
-
-    if final_state['inserts']:
-        print("\nNew models:")
-        for r in final_state['inserts'][:5]:
-            print(f"  - {r['provider']}/{r['model_id']}")
-        if len(final_state['inserts']) > 5:
-            print(f"  ... and {len(final_state['inserts']) - 5} more")
-
-    if final_state['updates']:
-        print("\nUpdated models:")
-        for r in final_state['updates'][:5]:
-            print(f"  - {r['provider']}/{r['model_id']}")
-        if len(final_state['updates']) > 5:
-            print(f"  ... and {len(final_state['updates']) - 5} more")
-
-    print("="*60 + "\n")
-
-    return state
+    print("\n" + "=" * 60)
+    print("DISCOVERY RESULTS")
+    print("=" * 60)
+    print(f"Tier 1 (structured API): {out.get('structured_models_count', 0)} models")
+    print(f"Tier 2 (official docs): {out.get('docs_models_count', 0)} models")
+    print(f"Tier 3 (Gemini fallback): {out.get('fallback_models_count', 0)} models")
+    print(f"Normalized: {out.get('normalized_count', 0)} models")
+    print(f"Missing (pending deprecation): {out.get('missing_models_count', 0)}")
+    print(f"Deprecated (>= 3 misses): {out.get('deprecated_count', 0)}")
+    print(f"BigQuery: inserts={out.get('inserts_count', 0)}, updates={out.get('updates_count', 0)}, skips={out.get('skips_count', 0)}")
+    print(f"Schema migrations: {len(out.get('schema_migrations', []))}")
+    print(f"Errors: {len(out.get('errors', []))}")
+    if out.get('errors'):
+        for err in out.get('errors', [])[:5]:
+            print(f"  - {err[:100]}")
+    print(f"Stopped: {out.get('stopped', False)}")
+    if out.get("stop_reason"):
+        print(f"Stop reason: {out.get('stop_reason')}")
+    print(f"Candidates file: {out.get('candidate_json_path', '')}")
+    print(f"Audit file: agents/model_discovery_audit.json")
+    print("=" * 60)
 
 
 if __name__ == "__main__":
-    try:
-        from dotenv import load_dotenv
-        if load_dotenv(dotenv_path=".env.local"):
-            logger.info("Loaded environment variables from .env.local")
-        else:
-            logger.warning(".env.local not found, using system environment.")
-    except ImportError:
-        logger.warning("python-dotenv not installed, cannot load .env.local. Run: pip install python-dotenv")
-
     parser = argparse.ArgumentParser(
-        description="AI Model Discovery Agent using LangGraph + Gemini + SerpAPI"
+        description="Model discovery agent with API-first architecture"
+    )
+    parser.add_argument(
+        "--target-provider",
+        choices=["openai", "google", "anthropic", "openrouter", "mistral", "cohere"],
+        default="openai",
+        help="Provider whose models to discover"
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Don't write to BigQuery or call external APIs"
+        help="Print plan without writing to BigQuery"
     )
     parser.add_argument(
-        "--provider",
-        choices=["openai", "google", "gemini"],
-        action="append",
-        dest="providers",
-        help="Filter by provider (can use multiple times). 'gemini' is an alias for 'google'."
+        "--export-candidates-only",
+        action="store_true",
+        help="Write candidate JSON only, skip BigQuery"
+    )
+    parser.add_argument(
+        "--force-official-only",
+        action="store_true",
+        help="Fail if Tier 1 unavailable, skip Tier 2+3"
+    )
+    parser.add_argument(
+        "--allow-web-fallback",
+        action="store_true",
+        help="Enable Tier 3 Gemini reasoning fallback even if Tier 1+2 succeed"
+    )
+    parser.add_argument(
+        "--refresh-provider",
+        action="store_true",
+        help="Force re-discovery regardless of last scan time"
     )
 
     args = parser.parse_args()
 
-    raw_providers = args.providers or ["google"]
-    providers = list(set(["google" if p == "gemini" else p for p in raw_providers]))
-
-    run_agent(provider_filter=providers, dry_run=args.dry_run)
+    run(
+        target_provider=args.target_provider,
+        dry_run=args.dry_run,
+        export_candidates_only=args.export_candidates_only,
+        force_official_only=args.force_official_only,
+        allow_web_fallback=args.allow_web_fallback,
+        refresh_provider=args.refresh_provider,
+    )
