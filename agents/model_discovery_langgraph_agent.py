@@ -159,6 +159,7 @@ class DiscoveryState(TypedDict, total=False):
     force_official_only: bool
     allow_web_fallback: bool
     refresh_provider: bool
+    skip_semantic_enrichment: bool
     started_at: str
     ended_at: str
     run_id: str
@@ -178,6 +179,16 @@ class DiscoveryState(TypedDict, total=False):
     existing_models: list[dict]
     missing_models: list[dict]
     deprecated_candidates: list[dict]
+
+    model_context: dict
+    model_families: dict
+    enriched_models: list[dict]
+
+    semantic_enrichment_enabled: bool
+    semantic_enrichment_completed: bool
+    semantic_families_attempted: int
+    semantic_families_completed: int
+    semantic_enrichment_errors: list[str]
 
     inserts: list[dict]
     updates: list[dict]
@@ -691,13 +702,210 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
     return state
 
 
+def node_gather_official_metadata(state: DiscoveryState) -> DiscoveryState:
+    """Gather official documentation context for models (non-blocking)."""
+    if state.get("stopped", False):
+        return state
+
+    provider = state.get("target_provider", "openai").lower()
+
+    if provider != "openai":
+        state["model_context"] = {}
+        return state
+
+    official_urls = [
+        "https://platform.openai.com/docs/models",
+        "https://developers.openai.com/docs/guides/function-calling",
+        "https://openai.com/api/pricing/",
+    ]
+
+    context_map = {}
+
+    for url in official_urls:
+        try:
+            resp = requests.get(url, timeout=5)
+            if resp.status_code == 403:
+                if state.get("dry_run"):
+                    print(f"Metadata fetch ({url}): 403 Forbidden (skipping, non-critical)")
+                continue
+            resp.raise_for_status()
+            text = resp.text[:15000]
+
+            for model in state.get("approved_records", []):
+                mid = model.get("model_id", "").lower()
+                if mid not in context_map:
+                    context_map[mid] = []
+
+                if mid in text.lower() or model.get("family", "") in text.lower():
+                    snippet_matches = re.finditer(f".{{0,150}}{re.escape(mid)}.{{0,150}}", text, re.I)
+                    for match in snippet_matches:
+                        context_map[mid].append(match.group(0).strip())
+                        if len(context_map[mid]) >= 3:
+                            break
+
+        except requests.Timeout:
+            if state.get("dry_run"):
+                print(f"Metadata fetch ({url}): timeout (skipping, non-critical)")
+        except Exception as e:
+            if state.get("dry_run"):
+                print(f"Metadata fetch ({url}): {str(e)[:80]} (skipping, non-critical)")
+
+    state["model_context"] = context_map
+    if state.get("dry_run"):
+        print(f"Gathered context for {len(context_map)} models")
+
+    return state
+
+
+def node_batch_models_by_family(state: DiscoveryState) -> DiscoveryState:
+    """Group models by family for efficient semantic enrichment."""
+    if state.get("stopped", False):
+        return state
+
+    family_map = {}
+    for model in state.get("approved_records", []):
+        fam = model.get("family", "unknown")
+        if fam not in family_map:
+            family_map[fam] = []
+        family_map[fam].append(model)
+
+    state["model_families"] = family_map
+    if state.get("dry_run"):
+        print(f"Grouped {len(state.get('approved_records', []))} models into {len(family_map)} families")
+
+    return state
+
+
+def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
+    """Enrich models with semantic metadata via Gemini (timeout-safe, non-blocking)."""
+    if state.get("stopped", False):
+        return state
+
+    skip_enrichment = state.get("skip_semantic_enrichment", False)
+    provider = state.get("target_provider", "openai").lower()
+
+    if skip_enrichment or provider != "openai":
+        state["enriched_models"] = state.get("approved_records", [])
+        state["semantic_enrichment_enabled"] = not skip_enrichment
+        state["semantic_enrichment_completed"] = True
+        return state
+
+    state["semantic_enrichment_enabled"] = True
+    state["semantic_families_attempted"] = 0
+    state["semantic_families_completed"] = 0
+    state["semantic_enrichment_errors"] = []
+
+    model_families = state.get("model_families", {})
+    model_context = state.get("model_context", {})
+    enriched = []
+
+    for family_name, models in sorted(model_families.items()):
+        state["semantic_families_attempted"] += 1
+
+        family_context = []
+        for model in models:
+            mid = model.get("model_id", "").lower()
+            ctx = model_context.get(mid, [])
+            if ctx:
+                family_context.extend(ctx[:2])
+
+        if not family_context:
+            family_context = [
+                f"Family: {family_name}. Models: {', '.join([m.get('model_id', '') for m in models[:5]])}"
+            ]
+
+        prompt = f"""Analyze OpenAI model metadata and infer semantic guidance.
+
+Family: {family_name}
+Models: {[m.get('model_id', '') for m in models]}
+
+Context:
+{chr(10).join(family_context[:5])}
+
+Return JSON array (one object per model):
+[
+  {{
+    "model_id": "...",
+    "model_purpose": "primary use case",
+    "recommended_for": ["use case1"],
+    "avoid_for": [],
+    "user_persona": ["developer"],
+    "selection_notes": "when to use",
+    "capabilities": [],
+    "confidence": 0.7
+  }}
+]
+
+Output JSON only. If uncertain, use lower confidence (0.5-0.7).
+"""
+
+        try:
+            resp = llm.invoke([HumanMessage(content=prompt)])
+            semantic_data = _parse_json(resp.content, [])
+
+            if isinstance(semantic_data, list) and semantic_data:
+                for sem_item in semantic_data:
+                    mid = sem_item.get("model_id", "").lower()
+                    matching_model = next(
+                        (m for m in models if m.get("model_id", "").lower() == mid),
+                        None,
+                    )
+                    if matching_model:
+                        matching_model["model_purpose"] = sem_item.get(
+                            "model_purpose", ""
+                        )
+                        matching_model["recommended_for"] = sem_item.get(
+                            "recommended_for", []
+                        )
+                        matching_model["avoid_for"] = sem_item.get("avoid_for", [])
+                        matching_model["user_persona"] = sem_item.get(
+                            "user_persona", []
+                        )
+                        matching_model["selection_notes"] = sem_item.get(
+                            "selection_notes", ""
+                        )
+                        matching_model["capabilities"] = sem_item.get(
+                            "capabilities", []
+                        )
+                        matching_model["semantic_confidence"] = float(
+                            sem_item.get("confidence", 0.5)
+                        )
+                        matching_model["official_context"] = " ".join(
+                            family_context[:2]
+                        )[:300]
+
+                state["semantic_families_completed"] += 1
+
+            enriched.extend(models)
+
+        except Exception as e:
+            error_msg = f"{family_name}: {str(e)[:60]}"
+            state["semantic_enrichment_errors"].append(error_msg)
+            if state.get("dry_run"):
+                print(f"Semantic enrichment warning ({error_msg})")
+            enriched.extend(models)
+
+    state["enriched_models"] = enriched
+    state["semantic_enrichment_completed"] = True
+
+    if state.get("dry_run"):
+        print(
+            f"Semantic enrichment: {state['semantic_families_completed']}/{state['semantic_families_attempted']} families"
+        )
+        if state["semantic_enrichment_errors"]:
+            print(f"  Warnings: {len(state['semantic_enrichment_errors'])}")
+
+    return state
+
+
 def node_version_history_merge(state: DiscoveryState) -> DiscoveryState:
     if state.get("stopped", False):
         return state
 
     existing_by_key = {(r["provider"], r["model_id"]): r for r in state.get("existing_models", [])}
+    records = state.get("enriched_models", state.get("approved_records", []))
 
-    for rec in state.get("approved_records", []):
+    for rec in records:
         key = (rec["provider"], rec["model_id"])
         old = existing_by_key.get(key)
 
@@ -725,7 +933,8 @@ def node_safe_deprecation(state: DiscoveryState) -> DiscoveryState:
 
     provider = state.get("target_provider", "openai").lower()
     existing = {(r["provider"], r["model_id"]): r for r in state.get("existing_models", [])}
-    approved_keys = {(r["provider"], r["model_id"]) for r in state.get("approved_records", [])}
+    records = state.get("enriched_models", state.get("approved_records", []))
+    approved_keys = {(r["provider"], r["model_id"]) for r in records}
 
     missing = []
     for key, old_rec in existing.items():
@@ -786,6 +995,14 @@ def node_schema_check(state: DiscoveryState) -> DiscoveryState:
         "last_seen_at": "TIMESTAMP",
         "first_seen_at": "TIMESTAMP",
         "discovery_tier": "INT64",
+        "model_purpose": "STRING",
+        "recommended_for": "ARRAY<STRING>",
+        "avoid_for": "ARRAY<STRING>",
+        "user_persona": "ARRAY<STRING>",
+        "selection_notes": "STRING",
+        "capabilities": "ARRAY<STRING>",
+        "semantic_confidence": "FLOAT64",
+        "official_context": "STRING",
     }
 
     try:
@@ -814,9 +1031,10 @@ def node_schema_check(state: DiscoveryState) -> DiscoveryState:
 
 def node_diff(state: DiscoveryState) -> DiscoveryState:
     existing = {(r["provider"], r["model_id"]): r for r in state.get("existing_models", [])}
+    records = state.get("enriched_models", state.get("approved_records", []))
     inserts, updates, skips = [], [], []
 
-    for rec in state.get("approved_records", []):
+    for rec in records:
         k = (rec["provider"], rec["model_id"])
         old = existing.get(k)
 
@@ -824,7 +1042,8 @@ def node_diff(state: DiscoveryState) -> DiscoveryState:
             inserts.append(rec)
         elif any(old.get(f) != rec.get(f) for f in [
             "display_name", "source_url", "source_domain", "family", "version",
-            "release_stage", "confidence", "discovery_tier"
+            "release_stage", "confidence", "discovery_tier", "model_purpose",
+            "semantic_confidence"
         ]):
             updates.append(rec)
         else:
@@ -874,6 +1093,14 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
             "missing_scan_count": rec.get("missing_scan_count", 0),
             "last_seen_at": _now(),
             "version_history": rec.get("version_history", []),
+            "model_purpose": rec.get("model_purpose", ""),
+            "recommended_for": rec.get("recommended_for", []),
+            "avoid_for": rec.get("avoid_for", []),
+            "user_persona": rec.get("user_persona", []),
+            "selection_notes": rec.get("selection_notes", ""),
+            "capabilities": rec.get("capabilities", []),
+            "semantic_confidence": rec.get("semantic_confidence", 0.0),
+            "official_context": rec.get("official_context", ""),
         }
         rows_to_insert.append(row)
 
@@ -896,6 +1123,8 @@ def node_export_candidates(state: DiscoveryState) -> DiscoveryState:
     run_id = state.get("run_id", "")
     candidate_path = f"agents/model_discovery_candidates_{provider}.json"
 
+    enriched_models = state.get("enriched_models", state.get("approved_records", []))
+
     payload = {
         "run_id": run_id,
         "started_at": state.get("started_at", ""),
@@ -903,8 +1132,11 @@ def node_export_candidates(state: DiscoveryState) -> DiscoveryState:
         "structured_source_used": state.get("structured_source_used", False),
         "docs_source_used": state.get("docs_source_used", False),
         "fallback_used": state.get("fallback_used", False),
+        "semantic_enrichment": len(
+            [m for m in enriched_models if m.get("model_purpose")]
+        ),
         "normalized_models": state.get("normalized_models", []),
-        "approved_records": state.get("approved_records", []),
+        "enriched_models": enriched_models,
         "rejected_records": state.get("rejected_records", []),
         "missing_models": state.get("missing_models", []),
         "deprecated_candidates": state.get("deprecated_candidates", []),
@@ -925,7 +1157,7 @@ def node_export_candidates(state: DiscoveryState) -> DiscoveryState:
     if state.get("export_candidates_only", False):
         state["stopped"] = True
         state["stop_reason"] = "Export candidates only mode"
-    elif len(state.get("approved_records", [])) == 0:
+    elif len(enriched_models) == 0:
         state["stopped"] = True
         state["stop_reason"] = "No approved records to write"
 
@@ -951,7 +1183,14 @@ def node_audit(state: DiscoveryState) -> DiscoveryState:
         "fallback_models_count": len(state.get("fallback_models", [])),
         "normalized_count": len(state.get("normalized_models", [])),
 
+        "semantic_enrichment_enabled": state.get("semantic_enrichment_enabled", False),
+        "semantic_enrichment_completed": state.get("semantic_enrichment_completed", False),
+        "semantic_families_attempted": state.get("semantic_families_attempted", 0),
+        "semantic_families_completed": state.get("semantic_families_completed", 0),
+        "semantic_enrichment_errors": state.get("semantic_enrichment_errors", []),
+
         "approved_records_count": len(state.get("approved_records", [])),
+        "enriched_models_count": len(state.get("enriched_models", [])),
         "missing_models_count": len(state.get("missing_models", [])),
         "deprecated_candidates_count": len(state.get("deprecated_candidates", [])),
 
@@ -982,6 +1221,9 @@ def build_graph():
     g.add_node("docs", node_official_docs_discovery)
     g.add_node("fallback", node_gemini_fallback)
     g.add_node("normalize", node_model_normalization)
+    g.add_node("gather_metadata", node_gather_official_metadata)
+    g.add_node("batch_families", node_batch_models_by_family)
+    g.add_node("semantic_enrich", node_semantic_enrichment)
     g.add_node("fetch_existing", node_fetch_existing)
     g.add_node("version_history", node_version_history_merge)
     g.add_node("safe_deprecation", node_safe_deprecation)
@@ -996,7 +1238,10 @@ def build_graph():
     g.add_edge("structured", "docs")
     g.add_edge("docs", "fallback")
     g.add_edge("fallback", "normalize")
-    g.add_edge("normalize", "fetch_existing")
+    g.add_edge("normalize", "gather_metadata")
+    g.add_edge("gather_metadata", "batch_families")
+    g.add_edge("batch_families", "semantic_enrich")
+    g.add_edge("semantic_enrich", "fetch_existing")
     g.add_edge("fetch_existing", "version_history")
     g.add_edge("version_history", "safe_deprecation")
     g.add_edge("safe_deprecation", "schema_check")
@@ -1010,7 +1255,8 @@ def build_graph():
 
 
 def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
-        force_official_only: bool, allow_web_fallback: bool, refresh_provider: bool):
+        force_official_only: bool, allow_web_fallback: bool, refresh_provider: bool,
+        skip_semantic_enrichment: bool):
 
     print("=" * 60)
     print("MODEL DISCOVERY — API-FIRST ARCHITECTURE")
@@ -1030,6 +1276,7 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         "force_official_only": force_official_only,
         "allow_web_fallback": allow_web_fallback,
         "refresh_provider": refresh_provider,
+        "skip_semantic_enrichment": skip_semantic_enrichment,
         "started_at": _now(),
         "errors": [],
         "export_candidates_only": export_candidates_only,
@@ -1042,6 +1289,14 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         "normalized_models": [],
         "approved_records": [],
         "rejected_records": [],
+        "model_context": {},
+        "model_families": {},
+        "enriched_models": [],
+        "semantic_enrichment_enabled": False,
+        "semantic_enrichment_completed": False,
+        "semantic_families_attempted": 0,
+        "semantic_families_completed": 0,
+        "semantic_enrichment_errors": [],
         "inserts": [],
         "updates": [],
         "skips": [],
@@ -1052,6 +1307,9 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
 
     out = app.invoke(state)
 
+    enriched_models = out.get("enriched_models", out.get("approved_records", []))
+    enriched_count = sum(1 for m in enriched_models if m.get("model_purpose"))
+
     print("\n" + "=" * 60)
     print("DISCOVERY RESULTS")
     print("=" * 60)
@@ -1059,6 +1317,17 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
     print(f"Tier 2 (official docs): {len(out.get('docs_models', []))} models")
     print(f"Tier 3 (Gemini fallback): {len(out.get('fallback_models', []))} models")
     print(f"Normalized: {len(out.get('normalized_models', []))} models")
+
+    if out.get("semantic_enrichment_enabled"):
+        print(
+            f"Semantic enrichment: {out.get('semantic_families_completed', 0)}/{out.get('semantic_families_attempted', 0)} families, "
+            f"{enriched_count}/{len(enriched_models)} models enriched"
+        )
+        if out.get("semantic_enrichment_errors"):
+            print(f"  Warnings: {len(out.get('semantic_enrichment_errors', []))}")
+    else:
+        print("Semantic enrichment: skipped")
+
     print(f"Missing (pending deprecation): {len(out.get('missing_models', []))}")
     print(f"Deprecated (>= 3 misses): {len(out.get('deprecated', []))}")
     print(f"BigQuery: inserts={len(out.get('inserts', []))}, updates={len(out.get('updates', []))}, skips={len(out.get('skips', []))}")
@@ -1110,6 +1379,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Force re-discovery regardless of last scan time"
     )
+    parser.add_argument(
+        "--skip-semantic-enrichment",
+        action="store_true",
+        help="Skip semantic enrichment; use null/empty semantic fields"
+    )
 
     args = parser.parse_args()
 
@@ -1120,4 +1394,5 @@ if __name__ == "__main__":
         force_official_only=args.force_official_only,
         allow_web_fallback=args.allow_web_fallback,
         refresh_provider=args.refresh_provider,
+        skip_semantic_enrichment=args.skip_semantic_enrichment,
     )
