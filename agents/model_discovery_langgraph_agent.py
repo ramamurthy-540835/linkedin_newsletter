@@ -10,7 +10,7 @@ import re
 import sys
 import time
 import argparse
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from dataclasses import dataclass, asdict, field
 import logging
@@ -232,7 +232,7 @@ def build_search_queries(state: AgentState) -> AgentState:
         k: v for k, v in queries.items()
         if k in state.provider_filter
     }
-    state.started_at = datetime.utcnow().isoformat() + "Z"
+    state.started_at = datetime.now(timezone.utc).isoformat()
 
     return state
 
@@ -436,7 +436,7 @@ def extract_models(state: AgentState) -> AgentState:
             cost_tier=0,
             is_default=False,
             is_active=True,
-            notes=f"Discovered via SerpAPI on {datetime.utcnow().isoformat()}Z"
+            notes=f"Discovered via SerpAPI on {datetime.now(timezone.utc).isoformat()}"
         )
         for provider, model_id in extracted
     ]
@@ -703,10 +703,10 @@ def merge_to_bigquery(state: AgentState) -> AgentState:
 
 
 def write_audit(state: AgentState) -> AgentState:
-    """Node 11: Write audit file"""
+    """Node 11: Writing audit file"""
     logger.info("Node 11: Writing audit file...")
 
-    state.ended_at = datetime.utcnow().isoformat() + "Z"
+    state.ended_at = datetime.now(timezone.utc).isoformat()
 
     audit = {
         "started_at": state.started_at,
@@ -835,28 +835,32 @@ def run_agent(provider_filter: list[str] = None, dry_run: bool = False):
     print("\n" + "="*60)
     print("MODEL DISCOVERY RESULTS")
     print("="*60)
-    print(f"DISCOVERED: {len(state.approved_records)}")
-    print(f"INSERTS: {len(state.inserts)}")
-    print(f"UPDATES: {len(state.updates)}")
-    print(f"SKIPS: {len(state.skips)}")
-    print(f"STOPPED: {state.stopped}")
-    if state.stopped:
-        print(f"STOP_REASON: {state.stop_reason}")
+    # The final state from invoke is a dictionary-like object, so we use key access.
+    # It may be keyed by the final node name (e.g., 'end').
+    final_state = state.get("end", state)
+
+    print(f"DISCOVERED: {len(final_state['approved_records'])}")
+    print(f"INSERTS: {len(final_state['inserts'])}")
+    print(f"UPDATES: {len(final_state['updates'])}")
+    print(f"SKIPS: {len(final_state['skips'])}")
+    print(f"STOPPED: {final_state['stopped']}")
+    if final_state['stopped']:
+        print(f"STOP_REASON: {final_state['stop_reason']}")
     print(f"AUDIT_FILE: agents/model_discovery_audit.json")
 
-    if state.inserts:
+    if final_state['inserts']:
         print("\nNew models:")
-        for r in state.inserts[:5]:
-            print(f"  - {r.provider}/{r.model_id}")
-        if len(state.inserts) > 5:
-            print(f"  ... and {len(state.inserts) - 5} more")
+        for r in final_state['inserts'][:5]:
+            print(f"  - {r['provider']}/{r['model_id']}")
+        if len(final_state['inserts']) > 5:
+            print(f"  ... and {len(final_state['inserts']) - 5} more")
 
-    if state.updates:
+    if final_state['updates']:
         print("\nUpdated models:")
-        for r in state.updates[:5]:
-            print(f"  - {r.provider}/{r.model_id}")
-        if len(state.updates) > 5:
-            print(f"  ... and {len(state.updates) - 5} more")
+        for r in final_state['updates'][:5]:
+            print(f"  - {r['provider']}/{r['model_id']}")
+        if len(final_state['updates']) > 5:
+            print(f"  ... and {len(final_state['updates']) - 5} more")
 
     print("="*60 + "\n")
 
