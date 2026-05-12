@@ -112,7 +112,11 @@ BLOCKED_PATH_TOKENS = ["/python/", "/java/", "/ruby/", "/go/", "/sdk/",
 def provider_model_regex(provider: str) -> re.Pattern:
     p = provider.lower()
     if p == "openai":
-        return re.compile(r"^(gpt-[a-z0-9.-]+|o[0-9][a-z0-9.-]*|text-embedding-[a-z0-9.-]+|whisper-[a-z0-9.-]+|tts-[a-z0-9.-]+|dall-e-[a-z0-9.-]+)$", re.I)
+        return re.compile(
+            r"^(gpt-[a-z0-9.-]+|o[0-9][a-z0-9.-]*|text-embedding-[a-z0-9.-]+|"
+            r"whisper-[a-z0-9.-]+|tts-[a-z0-9.-]+|dall-e-[a-z0-9.-]+|"
+            r"babbage-[a-z0-9.-]+|davinci-[a-z0-9.-]+|chat-[a-z0-9.-]+|"
+            r"chatgpt-[a-z0-9.-]+|omni-[a-z0-9.-]+|sora-[a-z0-9.-]+)$", re.I)
     if p == "google":
         return re.compile(r"^(models/)?(gemini|imagen|veo|gemma)-[a-z0-9.-]+$", re.I)
     if p == "anthropic":
@@ -328,24 +332,27 @@ def _classify_openai_model(model_id: str) -> tuple[str, str, str]:
             release_stage = "stable"
         return family, version, release_stage
 
-    # Sora video
+    # Sora video (check before generic omni)
     if mid.startswith("sora-"):
-        family = "sora"
+        family = "video"
         version = mid[len("sora-"):]
         release_stage = "stable"
         return family, version, release_stage
 
-    # Moderation models
+    # Moderation models (check before generic omni)
     if mid.startswith("omni-moderation-"):
         family = "moderation"
         version = mid[len("omni-moderation-"):]
-        release_stage = "stable"
+        if re.search(r"-\d{4}-\d{2}-\d{2}$", mid):
+            release_stage = "versioned"
+        else:
+            release_stage = "stable"
         return family, version, release_stage
 
-    # Computer use / agent tools
-    if mid.startswith("computer-use-"):
-        family = "agent-tools"
-        version = mid[len("computer-use-"):]
+    # ChatGPT image models (check before generic chatgpt)
+    if mid.startswith("chatgpt-image-"):
+        family = "image"
+        version = mid[len("chatgpt-image-"):]
         release_stage = "stable"
         return family, version, release_stage
 
@@ -353,6 +360,20 @@ def _classify_openai_model(model_id: str) -> tuple[str, str, str]:
     if mid.startswith("chatgpt-"):
         family = "chatgpt"
         version = mid[len("chatgpt-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Chat models (chat-latest, etc.)
+    if mid.startswith("chat-"):
+        family = "chat"
+        version = mid[len("chat-"):]
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Computer use / agent tools
+    if mid.startswith("computer-use-"):
+        family = "agent-tools"
+        version = mid[len("computer-use-"):]
         release_stage = "stable"
         return family, version, release_stage
 
