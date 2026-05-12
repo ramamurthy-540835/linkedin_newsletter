@@ -1228,36 +1228,31 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
     if not to_write:
         return state
 
+    # Fields that are safe to include (exist in BigQuery schema)
+    core_fields = ["model_id", "provider", "display_name"]
+    semantic_fields = ["model_purpose", "recommended_for", "avoid_for", "user_persona",
+                      "selection_notes", "capabilities", "semantic_confidence", "official_context"]
+    temporal_fields = ["missing_scan_count", "last_seen_at", "first_seen_at", "discovery_tier"]
+
     rows_to_insert = []
     for rec in to_write:
-        row = {
-            "model_id": rec.get("model_id"),
-            "provider": rec.get("provider"),
-            "display_name": rec.get("display_name"),
-            "family": rec.get("family"),
-            "version": rec.get("version"),
-            "release_stage": rec.get("release_stage"),
-            "status": rec.get("status"),
-            "is_active": rec.get("is_active"),
-            "source_url": rec.get("source_url"),
-            "source_domain": rec.get("source_domain"),
-            "confidence": rec.get("confidence"),
-            "discovery_tier": rec.get("discovery_tier"),
-            "discovered_at": rec.get("discovered_at"),
-            "last_verified_at": rec.get("last_verified_at"),
-            "first_seen_at": rec.get("first_seen_at"),
-            "missing_scan_count": rec.get("missing_scan_count", 0),
-            "last_seen_at": _now(),
-            "version_history": rec.get("version_history", []),
-            "model_purpose": rec.get("model_purpose", ""),
-            "recommended_for": rec.get("recommended_for", []),
-            "avoid_for": rec.get("avoid_for", []),
-            "user_persona": rec.get("user_persona", []),
-            "selection_notes": rec.get("selection_notes", ""),
-            "capabilities": rec.get("capabilities", []),
-            "semantic_confidence": rec.get("semantic_confidence", 0.0),
-            "official_context": rec.get("official_context", ""),
-        }
+        row = {}
+
+        # Add core fields
+        for field in core_fields:
+            if field in rec:
+                row[field] = rec[field]
+
+        # Add semantic fields
+        for field in semantic_fields:
+            row[field] = rec.get(field, "" if field.endswith("_notes") or field.endswith("_context") else ([] if field.endswith("_for") or field.endswith("persona") or field == "capabilities" else 0.0))
+
+        # Add temporal fields
+        row["missing_scan_count"] = rec.get("missing_scan_count", 0)
+        row["last_seen_at"] = _now()
+        row["first_seen_at"] = rec.get("first_seen_at", _now())
+        row["discovery_tier"] = rec.get("discovery_tier", 1)
+
         rows_to_insert.append(row)
 
     try:
@@ -1304,6 +1299,18 @@ def node_export_candidates(state: DiscoveryState) -> DiscoveryState:
         },
         "dry_run": state.get("dry_run", False),
     }
+
+    def _convert_datetime(obj):
+        """Convert datetime objects to ISO strings for JSON serialization."""
+        if isinstance(obj, dict):
+            return {k: _convert_datetime(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [_convert_datetime(item) for item in obj]
+        elif hasattr(obj, 'isoformat'):  # datetime, date, time objects
+            return obj.isoformat()
+        return obj
+
+    payload = _convert_datetime(payload)
 
     with open(candidate_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
