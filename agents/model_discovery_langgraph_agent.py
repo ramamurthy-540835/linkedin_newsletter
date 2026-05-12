@@ -1177,8 +1177,44 @@ def node_schema_check(state: DiscoveryState) -> DiscoveryState:
         table = client.get_table(table_id)
         existing_cols = {field.name: field.field_type for field in table.schema}
     except Exception as e:
-        state["errors"] = state.get("errors", []) + [f"BigQuery schema check failed: {e}"]
-        return state
+        # Table doesn't exist - create it with required schema
+        if "Not found" in str(e) or "was not found" in str(e):
+            print(f"Table not found. Creating {table_id}...")
+            try:
+                # Build schema from required columns + core fields
+                schema = [
+                    bigquery.SchemaField("provider", "STRING", mode="REQUIRED"),
+                    bigquery.SchemaField("model_id", "STRING", mode="REQUIRED"),
+                    bigquery.SchemaField("display_name", "STRING"),
+                    bigquery.SchemaField("family", "STRING"),
+                    bigquery.SchemaField("version", "STRING"),
+                    bigquery.SchemaField("release_stage", "STRING"),
+                    bigquery.SchemaField("is_active", "BOOLEAN"),
+                    bigquery.SchemaField("source_url", "STRING"),
+                    bigquery.SchemaField("source_domain", "STRING"),
+                    bigquery.SchemaField("discovered_at", "TIMESTAMP"),
+                    bigquery.SchemaField("last_verified_at", "TIMESTAMP"),
+                ]
+                # Add required enrichment columns
+                for col_name, col_type in required_cols.items():
+                    if col_type.startswith("ARRAY"):
+                        mode = "REPEATED"
+                        base_type = col_type.replace("ARRAY<", "").replace(">", "")
+                    else:
+                        mode = "NULLABLE"
+                        base_type = col_type
+                    schema.append(bigquery.SchemaField(col_name, base_type, mode=mode))
+
+                table = bigquery.Table(table_id, schema=schema)
+                table = client.create_table(table)
+                print(f"✓ Created table {table_id} with {len(schema)} columns")
+                existing_cols = {field.name: field.field_type for field in table.schema}
+            except Exception as create_err:
+                state["errors"] = state.get("errors", []) + [f"BigQuery table creation failed: {create_err}"]
+                return state
+        else:
+            state["errors"] = state.get("errors", []) + [f"BigQuery schema check failed: {e}"]
+            return state
 
     migrations = []
     for col_name, col_type in required_cols.items():
