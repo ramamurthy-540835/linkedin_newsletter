@@ -472,6 +472,144 @@ def _classify_openai_model(model_id: str) -> tuple[str, str, str]:
     return "unknown", mid, "stable"
 
 
+def _classify_google_model(model_id: str) -> tuple[str, str, str]:
+    """Classify Google/Gemini model into family, version, and release_stage."""
+    mid = model_id.lower().strip()
+
+    # Gemini models
+    if "gemini-2.5" in mid:
+        family = "gemini-2.5"
+        version = "2.5"
+        release_stage = "stable" if "preview" not in mid else "preview"
+        return family, version, release_stage
+
+    if "gemini-2.0" in mid:
+        family = "gemini-2.0"
+        version = "2.0"
+        release_stage = "stable" if "preview" not in mid else "preview"
+        return family, version, release_stage
+
+    if "gemini-1.5" in mid:
+        family = "gemini-1.5"
+        version = "1.5"
+        release_stage = "stable" if "preview" not in mid else "preview"
+        return family, version, release_stage
+
+    if "gemini-1" in mid or "gemini" in mid:
+        family = "gemini"
+        version = "1.0"
+        release_stage = "stable" if "preview" not in mid else "preview"
+        return family, version, release_stage
+
+    # Imagen models
+    if "imagen" in mid:
+        family = "imagen"
+        if "3" in mid:
+            version = "3"
+        elif "2" in mid:
+            version = "2"
+        else:
+            version = "1"
+        release_stage = "stable" if "preview" not in mid else "preview"
+        return family, version, release_stage
+
+    # Veo models
+    if "veo" in mid:
+        family = "veo"
+        version = mid.replace("veo-", "").split("-")[0] if "-" in mid else "1"
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Text-to-speech
+    if "tts" in mid or "text-to-speech" in mid:
+        family = "tts"
+        version = mid.replace("google-tts-", "").replace("-", "_")
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Speech/Chirp
+    if "speech" in mid or "chirp" in mid:
+        family = "speech"
+        version = "1.0"
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Embedding models
+    if "embedding" in mid or "embed" in mid:
+        family = "embedding"
+        if "004" in mid:
+            version = "004"
+        elif "003" in mid:
+            version = "003"
+        else:
+            version = "001"
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Moderation/safety
+    if "moderation" in mid or "safety" in mid:
+        family = "moderation"
+        version = "1.0"
+        release_stage = "stable"
+        return family, version, release_stage
+
+    return "unknown", mid, "stable"
+
+
+def _classify_anthropic_model(model_id: str) -> tuple[str, str, str]:
+    """Classify Anthropic/Claude model into family, version, and release_stage."""
+    mid = model_id.lower().strip()
+
+    # Claude 3.5 (latest)
+    if "claude-3-5" in mid or "claude-3.5" in mid:
+        family = "claude-3.5"
+        if "sonnet" in mid:
+            version = "sonnet"
+        elif "haiku" in mid:
+            version = "haiku"
+        else:
+            version = "sonnet"  # default
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Claude 3
+    if "claude-3" in mid:
+        family = "claude-3"
+        if "opus" in mid:
+            version = "opus"
+        elif "sonnet" in mid:
+            version = "sonnet"
+        elif "haiku" in mid:
+            version = "haiku"
+        else:
+            version = "opus"  # default
+        release_stage = "stable" if "preview" not in mid else "preview"
+        return family, version, release_stage
+
+    # Claude 2
+    if "claude-2" in mid:
+        family = "claude-2"
+        version = "2.1" if "2.1" in mid else "2.0"
+        release_stage = "stable"
+        return family, version, release_stage
+
+    # Claude instant / legacy
+    if "claude-instant" in mid:
+        family = "claude-instant"
+        version = "1.3" if "1.3" in mid else "1.0"
+        release_stage = "legacy"
+        return family, version, release_stage
+
+    # Generic Claude
+    if "claude" in mid:
+        family = "claude"
+        version = "latest"
+        release_stage = "stable"
+        return family, version, release_stage
+
+    return "unknown", mid, "stable"
+
+
 def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
     if state.get("stopped", False):
         return state
@@ -708,6 +846,14 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
 
         if provider == "openai":
             fam, ver, release_stage = _classify_openai_model(mid)
+            if fam == "unknown":
+                unknown_models.append(mid)
+        elif provider == "google":
+            fam, ver, release_stage = _classify_google_model(mid)
+            if fam == "unknown":
+                unknown_models.append(mid)
+        elif provider == "anthropic":
+            fam, ver, release_stage = _classify_anthropic_model(mid)
             if fam == "unknown":
                 unknown_models.append(mid)
         else:
@@ -1377,6 +1523,11 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
     if not to_write:
         return state
 
+    # DEBUG: Check first insert/update for family field
+    if state.get("debug") and to_write:
+        sample = to_write[0]
+        print(f"DEBUG upsert: first rec has family={sample.get('family')}, model_id={sample.get('model_id')}")
+
     # Check for existing duplicates
     repair_duplicates = state.get("repair_duplicates", False)
     dup_check = check_and_repair_duplicates(client, table_id, repair=repair_duplicates)
@@ -1388,7 +1539,7 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
         return state
 
     # Fields that are safe to include (exist in BigQuery schema)
-    core_fields = ["model_id", "provider", "display_name"]
+    core_fields = ["model_id", "provider", "display_name", "family", "version", "release_stage"]
     semantic_fields = ["model_purpose", "recommended_for", "avoid_for", "user_persona",
                       "selection_notes", "capabilities", "semantic_confidence", "official_context"]
     temporal_fields = ["missing_scan_count", "last_seen_at", "first_seen_at", "discovery_tier"]
@@ -1397,12 +1548,16 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
     for rec in to_write:
         row = {}
 
+        # DEBUG: Check if rec has family
+        if state.get("debug") and not rec.get("family"):
+            print(f"  DEBUG: rec missing family: model_id={rec.get('model_id')}")
+
         # Add core fields
         for field in core_fields:
             if field in rec:
                 row[field] = rec[field]
 
-        # Add semantic fields
+        # Add semantic fields (with sensible defaults)
         for field in semantic_fields:
             row[field] = rec.get(field, "" if field.endswith("_notes") or field.endswith("_context") else ([] if field.endswith("_for") or field.endswith("persona") or field == "capabilities" else 0.0))
 
@@ -1417,6 +1572,12 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
         row["first_seen_at"] = first_seen
 
         row["discovery_tier"] = rec.get("discovery_tier", 1)
+
+        # Validate family is set (should be set during normalization)
+        if not row.get("family"):
+            row["family"] = "unknown"
+            if state.get("debug"):
+                print(f"  DEBUG: Set family=unknown for model_id={row.get('model_id')}")
 
         rows_to_insert.append(row)
 
@@ -1614,7 +1775,7 @@ def build_graph():
 
 def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         force_official_only: bool, allow_web_fallback: bool, refresh_provider: bool,
-        skip_semantic_enrichment: bool, repair_duplicates: bool = False):
+        skip_semantic_enrichment: bool, repair_duplicates: bool = False, debug: bool = False):
 
     print("=" * 60)
     print("MODEL DISCOVERY — API-FIRST ARCHITECTURE")
@@ -1631,6 +1792,7 @@ def run(target_provider: str, dry_run: bool, export_candidates_only: bool,
         "target_provider": target_provider.lower(),
         "intelligence_model": "gemini-2.5-flash",
         "dry_run": dry_run,
+        "debug": debug,
         "force_official_only": force_official_only,
         "allow_web_fallback": allow_web_fallback,
         "refresh_provider": refresh_provider,
@@ -1748,6 +1910,11 @@ if __name__ == "__main__":
         action="store_true",
         help="Remove duplicate rows (keeping latest per provider/model_id); only if duplicates found"
     )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug output (shows family field validation, enrichment details)"
+    )
 
     args = parser.parse_args()
 
@@ -1760,4 +1927,5 @@ if __name__ == "__main__":
         refresh_provider=args.refresh_provider,
         skip_semantic_enrichment=args.skip_semantic_enrichment,
         repair_duplicates=args.repair_duplicates,
+        debug=args.debug,
     )
