@@ -1802,7 +1802,8 @@ def main():
         diagram_png, diagram_mmd = generate_mermaid_png(stats, validate_only)
         mindmap_img_path = diagram_png
     else:
-        print(f"\nSkipping Mermaid/Matplotlib Mindmap (Vertex Imagen used: {mindmap_img_path})")
+        mindmap_source = "xAI image" if use_xai_image and "xai_" in os.path.basename(mindmap_img_path) else "Vertex Imagen"
+        print(f"\nSkipping Mermaid/Matplotlib Mindmap ({mindmap_source} used: {mindmap_img_path})")
 
 
     if not publish_mode:
