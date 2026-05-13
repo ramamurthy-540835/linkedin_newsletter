@@ -320,9 +320,6 @@ def generate_mermaid_png(stats):
     provider = stats["provider"]
 
     # Build mermaid mindmap - organized by use case groups
-    lines = ["mindmap", f"  root(({provider} AI Models: {stats['total']} Total))"]
-
-    # Group families by use case
     use_case_groups = {}
     for fam, mods in stats["families"].items():
         latest = stats["latest_per_family"].get(fam, {})
@@ -330,6 +327,9 @@ def generate_mermaid_png(stats):
         if use_case not in use_case_groups:
             use_case_groups[use_case] = []
         use_case_groups[use_case].append((fam, mods, latest))
+
+    num_categories = len(use_case_groups)
+    lines = ["mindmap", f"  root(({provider}\\n{stats['total']} Models\\n{num_categories} Categories))"]
 
     # Build mindmap organized by use case
     for use_case in sorted(use_case_groups.keys()):
@@ -344,7 +344,23 @@ def generate_mermaid_png(stats):
             lines.append(f"        {status}")
             lines.append(f"        Latest: {lid}")
 
-    mermaid_text = "\n".join(lines)
+    # Add Mermaid theme configuration for lighter blue colors
+    mermaid_config = """%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#dbeafe',
+    'primaryBorderColor': '#60a5fa',
+    'primaryTextColor': '#1e40af',
+    'tertiaryColor': '#e0f2fe',
+    'tertiaryBorderColor': '#0284c7',
+    'tertiaryTextColor': '#0c4a6e',
+    'fontSize': '16px',
+    'fontFamily': 'sans-serif'
+  }
+}}%%
+"""
+
+    mermaid_text = mermaid_config + "\n" + "\n".join(lines)
     mmd_path = f"{OUTPUT_DIR}/model_mindmap_{ts}.mmd"
     png_path = f"{OUTPUT_DIR}/model_mindmap_{ts}.png"
 
