@@ -20,6 +20,15 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+# Vertex AI imports (optional)
+try:
+    from google.cloud import aiplatform
+    import vertexai
+    _HAS_VERTEX_AI = True
+except ImportError:
+    _HAS_VERTEX_AI = False
+    print("WARNING: Google Cloud Vertex AI libraries not found. Imagen generation will be skipped.")
+
 # Load .env file
 load_dotenv("backend/.env.local")
 load_dotenv("backend/.env")
