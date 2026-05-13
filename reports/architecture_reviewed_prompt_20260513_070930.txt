@@ -1,0 +1,10 @@
+Create a premium enterprise architecture visual for OPENAI Model Registry.
+Style: IBM Carbon design system - light background, no dark mode.
+Aspect ratio: 16:9, clean enterprise SaaS aesthetic.
+Data: OPENAI, 119 total models, 17 families.
+Architecture Pipeline:
+  Official API /v1/models → LangGraph Discovery → Gemini Enrichment → BigQuery Registry → Publishing Assets
+Center node: OPENAI Model Registry (119 models, 17 families).
+Visual style: Simple boxes, clean arrows, light background, short labels only.
+Constraints: NO dark mode, NO fake UI, NO dense text, NO paragraphs, NO misspellings, NO clutter.
+Professional enterprise SaaS look. Include this hard constraint: no fake text, no misspellings, no tiny labels.

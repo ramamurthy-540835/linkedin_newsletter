@@ -1,0 +1,38 @@
+{
+  "image_type": "dashboard",
+  "provider": "OPENAI",
+  "title": "OPENAI AI Model Discovery Dashboard",
+  "metrics": {
+    "total_models": "119",
+    "model_families": "17",
+    "high_confidence_models": "12"
+  },
+  "layout": {
+    "header": "Blue banner with title",
+    "kpi_section": "4 metric cards",
+    "main_grid": "4x3 category cards"
+  },
+  "categories": [
+    "Complex Reasoning",
+    "Fast Chat",
+    "Image Generation",
+    "Video Generation",
+    "Speech-to-Text",
+    "Text-to-Speech",
+    "Embeddings",
+    "Content Moderation"
+  ],
+  "styling": {
+    "background": "white or light gray",
+    "accent_color": "IBM blue (#0f62fe)",
+    "text_color": "dark gray",
+    "theme": "light (no dark mode)"
+  },
+  "constraints": [
+    "No duplicate text",
+    "No spelling errors",
+    "No tiny labels",
+    "No fake UI elements",
+    "All numbers exact"
+  ]
+}

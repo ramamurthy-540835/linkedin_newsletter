@@ -1,0 +1,28 @@
+{
+  "image_type": "architecture",
+  "provider": "OPENAI",
+  "title": "OPENAI Model Registry Architecture",
+  "data": {
+    "total_models": "119",
+    "families": "17"
+  },
+  "pipeline_steps": [
+    "Official API /v1/models",
+    "LangGraph Discovery",
+    "Gemini Enrichment",
+    "BigQuery Registry",
+    "Publishing Assets"
+  ],
+  "center_node": "OPENAI Model Registry (119 models, 17 families)",
+  "visual_elements": [
+    "Pipeline boxes",
+    "Directional arrows",
+    "Center hub"
+  ],
+  "constraints": [
+    "No duplicate nodes",
+    "No spelling errors",
+    "Light background",
+    "Clean arrows"
+  ]
+}

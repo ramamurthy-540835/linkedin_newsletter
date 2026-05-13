@@ -1,0 +1,25 @@
+OPENAI AI Model Discovery Dashboard
+KPI Metrics
+119 Total Models
+17 Families
+95 High-Confidence Count
+May 20, 2024
+Category Name and Icon
+Model Count
+46 Models
+Model Family
+Fast Chat
+Best Recommended Model
+Model Framily
+Model Family
+Fast Chat
+Best Recommended Model
+46 Models
+Complex Reasoning
+Image Generation
+Video Generation
+Speech-to-Text
+Embeddings
+Content Moderation
+No dark mode detected
+Light background confirmed
