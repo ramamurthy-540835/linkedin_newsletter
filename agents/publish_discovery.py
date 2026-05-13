@@ -92,6 +92,7 @@ USE_CASE_MAP = [
     {"key": "multimodal_vision", "title": "Multimodal Vision", "icon": "MV", "color": "#fa4d56", "desc": "Vision understanding and multimodal IO"},
     {"key": "legacy", "title": "Legacy/Deprecated", "icon": "LG", "color": "#6f6f6f", "desc": "Older or phased-out model families"},
     {"key": "fine_tuning", "title": "Fine-tuning Base", "icon": "FT", "color": "#ff832b", "desc": "Base models for customization"},
+    {"key": "unassigned_review", "title": "Unassigned/Review", "icon": "UR", "color": "#6f6f6f", "desc": "Needs manual category review"},
 ]
 
 # Populate the global dictionary for easy lookup
@@ -150,6 +151,26 @@ def _classify_model(model):
     if model_id_lower in ["chat-latest", "chat"]:
         return "fast_chat"
     return "complex_reasoning"
+
+
+def _semantic_category(model):
+    purpose = (model.get("model_purpose") or "").lower()
+    rec = " ".join(model.get("recommended_for", [])).lower()
+    caps = " ".join(model.get("capabilities", [])).lower()
+    text = f"{purpose} {rec} {caps}"
+    model_id = (model.get("model_id") or "").lower()
+
+    if any(k in text for k in ["image generation", "visual content", "concept art"]) or "imagine-image" in model_id:
+        return "image_generation", "semantic:image_generation"
+    if any(k in text for k in ["video generation", "storyboarding", "marketing clips"]) or "imagine-video" in model_id:
+        return "video_generation", "semantic:video_generation"
+    if any(k in text for k in ["code generation", "debugging", "software engineering", "developer workflows"]) or "grok-code" in model_id:
+        return "fine_tuning", "semantic:coding"
+    if any(k in text for k in ["chat", "assistant workflows"]) and "reasoning" not in text:
+        return "fast_chat", "semantic:fast_chat"
+    if any(k in text for k in ["reasoning", "analysis", "summarization", "content generation"]):
+        return "complex_reasoning", "semantic:complex_reasoning"
+    return None, "semantic:none"
 
 
 def _is_deprecated_model(model):
@@ -294,7 +315,14 @@ def parse_json(path):
             semantic_conf = 0.3 # Assign a baseline confidence if a purpose exists but semantic confidence is 0
 
         # All models are processed regardless of enrichment status.
-        use_case = _classify_model(m)
+        semantic_case, semantic_reason = _semantic_category(m)
+        rule_case = _classify_model(m)
+        use_case = semantic_case or rule_case
+        if semantic_case and rule_case and semantic_case != rule_case:
+            use_case = "unassigned_review"
+            m["category_reason"] = f"conflict semantic={semantic_case} rule={rule_case}"
+        else:
+            m["category_reason"] = semantic_reason if semantic_case else f"rule:{rule_case}"
         m["use_case"] = use_case
         
         # Check if the model has any semantic enrichment data for coverage reporting
