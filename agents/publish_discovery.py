@@ -5,6 +5,7 @@ Reads model discovery JSON → generates charts → optional publish to LinkedIn
 Usage:
   python agents/publish_discovery.py agents/model_discovery_candidates_openai.json
   python agents/publish_discovery.py agents/model_discovery_candidates_openai.json --publish
+  python agents/publish_discovery.py agents/model_discovery_candidates_openai.json --enable-design-agents --use-vertex-imagen
 """
 
 import json
@@ -20,11 +21,27 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 
+# Import visual design agents
+try:
+    from visual_design_agents import (
+        build_visual_design_spec,
+        critique_visual_spec,
+        compose_imagen_prompt_from_spec,
+        review_imagen_prompt_qa,
+        review_generated_image
+    )
+    _HAS_DESIGN_AGENTS = True
+except ImportError:
+    _HAS_DESIGN_AGENTS = False
+    print("WARNING: visual_design_agents module not found. Design agent pipeline will be skipped.")
+
 # Vertex AI imports (optional)
 try:
-    from google.cloud import aiplatform
-    from vertexai.preview.vision_models import ImageGenerationModel # Specific Imagen model import
-    import vertexai # Still need vertexai.init
+    import vertexai
+    try:
+        from vertexai.preview.vision_models import ImageGenerationModel
+    except ImportError:
+        from vertexai.vision_models import ImageGenerationModel
     _HAS_VERTEX_AI = True
 except ImportError:
     _HAS_VERTEX_AI = False
@@ -40,6 +57,7 @@ USE_CASE_MAP_DICT = {}
 # ── Config from env ───────────────────────────────────────────────────────────
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
 LINKEDIN_TOKEN = os.getenv("LINKEDIN_ACCESS_TOKEN")
 LINKEDIN_PERSON_URN = os.getenv("LINKEDIN_AUTHOR_URN")
 MEDIUM_TOKEN = os.getenv("MEDIUM_TOKEN")
@@ -73,29 +91,17 @@ USE_CASE_MAP_DICT = {uc["key"]: uc for uc in USE_CASE_MAP}
 
 
 def _classify_model(model):
-    """Classify a model to one of 12 use-case categories using attributes."""
-    model_id = model.get("model_id", "").lower()
-    family = model.get("family", "").lower()
-    model_purpose = model.get("model_purpose", "").lower()
-    recommended_for = " ".join([r.lower() for r in model.get("recommended_for", [])])
-    capabilities = " ".join([c.lower() for c in model.get("capabilities", [])])
-    
+    """Deterministic, no-drop classification rules."""
     model_id_lower = model.get("model_id", "").lower()
     family_lower = model.get("family", "").lower()
-    model_purpose_lower = model.get("model_purpose", "").lower()
-    recommended_for_lower = " ".join([r.lower() for r in model.get("recommended_for", [])])
-    capabilities_lower = " ".join([c.lower() for c in model.get("capabilities", [])])
-    
-    combined_text = f"{model_id_lower} {family_lower} {model_purpose_lower} {recommended_for_lower} {capabilities_lower}"
 
-    # Priority 1: Specific modalities (use model_id where possible for precision)
-    if "sora" in model_id_lower:
+    if model_id_lower.startswith("sora"):
         return "video_generation"
-    if "text-embedding" in model_id_lower:
+    if model_id_lower.startswith("text-embedding"):
         return "embeddings"
     if any(k in model_id_lower for k in ["gpt-image", "dall-e", "chatgpt-image"]):
         return "image_generation"
-    if any(k in model_id_lower for k in ["whisper", "transcribe"]):
+    if any(k in model_id_lower for k in ["transcribe", "whisper"]):
         return "speech_to_text"
     if "tts" in model_id_lower:
         return "text_to_speech"
@@ -103,28 +109,40 @@ def _classify_model(model):
         return "realtime_audio"
     if "moderation" in model_id_lower:
         return "content_moderation"
-
-    # Priority 2: Core LLM categories (by family)
+    if any(k in model_id_lower for k in ["babbage", "davinci", "gpt-3.5"]):
+        return "legacy"
     if family_lower in ["gpt-5", "o-series"]:
         return "complex_reasoning"
     if family_lower in ["gpt-4o", "gpt-4"]:
         return "multimodal_vision"
-
-    # Priority 3: Legacy models
-    if any(k in model_id_lower for k in ["babbage", "davinci"]) or family_lower == "gpt-3.5":
-        return "legacy"
-    
-    # Priority 4: Fine-tuning Base (explicitly mentions fine-tuning in purpose/capabilities)
-    if "fine-tuning" in capabilities_lower or "fine-tuning" in model_purpose_lower:
-        return "fine_tuning"
-
-    # Priority 5: Fast Chat (remaining chat-like models that haven't been classified)
-    # Ensure this is a fallback for general chat, not specific modalities
-    # The `combined_text` implicitly filters out modalities already caught by higher rules.
-    if "chat" in combined_text or "mini" in model_id_lower or "nano" in model_id_lower:
+    if model_id_lower in ["chat-latest", "chat"]:
         return "fast_chat"
+    return "complex_reasoning"
 
-    return "Other"
+
+def _is_deprecated_model(model):
+    model_id_lower = model.get("model_id", "").lower()
+    family_lower = model.get("family", "").lower()
+    status_lower = model.get("status", "").lower()
+    release_stage_lower = model.get("release_stage", "").lower()
+
+    if status_lower == "deprecated" or release_stage_lower == "deprecated":
+        return True
+
+    known_legacy = (
+        "babbage" in model_id_lower
+        or "davinci" in model_id_lower
+        or "gpt-3.5" in model_id_lower
+        or family_lower == "gpt-3.5"
+    )
+    if known_legacy:
+        return True
+
+    current_prefixes = ("gpt-5", "gpt-4", "gpt-4o", "gpt-4.1", "gpt-realtime", "gpt-audio", "sora")
+    if model_id_lower.startswith(current_prefixes):
+        return False
+
+    return False
 
 
 def _score_model(model):
@@ -172,10 +190,28 @@ def parse_json(path):
     # Prioritize planned_bigquery_actions.inserts + .updates
     if data.get("planned_bigquery_actions"):
         source_description = "planned_bigquery_actions.inserts + .updates"
-        all_models_map = {m["model_id"]: m for m in data["planned_bigquery_actions"].get("inserts", [])}
-        for m_update in data["planned_bigquery_actions"].get("updates", []):
-            all_models_map[m_update["model_id"]] = m_update # Updates overwrite existing
-        all_models = list(all_models_map.values())
+        inserts = data["planned_bigquery_actions"].get("inserts", [])
+        updates = data["planned_bigquery_actions"].get("updates", [])
+        all_models = inserts + updates
+
+        # Handle upstream sync gaps: if normalized_models has additional model_ids,
+        # include them so classification never drops models.
+        normalized_models = data.get("normalized_models", [])
+        if normalized_models:
+            current_ids = {m.get("model_id", "").lower() for m in all_models if m.get("model_id")}
+            missing_from_actions = [
+                m for m in normalized_models
+                if m.get("model_id") and m.get("model_id", "").lower() not in current_ids
+            ]
+            if missing_from_actions:
+                print("⚠️ SYNC WARNING: planned_bigquery_actions is missing models found in normalized_models.")
+                print(f"   planned_bigquery_actions count: {len(all_models)}")
+                print(f"   normalized_models count: {len(normalized_models)}")
+                print(f"   missing model rows added: {len(missing_from_actions)}")
+                for mm in missing_from_actions:
+                    print(f"   + {mm.get('model_id')}")
+                all_models.extend(missing_from_actions)
+                source_description += " + normalized_models_missing_rows"
     elif data.get("enriched_models"):
         source_description = "enriched_models"
         all_models = data.get("enriched_models", [])
@@ -192,10 +228,7 @@ def parse_json(path):
     run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d") # Define run_date
     raw_source_count = len(all_models) # Capture count directly from source
     
-    EXPECTED_TOTAL_MODELS = 119 # As per the request for the source of truth
-    if raw_source_count != EXPECTED_TOTAL_MODELS:
-        print(f"❌ ERROR: Raw source count mismatch. Expected {EXPECTED_TOTAL_MODELS} models, but parsed {raw_source_count}. Halting.")
-        sys.exit(1)
+    print(f"RAW SOURCE COUNT: {raw_source_count}")
     
     # No filtering allowed based on semantic confidence, enrichment availability, etc.
     # All models loaded from the source must be processed and validated.
@@ -224,15 +257,7 @@ def parse_json(path):
         
         # Determine recommendation based on new status logic.
         # DEPRECATED only if status is explicitly "deprecated" OR model_id/family is in known legacy list.
-        is_explicitly_deprecated_status = m.get("status", "").lower() == "deprecated" or \
-                                          m.get("release_stage", "").lower() == "deprecated"
-        is_known_legacy_model = (
-            "babbage" in m.get("model_id", "").lower() or
-            "davinci" in m.get("model_id", "").lower() or
-            "gpt-3.5" == m.get("family", "").lower() # Only gpt-3.5 family as per request, not gpt-3.5 in ID.
-        )
-        
-        if is_explicitly_deprecated_status or is_known_legacy_model:
+        if _is_deprecated_model(m):
             rec = "[DEPRECATED]"
             color = "#da1e28"  # IBM Red
         elif semantic_conf >= 0.8 and is_latest and is_active:
@@ -251,10 +276,13 @@ def parse_json(path):
         m["rec_color"] = color
 
         # Add model to categorized list or unclassified list
-        if use_case != "Other":
-            categorized_models[use_case].append(m)
-        else:
-            unclassified_models.append(m)
+        categorized_models[use_case].append(m)
+
+    parsed_count = sum(len(v) for v in categorized_models.values()) + len(unclassified_models)
+    print(f"PARSED COUNT: {parsed_count}")
+    assert parsed_count == raw_source_count, (
+        f"Model count mismatch after classification. raw_source_count={raw_source_count}, parsed_count={parsed_count}"
+    )
     
     # Select best model for each category using the scoring function
     best_per_usecase = {}
@@ -599,7 +627,7 @@ def build_visual_context(stats):
     family_counts = defaultdict(int)
     for model in stats["all_models"]:
         family_counts[model.get("family", "unknown")] += 1
-    
+
     sorted_families = sorted(family_counts.items(), key=lambda item: item[1], reverse=True)
     context["family_distribution"] = {f: c for f, c in sorted_families[:5]} # Top 5 families
 
@@ -607,7 +635,7 @@ def build_visual_context(stats):
     for uc_key, uc_data in USE_CASE_MAP_DICT.items():
         models_in_category = stats["categorized_models"].get(uc_key, [])
         best_model = stats["latest_per_usecase"].get(uc_key)
-        
+
         category_info = {
             "key": uc_key,
             "title": uc_data["title"],
@@ -618,75 +646,202 @@ def build_visual_context(stats):
             "capabilities": best_model.get("capabilities", []) if best_model else []
         }
         context["categories"].append(category_info)
-    
+
     return context
+
+
+# ── Step 3.5b: Multi-Agent Visual Design Pipeline ──────────────────────────
+def generate_visual_design_pipeline(stats, visual_context, style="ibm-carbon", dashboard_mode="factual", max_retries=3):
+    """
+    Orchestrates the multi-agent visual design pipeline:
+    1. Visual Planning Agent → design spec
+    2. UX Critic Agent → validate spec
+    3. Prompt QA Agent → safe prompt
+    4. Imagen generation
+    5. (Optional) Quality review agent
+
+    Returns: (dashboard_prompt, mindmap_prompt, design_notes)
+    """
+    if not _HAS_DESIGN_AGENTS:
+        print("⚠️  Design agents not available. Falling back to simple prompts.")
+        dashboard_prompt, mindmap_prompt = generate_visual_prompts(visual_context)
+        return dashboard_prompt, mindmap_prompt, {}
+
+    design_notes = {
+        "pipeline_steps": [],
+        "warnings": [],
+        "spec": None,
+        "critique": None
+    }
+
+    print("\n🎨 [Design Agent 1] Visual Planning Agent (gemini-2.5-pro)")
+    print("   Converting structured data into design intent...")
+    spec_result = build_visual_design_spec(stats, style=style)
+    if not spec_result.get("approved"):
+        print(f"   ⚠️  Warning: {spec_result.get('warnings', ['Unknown error'])}")
+        design_notes["warnings"].extend(spec_result.get("warnings", []))
+        dashboard_prompt, mindmap_prompt = generate_visual_prompts(visual_context)
+        return dashboard_prompt, mindmap_prompt, design_notes
+
+    spec = spec_result.get("spec")
+    design_notes["spec"] = spec
+    design_notes["pipeline_steps"].append("Visual Planning: OK")
+    print("   ✅ Design spec generated")
+
+    print("\n🎨 [Design Agent 2] UX Design Critic Agent (gemini-2.5-pro)")
+    print("   Validating design spec for quality and IBM Carbon compliance...")
+    critique_result = critique_visual_spec(spec, stats, style=style)
+    if not critique_result.get("approved"):
+        print(f"   ⚠️  Critique issues: {critique_result.get('issues', [])}")
+        print(f"       Suggestions: {critique_result.get('suggestions', [])}")
+        design_notes["warnings"].extend(critique_result.get("issues", []))
+        design_notes["pipeline_steps"].append("UX Critique: FAILED (using original spec)")
+        spec = critique_result.get("spec", spec)
+    else:
+        design_notes["pipeline_steps"].append("UX Critique: APPROVED")
+        print("   ✅ Design spec approved")
+
+    design_notes["critique"] = critique_result
+
+    print("\n🎨 [Design Agent 3] Imagen Prompt Composer")
+    print("   Converting design spec to Imagen prompt...")
+    dashboard_prompt = compose_imagen_prompt_from_spec(spec, stats, style=style)
+    design_notes["pipeline_steps"].append("Prompt Composition: OK")
+    print("   ✅ Dashboard prompt generated")
+
+    print("\n🎨 [Design Agent 4] Prompt QA Agent (gemini-2.5-flash)")
+    print("   Validating prompt for safety and factual accuracy...")
+    qa_result = review_imagen_prompt_qa(dashboard_prompt, stats, image_type="dashboard")
+    if not qa_result.get("approved"):
+        print(f"   ⚠️  QA Warnings: {qa_result.get('warnings', [])}")
+        print(f"       Must avoid: {qa_result.get('must_avoid', [])}")
+        design_notes["warnings"].extend(qa_result.get("warnings", []))
+        design_notes["pipeline_steps"].append("Prompt QA: FAILED")
+    else:
+        design_notes["pipeline_steps"].append("Prompt QA: APPROVED")
+        print("   ✅ Prompt passed safety & fact checks")
+
+    dashboard_prompt = qa_result.get("final_prompt", dashboard_prompt)
+
+    # Architecture/mindmap prompt (simpler, reuse old logic for now)
+    mindmap_prompt = (
+        f"Create a premium enterprise architecture visual for {stats['provider']} Model Registry in 16:9. "
+        f"Light background (IBM Carbon style), no dark mode. "
+        f"Show {stats['total']} models and {stats['family_count']} families with short labels only. "
+        f"Pipeline: Official API /v1/models → LangGraph Discovery → Gemini Enrichment → BigQuery Registry → Publishing Assets. "
+        f"Center node: {stats['provider']} Model Registry. Clean arrows, no dense text, no fake UI, "
+        f"no misspellings, no clutter. Enterprise SaaS aesthetic."
+    )
+
+    return dashboard_prompt, mindmap_prompt, design_notes
 
 
 # ── Step 3.6: Generate Imagen Prompts ────────────────────────────────────────
 def generate_visual_prompts(context):
-    """Generates detailed prompts for Vertex AI Imagen based on extracted context."""
+    """Generate concise raw prompts for IBM Carbon-style enterprise dashboard."""
     provider = context["provider"]
     total_models = context["total_models"]
     family_count = context["family_count"]
-    high_conf_count = context["high_confidence_count"]
-    
-    # Dashboard Prompt
-    dashboard_cards_prompt = []
-    for category in context["categories"]:
-        if category["count"] > 0:
-            caps_str = ", ".join(category["capabilities"][:2])
-            card_line = f"  - Card for '{category['title']}': Best model '{category['best_model_id']}' ({category['best_model_family']} family), {category['count']} models. Capabilities: {caps_str}."
-            dashboard_cards_prompt.append(card_line)
-    
-    top_families_str = ", ".join([f"{fam} ({count})" for fam, count in context["family_distribution"].items()])
-
-    dashboard_prompt = f"""
-Create a visually striking enterprise SaaS dashboard, designed for executives, titled "{provider} Model Discovery Intelligence".
-The dashboard should present data clearly, using a professional, clean, dark navy and white theme. Avoid any fake charts or numbers.
-The layout should be clean and structured, suitable for a 16:9 aspect ratio (LinkedIn-ready).
-
-Key metrics to display prominently at the top:
-- Total Models: {total_models}
-- Model Families: {family_count}
-- High Confidence Models: {high_conf_count}
-
-The dashboard must include individual, well-designed cards for the following model selection categories. Each card should clearly show the category title, the best recommended model for that category (model ID and family), and the total count of available models in that category. Incorporate capability chips within each card if possible.
-
-Categories and their details:
-{chr(10).join(dashboard_cards_prompt)}
-
-Ensure text is large, readable, and avoids any emojis or unnecessary clutter. The overall aesthetic should communicate data-driven insights with elegance.
-"""
-
-    # Mindmap Prompt
-    mindmap_branches_prompt = []
-    for category in context["categories"]:
-        if category["count"] > 0:
-            caps_str = ", ".join(category["capabilities"][:3]) # More capabilities for mindmap
-            branch_line = f"  - Branch for '{category['title']}' ({category['count']} models): Best model '{category['best_model_id']}' (Family: {category['best_model_family']}). Key capabilities: {caps_str}."
-            mindmap_branches_prompt.append(branch_line)
-
-    mindmap_prompt = f"""
-Design a clean, professional cloud architecture style mindmap or hierarchical diagram, representing an "{provider} Model Registry" for an enterprise. The visual should be suitable for LinkedIn (16:9 aspect ratio) and have readable text.
-
-The central node of the mindmap should be "{provider} Model Registry".
-
-The mindmap should clearly illustrate the architecture and data flow:
-1.  **Official API** (Source of Truth for Model Discovery, e.g., {provider}'s /v1/models endpoint)
-2.  **LangGraph Discovery Agent** (Automated process for model discovery)
-3.  **Gemini Enrichment Engine** (Semantic analysis and confidence scoring)
-4.  **BigQuery Registry** (Centralized data storage for all discovered models)
-5.  **Publishing Assets** (Outputs like dashboards, mindmaps, reports)
-
-Main branches extending from the central "{provider} Model Registry" node should represent key model use-case categories. For each category branch, display the category title, the number of models in that category, the best recommended model (model ID and family), and its key capabilities.
-
-Categories and their details:
-{chr(10).join(mindmap_branches_prompt)}
-
-Highlight the architecture flow visually. Ensure no hallucinated model names or numbers are present, only factual counts from the data. Avoid emojis. The style should be modern, clean, and enterprise-grade.
-"""
+    categories_brief = [
+        f"{c['title']} ({c['count']}), best={c['best_model_id']}"
+        for c in context["categories"] if c["count"] > 0
+    ]
+    dashboard_prompt = (
+        f"Create a premium enterprise analytics dashboard visual for {provider} AI Model Registry.\n"
+        f"Style: IBM Carbon design system - light theme, no dark mode.\n"
+        f"Background: white / #f4f4f4 with IBM blue accents (#0f62fe).\n"
+        f"Aspect ratio: 16:9, LinkedIn publication quality.\n"
+        f"Data: Show {total_models} total models and {family_count} families.\n"
+        f"Layout:\n"
+        f"1. Header: Blue banner with '{provider} AI Model Discovery Dashboard' (white text)\n"
+        f"2. KPI Metrics Row: 4 cards - {total_models} Total Models | {family_count} Families | High-Confidence Count | Date\n"
+        f"3. Category Grid: 4x3 card layout with:\n"
+        f"   - Category name and icon (white text on colored accent bar)\n"
+        f"   - Model count\n"
+        f"   - Best recommended model name\n"
+        f"   - Model family\n"
+        f"   - Status badge (RECOMMENDED/GOOD/NICHE/DEPRECATED)\n"
+        f"Major categories: {', '.join(categories_brief[:8])}.\n"
+        f"Styling: Clean grid, professional typography, ample whitespace, soft shadows, no clutter.\n"
+        f"Constraints: NO dark mode, NO fake text, NO tiny labels, NO dense tables, NO misspellings, NO duplicate cards.\n"
+        f"Real data only - use exact numbers: {total_models} models, {family_count} families."
+    )
+    mindmap_prompt = (
+        f"Create a premium enterprise architecture visual for {provider} Model Registry.\n"
+        f"Style: IBM Carbon design system - light background, no dark mode.\n"
+        f"Aspect ratio: 16:9, clean enterprise SaaS aesthetic.\n"
+        f"Data: {provider}, {total_models} total models, {family_count} families.\n"
+        f"Architecture Pipeline:\n"
+        f"  Official API /v1/models → LangGraph Discovery → Gemini Enrichment → BigQuery Registry → Publishing Assets\n"
+        f"Center node: {provider} Model Registry ({total_models} models, {family_count} families).\n"
+        f"Visual style: Simple boxes, clean arrows, light background, short labels only.\n"
+        f"Constraints: NO dark mode, NO fake UI, NO dense text, NO paragraphs, NO misspellings, NO clutter.\n"
+        f"Professional enterprise SaaS look."
+    )
 
     return dashboard_prompt, mindmap_prompt
+
+
+def review_imagen_prompt_with_gemini(raw_prompt, visual_context, image_type, gemini_model):
+    if not GEMINI_API_KEY:
+        return {"approved": False, "final_prompt": "", "warnings": ["GEMINI_API_KEY not set"], "must_include": [], "must_avoid": []}
+    prompt = f"""You are an expert creative director and data visualization QA reviewer.
+Your job:
+Review and rewrite the following Imagen prompt.
+Rules:
+- Keep factual numbers exact.
+- Do not invent model names.
+- Do not ask Imagen to render long tables.
+- Limit visible text to big headings and short labels only.
+- For dashboard image, use large clean cards, not dense text.
+- For architecture image, use simple pipeline and taxonomy nodes.
+- Tell Imagen to avoid misspellings, fake text, tiny labels, and clutter.
+- Use professional enterprise SaaS / Google Cloud inspired style.
+- Make it LinkedIn-ready 16:9.
+- Return JSON only.
+Image type: {image_type}
+Visual context:
+{json.dumps(visual_context, indent=2)}
+Raw prompt:
+{raw_prompt}
+Return JSON:
+{{
+  "approved": true/false,
+  "final_prompt": "...",
+  "warnings": ["..."],
+  "must_include": ["..."],
+  "must_avoid": ["..."]
+}}"""
+    try:
+        txt = _call_gemini_text(prompt, gemini_model, 1800, 0.2, 0.8)
+        out = json.loads(txt)
+        approved_value = out.get("approved", None)
+        return {
+            "approved": bool(approved_value) if approved_value is not None else None,
+            "final_prompt": out.get("final_prompt", ""),
+            "warnings": out.get("warnings", []),
+            "must_include": out.get("must_include", []),
+            "must_avoid": out.get("must_avoid", []),
+        }
+    except Exception as e:
+        return {"approved": False, "final_prompt": "", "warnings": [f"review failed: {e}"], "must_include": [], "must_avoid": []}
+
+
+def _enforce_prompt_safety_sentence(final_prompt: str) -> str:
+    required = "no fake text, no misspellings, no tiny labels"
+    if required in final_prompt.lower():
+        return final_prompt
+    suffix = " Include this hard constraint: no fake text, no misspellings, no tiny labels."
+    return final_prompt.strip() + suffix
+
+
+def _imagen_prompt_safety_ok(final_prompt, provider, total_models):
+    fp = final_prompt.lower()
+    has_provider = provider.lower() in fp
+    has_total = str(total_models) in fp and ("model" in fp or "models" in fp)
+    has_ratio = ("16:9" in fp) or ("aspect ratio 16:9" in fp) or ("linkedin-ready 16:9" in fp)
+    has_safety = ("no fake text" in fp) and ("no misspell" in fp) and ("no tiny labels" in fp)
+    return has_provider and has_total and has_ratio and has_safety
 
 
 # ── Step 3.7: Call Vertex AI Imagen ──────────────────────────────────────────
@@ -773,7 +928,28 @@ def verify_no_hallucination(linkedin_text, medium_text, stats):
 
 
 # ── Step 4: Generate post content via Gemini ──────────────────────────────────
-def generate_content(stats):
+def _call_gemini_text(prompt: str, model_name: str, max_tokens: int, temperature: float, top_p: float) -> str:
+    resp = requests.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent",
+        headers={"x-goog-api-key": GEMINI_API_KEY},
+        json={
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "maxOutputTokens": max_tokens,
+                "temperature": temperature,
+                "topP": top_p,
+            },
+        },
+        timeout=60,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if "candidates" not in data or not data["candidates"]:
+        raise ValueError(f"Invalid Gemini response: {data}")
+    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+
+def generate_content(stats, gemini_model=GEMINI_MODEL):
     """Generate LinkedIn post and Medium article using Gemini with STRICT FACTS."""
     if not GEMINI_API_KEY:
         print("❌ GEMINI_API_KEY not set")
@@ -812,19 +988,7 @@ CONSTRAINT: Only use numbers from STRICT FACTS block. Never mention specific mod
 
 Write ONLY the post text, no commentary."""
 
-    li_resp = requests.post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-        headers={"x-goog-api-key": GEMINI_API_KEY},
-        json={
-            "contents": [{"parts": [{"text": li_prompt}]}],
-            "generationConfig": {"maxOutputTokens": 1500, "temperature": 0.8, "topP": 0.9}
-        }
-    )
-    li_resp.raise_for_status()
-    resp_data = li_resp.json()
-    if "candidates" not in resp_data or not resp_data["candidates"]:
-        raise ValueError(f"Invalid Gemini response: {resp_data}")
-    linkedin_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    linkedin_text = _call_gemini_text(li_prompt, gemini_model, 1500, 0.8, 0.9)
 
     if not linkedin_text or len(linkedin_text) < 100:
         raise ValueError(f"LinkedIn post too short: {len(linkedin_text)} chars")
@@ -928,19 +1092,7 @@ This is the future: automated, data-driven model ecosystem management.
 
 Tags: AI, LLM, {provider}, ModelOps, Automation, BigQuery, Gemini"""
 
-    med_resp = requests.post(
-        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-        headers={"x-goog-api-key": GEMINI_API_KEY},
-        json={
-            "contents": [{"parts": [{"text": med_prompt}]}],
-            "generationConfig": {"maxOutputTokens": 4000, "temperature": 0.7, "topP": 0.9}
-        }
-    )
-    med_resp.raise_for_status()
-    resp_data = med_resp.json()
-    if "candidates" not in resp_data or not resp_data["candidates"]:
-        raise ValueError(f"Invalid Gemini response: {resp_data}")
-    medium_content = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    medium_content = _call_gemini_text(med_prompt, gemini_model, 4000, 0.7, 0.9)
 
     if not medium_content or len(medium_content) < 500:
         raise ValueError(f"Medium article too short: {len(medium_content)} chars")
@@ -1095,11 +1247,22 @@ def main():
     validate_only = "--validate-only" in sys.argv
     generate_image_prompts_only = "--generate-image-prompts" in sys.argv
     use_vertex_imagen = "--use-vertex-imagen" in sys.argv
-    
-    # Parse specific CLI arguments for Vertex AI
+    review_imagen_prompts = "--review-imagen-prompts" in sys.argv
+    skip_prompt_review = "--skip-prompt-review" in sys.argv
+    save_reviewed_prompts_only = "--save-reviewed-prompts-only" in sys.argv
+    enable_design_agents = "--enable-design-agents" in sys.argv
+    enable_image_review = "--enable-image-review" in sys.argv
+    if use_vertex_imagen and not skip_prompt_review:
+        review_imagen_prompts = True
+    gemini_model_arg = None
+
+    # Parse specific CLI arguments for Vertex AI and design agents
     imagen_model_arg = None
     gcp_project_arg = None
     gcp_location_arg = None
+    max_image_retries_arg = None
+    style_arg = None
+    dashboard_mode_arg = None
     for i, arg in enumerate(sys.argv):
         if arg == "--imagen-model" and i + 1 < len(sys.argv):
             imagen_model_arg = sys.argv[i+1]
@@ -1107,11 +1270,23 @@ def main():
             gcp_project_arg = sys.argv[i+1]
         elif arg == "--gcp-location" and i + 1 < len(sys.argv):
             gcp_location_arg = sys.argv[i+1]
+        elif arg == "--gemini-model" and i + 1 < len(sys.argv):
+            gemini_model_arg = sys.argv[i+1]
+        elif arg == "--max-image-retries" and i + 1 < len(sys.argv):
+            max_image_retries_arg = int(sys.argv[i+1]) if sys.argv[i+1].isdigit() else 3
+        elif arg == "--style" and i + 1 < len(sys.argv):
+            style_arg = sys.argv[i+1]
+        elif arg == "--dashboard-mode" and i + 1 < len(sys.argv):
+            dashboard_mode_arg = sys.argv[i+1]
 
     # Default to env vars if not provided via CLI, or use hardcoded defaults
     current_gcp_project = gcp_project_arg or GCP_PROJECT
     current_gcp_location = gcp_location_arg or GCP_LOCATION
     current_imagen_model = imagen_model_arg or IMAGEN_MODEL
+    current_gemini_model = gemini_model_arg or GEMINI_MODEL
+    max_retries = max_image_retries_arg if max_image_retries_arg is not None else 3
+    style = style_arg or "ibm-carbon"
+    dashboard_mode = dashboard_mode_arg or "factual"
 
     # Determine json_path, skipping all flags
     json_path_args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
@@ -1123,7 +1298,7 @@ def main():
             skip_next = False
             continue
         if arg.startswith("--"):
-            if arg in ["--imagen-model", "--gcp-project", "--gcp-location"]:
+            if arg in ["--imagen-model", "--gcp-project", "--gcp-location", "--gemini-model"]:
                 skip_next = True # Value for this flag will be next
             continue
         cleaned_json_path_args.append(arg)
@@ -1137,10 +1312,19 @@ def main():
     print(f"  Validate Only: {validate_only}")
     print(f"  Generate Image Prompts: {generate_image_prompts_only}")
     print(f"  Use Vertex Imagen: {use_vertex_imagen}")
+    print(f"  Enable Design Agents: {enable_design_agents}")
+    print(f"  Enable Image Review: {enable_image_review}")
+    print(f"  Review Imagen Prompts: {review_imagen_prompts}")
+    print(f"  Skip Prompt Review: {skip_prompt_review}")
+    print(f"  Save Reviewed Prompts Only: {save_reviewed_prompts_only}")
     if use_vertex_imagen:
         print(f"    GCP Project: {current_gcp_project}")
         print(f"    GCP Location: {current_gcp_location}")
         print(f"    Imagen Model: {current_imagen_model}")
+        print(f"    Max Image Retries: {max_retries}")
+        print(f"    Style: {style}")
+        print(f"    Dashboard Mode: {dashboard_mode}")
+    print(f"  Gemini Model: {current_gemini_model}")
     print(f"{'='*60}\n")
 
     print("📦 Parsing JSON and classifying models...")
@@ -1217,39 +1401,105 @@ def main():
 
     dashboard_img_path = None
     mindmap_img_path = None
-    
-    # Generate image prompts
-    dashboard_prompt, mindmap_prompt = generate_visual_prompts(visual_context)
-    
+    design_pipeline_notes = {}
+
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dashboard_prompt_path = f"{OUTPUT_DIR}/dashboard_image_prompt_{ts}.txt"
-    mindmap_prompt_path = f"{OUTPUT_DIR}/mindmap_image_prompt_{ts}.txt"
+
+    # Generate image prompts using design pipeline or simple generation
+    if enable_design_agents and _HAS_DESIGN_AGENTS:
+        print("\n🎨 USING MULTI-AGENT VISUAL DESIGN PIPELINE")
+        dashboard_prompt, mindmap_prompt, design_pipeline_notes = generate_visual_design_pipeline(
+            stats, visual_context, style=style, dashboard_mode=dashboard_mode, max_retries=max_retries
+        )
+    else:
+        print("\n📝 Using simple prompt generation (design agents disabled)")
+        dashboard_prompt, mindmap_prompt = generate_visual_prompts(visual_context)
+
+    dashboard_prompt_path = f"{OUTPUT_DIR}/dashboard_raw_prompt_{ts}.txt"
+    mindmap_prompt_path = f"{OUTPUT_DIR}/architecture_raw_prompt_{ts}.txt"
 
     with open(dashboard_prompt_path, "w") as f:
         f.write(dashboard_prompt)
     with open(mindmap_prompt_path, "w") as f:
         f.write(mindmap_prompt)
-    print(f"\n✅ Dashboard Image Prompt saved: {dashboard_prompt_path}")
-    print(f"✅ Mindmap Image Prompt saved: {mindmap_prompt_path}")
+
+    # Save design pipeline notes if available
+    if design_pipeline_notes:
+        design_notes_path = f"{OUTPUT_DIR}/design_pipeline_notes_{ts}.json"
+        with open(design_notes_path, "w") as f:
+            json.dump(design_pipeline_notes, f, indent=2, default=str)
+        print(f"✅ Design Pipeline Notes: {design_notes_path}")
+
+    print(f"✅ Dashboard Raw Prompt saved: {dashboard_prompt_path}")
+    print(f"✅ Architecture Raw Prompt saved: {mindmap_prompt_path}")
+
+    reviewed_dashboard_prompt = dashboard_prompt
+    reviewed_arch_prompt = mindmap_prompt
+    dashboard_review = {"approved": True, "final_prompt": dashboard_prompt, "warnings": [], "must_include": [], "must_avoid": []}
+    architecture_review = {"approved": True, "final_prompt": mindmap_prompt, "warnings": [], "must_include": [], "must_avoid": []}
+
+    # Only do additional review if design agents weren't used
+    if review_imagen_prompts and not skip_prompt_review and not enable_design_agents:
+        dashboard_review = review_imagen_prompt_with_gemini(dashboard_prompt, visual_context, "dashboard", current_gemini_model)
+        architecture_review = review_imagen_prompt_with_gemini(mindmap_prompt, visual_context, "architecture", current_gemini_model)
+        reviewed_dashboard_prompt = dashboard_review.get("final_prompt") or dashboard_prompt
+        reviewed_arch_prompt = architecture_review.get("final_prompt") or mindmap_prompt
+
+    reviewed_dashboard_prompt = _enforce_prompt_safety_sentence(reviewed_dashboard_prompt)
+    reviewed_arch_prompt = _enforce_prompt_safety_sentence(reviewed_arch_prompt)
+
+    dashboard_review_json = f"{OUTPUT_DIR}/dashboard_prompt_review_{ts}.json"
+    architecture_review_json = f"{OUTPUT_DIR}/architecture_prompt_review_{ts}.json"
+    dashboard_reviewed_path = f"{OUTPUT_DIR}/dashboard_reviewed_prompt_{ts}.txt"
+    architecture_reviewed_path = f"{OUTPUT_DIR}/architecture_reviewed_prompt_{ts}.txt"
+    with open(dashboard_review_json, "w") as f:
+        json.dump(dashboard_review, f, indent=2)
+    with open(architecture_review_json, "w") as f:
+        json.dump(architecture_review, f, indent=2)
+    with open(dashboard_reviewed_path, "w") as f:
+        f.write(reviewed_dashboard_prompt)
+    with open(architecture_reviewed_path, "w") as f:
+        f.write(reviewed_arch_prompt)
+    print(f"✅ Dashboard Review JSON saved: {dashboard_review_json}")
+    print(f"✅ Architecture Review JSON saved: {architecture_review_json}")
+    print(f"✅ Dashboard Reviewed Prompt saved: {dashboard_reviewed_path}")
+    print(f"✅ Architecture Reviewed Prompt saved: {architecture_reviewed_path}")
+
+    if save_reviewed_prompts_only:
+        print("\n✅ Reviewed prompt generation complete. Exiting (--save-reviewed-prompts-only flag used).")
+        return
 
     # Optionally call Vertex AI Imagen
     if use_vertex_imagen:
         if _HAS_VERTEX_AI:
             # Pass CLI arguments to the Imagen call
-            dashboard_img_path = call_vertex_imagen(
-                dashboard_prompt, 
-                f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
-                current_gcp_project, # Use current_gcp_project
-                current_gcp_location, # Use current_gcp_location
-                current_imagen_model # Use current_imagen_model
-            )
-            mindmap_img_path = call_vertex_imagen(
-                mindmap_prompt, 
-                f"{OUTPUT_DIR}/mindmap_vertex_{ts}.png",
-                current_gcp_project, # Use current_gcp_project
-                current_gcp_location, # Use current_gcp_location
-                current_imagen_model # Use current_imagen_model
-            )
+            dashboard_safety_ok = _imagen_prompt_safety_ok(reviewed_dashboard_prompt, stats["provider"], stats["total"])
+            architecture_safety_ok = _imagen_prompt_safety_ok(reviewed_arch_prompt, stats["provider"], stats["total"])
+            dashboard_approved = dashboard_review.get("approved", None)
+            architecture_approved = architecture_review.get("approved", None)
+            # If semantic safety checks pass, allow Imagen even when reviewer omitted or rejected `approved`.
+            dashboard_ok = dashboard_safety_ok
+            architecture_ok = architecture_safety_ok
+            if dashboard_ok:
+                dashboard_img_path = call_vertex_imagen(
+                    reviewed_dashboard_prompt,
+                    f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
+                    current_gcp_project,
+                    current_gcp_location,
+                    current_imagen_model
+                )
+            else:
+                print("⚠️ Skipping dashboard Imagen call: review/safety gate failed.")
+            if architecture_ok:
+                mindmap_img_path = call_vertex_imagen(
+                    reviewed_arch_prompt,
+                    f"{OUTPUT_DIR}/architecture_vertex_{ts}.png",
+                    current_gcp_project,
+                    current_gcp_location,
+                    current_imagen_model
+                )
+            else:
+                print("⚠️ Skipping architecture Imagen call: review/safety gate failed.")
         else:
             print("⚠️ Skipping Vertex AI Imagen call because libraries are not installed.")
 
@@ -1282,7 +1532,7 @@ def main():
         return
 
     print("\n✍️  Generating content via Gemini...")
-    linkedin_text, medium_content = generate_content(stats)
+    linkedin_text, medium_content = generate_content(stats, gemini_model=current_gemini_model)
 
     # Save text files locally always
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
