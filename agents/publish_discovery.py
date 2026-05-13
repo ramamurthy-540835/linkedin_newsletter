@@ -920,6 +920,46 @@ def call_vertex_imagen(prompt: str, output_path: str, gcp_project: str, gcp_loca
         return None
 
 
+def call_xai_image(prompt: str, output_path: str, xai_model: str) -> str | None:
+    xai_key = os.getenv("XAI_API_KEY")
+    if not xai_key:
+        print("⚠️ XAI_API_KEY not set. Skipping xAI image generation.")
+        return None
+    try:
+        resp = requests.post(
+            "https://api.x.ai/v1/images/generations",
+            headers={
+                "Authorization": f"Bearer {xai_key}",
+                "Content-Type": "application/json",
+            },
+            json={"model": xai_model, "prompt": prompt, "n": 1},
+            timeout=120,
+        )
+        if resp.status_code >= 400:
+            print(f"⚠️ xAI image generation failed ({resp.status_code}): {resp.text[:300]}")
+            return None
+        data = resp.json()
+        item = (data.get("data") or [{}])[0]
+        if "b64_json" in item:
+            import base64
+            with open(output_path, "wb") as f:
+                f.write(base64.b64decode(item["b64_json"]))
+            print(f"✅ xAI image generated: {output_path}")
+            return output_path
+        if "url" in item:
+            img = requests.get(item["url"], timeout=60)
+            img.raise_for_status()
+            with open(output_path, "wb") as f:
+                f.write(img.content)
+            print(f"✅ xAI image downloaded: {output_path}")
+            return output_path
+        print("⚠️ xAI image response did not include b64_json or url.")
+        return None
+    except Exception as e:
+        print(f"⚠️ xAI image generation error: {e}")
+        return None
+
+
 def call_vertex_imagen_with_retry(prompt: str, output_path: str, gcp_project: str, gcp_location: str,
                                    imagen_model: str, stats: dict, max_retries: int = 3, image_type: str = "dashboard"):
     """
@@ -1396,6 +1436,7 @@ def main():
     validate_only = "--validate-only" in sys.argv
     generate_image_prompts_only = "--generate-image-prompts" in sys.argv
     use_vertex_imagen = "--use-vertex-imagen" in sys.argv
+    use_xai_image = "--use-xai-image" in sys.argv
     review_imagen_prompts = "--review-imagen-prompts" in sys.argv
     skip_prompt_review = "--skip-prompt-review" in sys.argv
     save_reviewed_prompts_only = "--save-reviewed-prompts-only" in sys.argv
@@ -1415,6 +1456,7 @@ def main():
     review_model_arg = None
     theme_arg = None
     dashboard_mode_arg = None
+    xai_image_model_arg = None
     for i, arg in enumerate(sys.argv):
         if arg == "--imagen-model" and i + 1 < len(sys.argv):
             imagen_model_arg = sys.argv[i+1]
@@ -1436,6 +1478,8 @@ def main():
             review_model_arg = sys.argv[i+1]
         elif arg == "--theme" and i + 1 < len(sys.argv):
             theme_arg = sys.argv[i+1]
+        elif arg == "--xai-image-model" and i + 1 < len(sys.argv):
+            xai_image_model_arg = sys.argv[i+1]
 
     # Default to env vars if not provided via CLI, or use hardcoded defaults
     current_gcp_project = gcp_project_arg or GCP_PROJECT
@@ -1448,6 +1492,7 @@ def main():
     review_model = review_model_arg or "gemini-2.5-pro"
     theme = theme_arg or "ibm-carbon-light"
     dashboard_mode = dashboard_mode_arg or "factual"
+    xai_image_model = xai_image_model_arg or "grok-imagine-image-pro"
 
     # Determine json_path, skipping all flags
     json_path_args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
@@ -1473,6 +1518,7 @@ def main():
     print(f"  Validate Only: {validate_only}")
     print(f"  Generate Image Prompts: {generate_image_prompts_only}")
     print(f"  Use Vertex Imagen: {use_vertex_imagen}")
+    print(f"  Use xAI Image: {use_xai_image}")
     print(f"  Enable Design Agents: {enable_design_agents}")
     print(f"  Enable Image Review: {enable_image_review}")
     print(f"  Review Imagen Prompts: {review_imagen_prompts}")
@@ -1485,6 +1531,8 @@ def main():
         print(f"    Max Image Retries: {max_retries}")
         print(f"    Style: {style}")
         print(f"    Dashboard Mode: {dashboard_mode}")
+    if use_xai_image:
+        print(f"    xAI Image Model: {xai_image_model}")
     print(f"  Gemini Model: {current_gemini_model}")
     print(f"{'='*60}\n")
 
@@ -1715,6 +1763,19 @@ def main():
                 print("=" * 60)
         else:
             print("⚠️ Skipping Vertex AI Imagen call because libraries are not installed.")
+    elif use_xai_image:
+        # xAI only for architecture-style visual, never for factual dashboard.
+        xai_prompt = (
+            "Enterprise architecture infographic, IBM Carbon-inspired style, light background, "
+            "IBM blue accents, clean icons and arrows, minimal short labels, no dense text, "
+            "no fake dashboard UI, no tiny text, 16:9. "
+            f"Pipeline: Official API -> LangGraph -> Gemini -> BigQuery -> Publishing. {reviewed_arch_prompt}"
+        )
+        mindmap_img_path = call_xai_image(
+            xai_prompt,
+            f"{OUTPUT_DIR}/xai_architecture_{ts}.png",
+            xai_image_model,
+        )
 
     if generate_image_prompts_only and not use_vertex_imagen:
         print("\n✅ Image prompt generation complete. Exiting (--generate-image-prompts flag used, no --use-vertex-imagen).")
