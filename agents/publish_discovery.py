@@ -282,6 +282,7 @@ def parse_json(path):
         "provider": provider,
         "run_id": run_id,
         "run_date": run_date,
+        "source_description": source_description, # Add source_description to stats
         "total": source_parsed_count, # Use the actual parsed count from the source
         "enriched_coverage_count": enriched_count, # New field
         "families": dict(families),
@@ -1136,7 +1137,7 @@ def main():
 
     print("📦 Parsing JSON and classifying models...")
     stats = parse_json(json_path)
-    print(f"   Source used: {source_description}")
+    print(f"   Source used: {stats['source_description']}") # Access from stats
     print(f"   Total parsed: {stats['total']} models")
     print(f"   Enriched coverage: {stats['enriched_coverage_count']}/{stats['total']} models\n")
 
