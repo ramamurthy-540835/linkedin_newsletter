@@ -189,6 +189,7 @@ def parse_json(path):
 
     provider = data.get("target_provider", "openai").upper()
     run_id = data.get("run_id", datetime.now().isoformat())
+    run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d") # Define run_date
     raw_source_count = len(all_models) # Capture count directly from source
     
     EXPECTED_TOTAL_MODELS = 119 # As per the request for the source of truth
