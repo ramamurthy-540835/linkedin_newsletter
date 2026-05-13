@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
 publish_discovery.py
-Reads model discovery JSON → generates charts → posts to LinkedIn + Medium
-Usage: python agents/publish_discovery.py agents/model_discovery_candidates_openai.json
+Reads model discovery JSON → generates charts → optional publish to LinkedIn + Medium
+Usage:
+  python agents/publish_discovery.py agents/model_discovery_candidates_openai.json
+  python agents/publish_discovery.py agents/model_discovery_candidates_openai.json --publish
 """
 
 import json
@@ -33,19 +35,34 @@ OUTPUT_DIR = "reports"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ── USE_CASE_MAP: 12 Core Model Categories ────────────────────────────────────
-USE_CASE_MAP = {
-    "Complex Reasoning": ["o-series", "o1", "o3", "o4", "reasoning"],
-    "Fast Chat": ["gpt-3.5", "gpt-4o-mini", "mini"],
-    "Image Generation": ["dall-e", "image", "gpt-image"],
-    "Video Generation": ["sora", "video", "veo"],
-    "Speech-to-Text": ["whisper", "speech"],
-    "Text-to-Speech": ["tts", "text-to-speech"],
-    "Embeddings": ["embedding", "text-embedding"],
-    "Content Moderation": ["moderation"],
-    "Realtime Audio": ["gpt-realtime", "realtime", "audio", "gpt-audio"],
-    "Multimodal Vision": ["gpt-4o", "gpt-4", "vision", "multimodal"],
-    "Legacy/Deprecated": ["davinci", "babbage", "curie", "legacy"],
-    "Fine-tuning Base": ["gpt-3.5-turbo", "base"],
+USE_CASE_MAP = [
+    {"key": "complex_reasoning", "title": "Complex Reasoning", "icon": "CR", "color": "#3d70b2", "desc": "Deep reasoning and long-horizon tasks"},
+    {"key": "fast_chat", "title": "Fast Chat", "icon": "FC", "color": "#1192e8", "desc": "Low-latency conversational workloads"},
+    {"key": "image_generation", "title": "Image Generation", "icon": "IG", "color": "#8a3ffc", "desc": "Image creation and editing"},
+    {"key": "video_generation", "title": "Video Generation", "icon": "VG", "color": "#a56eff", "desc": "Video generation and transformation"},
+    {"key": "speech_to_text", "title": "Speech-to-Text", "icon": "ST", "color": "#198038", "desc": "Audio transcription and recognition"},
+    {"key": "text_to_speech", "title": "Text-to-Speech", "icon": "TS", "color": "#24a148", "desc": "Natural speech synthesis"},
+    {"key": "embeddings", "title": "Embeddings", "icon": "EM", "color": "#007d79", "desc": "Semantic search and retrieval"},
+    {"key": "content_moderation", "title": "Content Moderation", "icon": "CM", "color": "#525252", "desc": "Safety and policy compliance"},
+    {"key": "realtime_audio", "title": "Realtime Audio", "icon": "RA", "color": "#ee538b", "desc": "Streaming voice interactions"},
+    {"key": "multimodal_vision", "title": "Multimodal Vision", "icon": "MV", "color": "#fa4d56", "desc": "Vision understanding and multimodal IO"},
+    {"key": "legacy", "title": "Legacy/Deprecated", "icon": "LG", "color": "#6f6f6f", "desc": "Older or phased-out model families"},
+    {"key": "fine_tuning", "title": "Fine-tuning Base", "icon": "FT", "color": "#ff832b", "desc": "Base models for customization"},
+]
+
+USE_CASE_KEYWORDS = {
+    "complex_reasoning": ["o-series", "o1", "o3", "o4", "reasoning"],
+    "fast_chat": ["gpt-3.5", "gpt-4o-mini", "mini"],
+    "image_generation": ["dall-e", "image", "gpt-image"],
+    "video_generation": ["sora", "video", "veo"],
+    "speech_to_text": ["whisper", "speech"],
+    "text_to_speech": ["tts", "text-to-speech"],
+    "embeddings": ["embedding", "text-embedding"],
+    "content_moderation": ["moderation"],
+    "realtime_audio": ["gpt-realtime", "realtime", "audio", "gpt-audio"],
+    "multimodal_vision": ["gpt-4o", "gpt-4", "vision", "multimodal"],
+    "legacy": ["davinci", "babbage", "curie", "legacy"],
+    "fine_tuning": ["gpt-3.5-turbo", "base"],
 }
 
 def classify_model_to_usecase(model):
@@ -54,11 +71,18 @@ def classify_model_to_usecase(model):
     family = model.get("family", "").lower()
     combined = f"{model_id} {family}".lower()
 
-    for use_case, keywords in USE_CASE_MAP.items():
+    for use_case, keywords in USE_CASE_KEYWORDS.items():
         for keyword in keywords:
             if keyword in combined:
                 return use_case
     return "Other"
+
+
+def classify_models(stats):
+    grouped = defaultdict(list)
+    for m in stats["all_models"]:
+        grouped[m.get("use_case", "Other")].append(m)
+    return grouped
 
 
 
@@ -161,238 +185,192 @@ def parse_json(path):
 
 # ── Step 2: Generate Dashboard-Style Model Selection Guide (12-card grid) ──────
 def generate_charts(stats):
-    """Generate 12-card grid dashboard (4 cols × 3 rows) on white background."""
+    """4x3 grid of use-case cards using GridSpec. No manual coordinates."""
+    from matplotlib.gridspec import GridSpec
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    provider = stats["provider"]
+    categorized = classify_models(stats)
 
-    # Color palette (IBM Carbon)
     BG = "#ffffff"
-    CARD = "#f8fafc"
-    GRID = "#cbd5e1"
-    TEXT = "#0f172a"
-    HEAD = "#1e293b"
-    ACCENT = "#0284c7"
-    REC_COLOR = "#0f62fe"    # IBM Blue (Recommended)
-    GOOD_COLOR = "#198038"   # IBM Green
-    NICHE_COLOR = "#8a3ffc"  # IBM Purple
-    DEPRECATED_COLOR = "#da1e28"  # IBM Red
+    CARD_BG = "#f4f4f4"
+    BORDER = "#e0e0e0"
+    TEXT = "#161616"
+    SUBTEXT = "#525252"
 
-    # Group by use-case
-    use_case_groups = defaultdict(list)
-    for m in stats["all_models"]:
-        uc = m.get("use_case", "Other")
-        use_case_groups[uc].append(m)
-
-    # Sort use-cases for consistent grid layout
-    sorted_use_cases = sorted(use_case_groups.keys())
-
-    # 12-card grid: 4 cols × 3 rows
-    num_cols = 4
-    num_rows = 3
-    fig_height = 14
-    fig = plt.figure(figsize=(20, fig_height), facecolor=BG)
-
-    # Header
-    header_box = mpatches.Rectangle(
-        (0, 0.94), 1, 0.06, transform=fig.transFigure, facecolor=ACCENT, edgecolor="none", zorder=0
+    fig = plt.figure(figsize=(20, 16), facecolor=BG)
+    gs = GridSpec(
+        nrows=5, ncols=4,
+        height_ratios=[1.2, 0.8, 3, 3, 3],
+        hspace=0.35, wspace=0.25,
+        left=0.04, right=0.96, top=0.97, bottom=0.04
     )
-    fig.patches.append(header_box)
 
-    fig.text(0.5, 0.975, f"{provider} AI Model Discovery Dashboard",
-             ha="center", fontsize=28, fontweight="bold", color="#ffffff")
+    ax_header = fig.add_subplot(gs[0, :])
+    ax_header.axis("off")
+    rect = mpatches.Rectangle((0, 0), 1, 1, transform=ax_header.transAxes, facecolor="#0f62fe", zorder=0)
+    ax_header.add_patch(rect)
+    ax_header.text(0.5, 0.5, f"{stats['provider']} AI Model Discovery Dashboard",
+                   transform=ax_header.transAxes, ha="center", va="center",
+                   fontsize=28, fontweight="bold", color="#ffffff", zorder=1)
 
-    # Metrics row
-    metrics_y = 0.89
     metrics = [
-        (f"{stats['total']} Models", "Total"),
-        (f"{stats['family_count']} Families", "Categories"),
-        (f"{len(stats['conf_buckets']['high'])} Recommended", "Production-ready"),
+        (str(stats["total"]), "Total Models"),
+        (str(stats["family_count"]), "Families"),
+        (str(len([m for m in stats["all_models"] if m.get("recommendation") == "[RECOMMENDED]"])), "Recommended"),
+        (str(len(stats["conf_buckets"]["high"])), "High Confidence"),
     ]
-    metric_x = 0.1
-    for metric, desc in metrics:
-        fig.text(metric_x, metrics_y + 0.025, metric, fontsize=14, fontweight="bold", color=TEXT)
-        fig.text(metric_x, metrics_y - 0.01, desc, fontsize=9, color=GRID)
-        metric_x += 0.28
-    fig.text(0.92, metrics_y, f"Updated: {stats['run_date']}", fontsize=9, color=GRID, ha="right")
+    for i, (val, label) in enumerate(metrics):
+        ax_m = fig.add_subplot(gs[1, i])
+        ax_m.axis("off")
+        ax_m.text(0.5, 0.65, val, ha="center", va="center", fontsize=32, fontweight="bold", color="#0f62fe", transform=ax_m.transAxes)
+        ax_m.text(0.5, 0.2, label, ha="center", va="center", fontsize=11, color=SUBTEXT, transform=ax_m.transAxes)
 
-    # Create grid layout
-    ax = fig.add_subplot(111)
-    ax.axis("off")
-    ax.set_xlim(0, num_cols)
-    ax.set_ylim(0, num_rows)
-
-    card_width = 0.23
-    card_height = 0.28
-    margin_x = 0.01
-    margin_y = 0.01
-
-    # Draw 12 cards
-    for idx in range(num_cols * num_rows):
-        col = idx % num_cols
-        row = idx // num_cols
-
-        x = margin_x + col * (card_width + margin_x * 2)
-        y = num_rows - 1 - row * (card_height + margin_y * 2) - card_height
-
-        if idx < len(sorted_use_cases):
-            use_case = sorted_use_cases[idx]
-            models = use_case_groups[use_case]
-
-            # Find recommended model
-            recommended = None
-            for m in sorted(models, key=lambda x: x.get("is_latest", False), reverse=True):
-                if "[RECOMMENDED]" in m.get("recommendation", ""):
-                    recommended = m
-                    break
-            if not recommended:
-                for m in sorted(models, key=lambda x: x.get("recommendation") == "[GOOD]", reverse=True):
-                    recommended = m
-                    break
-            if not recommended:
-                recommended = models[0]
-
-            # Get recommendation color
-            rec = recommended.get("recommendation", "").replace("[", "").replace("]", "")
-            if rec == "RECOMMENDED":
-                rec_color = REC_COLOR
-            elif rec == "GOOD":
-                rec_color = GOOD_COLOR
-            elif rec == "DEPRECATED":
-                rec_color = DEPRECATED_COLOR
-            else:
-                rec_color = NICHE_COLOR
-
-            model_id = recommended.get("model_id", "?")[:20]
-            count = len(models)
-
-            # Card background
-            card_box = mpatches.FancyBboxPatch(
-                (x, y), card_width, card_height, boxstyle="round,pad=0.005",
-                facecolor=CARD, edgecolor=GRID, linewidth=0.8
-            )
-            ax.add_patch(card_box)
-
-            # Top colored bar
-            top_bar = mpatches.Rectangle(
-                (x, y + card_height - 0.04), card_width, 0.04,
-                facecolor=rec_color, edgecolor="none"
-            )
-            ax.add_patch(top_bar)
-
-            # Title
-            ax.text(x + 0.005, y + card_height - 0.015, use_case.upper(),
-                   fontsize=8, fontweight="bold", color="#ffffff", ha="left", va="center")
-
-            # Recommendation badge
-            ax.text(x + card_width - 0.005, y + card_height - 0.015, rec,
-                   fontsize=6, color="#ffffff", fontweight="bold", ha="right", va="center")
-
-            # Model name
-            ax.text(x + 0.005, y + 0.18, model_id,
-                   fontsize=7, color=HEAD, fontweight="bold", ha="left", family="monospace")
-
-            # Count
-            ax.text(x + 0.005, y + 0.12, f"{count} models",
-                   fontsize=6, color=TEXT, ha="left")
-
-            # Status
-            ax.text(x + 0.005, y + 0.06, f"Status: {rec}",
-                   fontsize=5, color=rec_color, ha="left", fontweight="bold")
-        else:
-            # Empty placeholder card
-            card_box = mpatches.FancyBboxPatch(
-                (x, y), card_width, card_height, boxstyle="round,pad=0.005",
-                facecolor="#f0f4f8", edgecolor="#e2e8f0", linewidth=0.8, linestyle="--"
-            )
-            ax.add_patch(card_box)
-            ax.text(x + card_width/2, y + card_height/2, "—",
-                   fontsize=12, color="#cbd5e1", ha="center", va="center")
+    for idx, uc in enumerate(USE_CASE_MAP):
+        row = 2 + idx // 4
+        col = idx % 4
+        ax = fig.add_subplot(gs[row, col])
+        _render_card(ax, uc, categorized.get(uc["key"], []), CARD_BG, BORDER, TEXT, SUBTEXT)
 
     chart_path = f"{OUTPUT_DIR}/model_chart_{ts}.png"
-    try:
-        fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor=BG)
-        plt.close()
+    fig.savefig(chart_path, dpi=130, bbox_inches="tight", facecolor=BG, edgecolor="none")
+    plt.close()
+    print(f"✅ Chart PNG: {chart_path}")
+    return chart_path
 
-        if not os.path.exists(chart_path) or os.path.getsize(chart_path) == 0:
-            raise ValueError(f"Chart file empty: {chart_path}")
 
-        file_size_mb = os.path.getsize(chart_path) / (1024 * 1024)
-        print(f"✅ Chart PNG: {chart_path} ({file_size_mb:.2f} MB)")
-        return chart_path
-    except Exception as e:
-        print(f"❌ Failed to generate chart: {e}")
-        raise
+def _render_card(ax, uc, models, CARD_BG, BORDER, TEXT, SUBTEXT):
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 10)
+    ax.axis("off")
+
+    count = len(models)
+    if count == 0:
+        badge_text, badge_color = "EMPTY", "#a8a8a8"
+    elif uc["key"] in ("legacy", "fine_tuning"):
+        badge_text, badge_color = "DEPRECATED", "#da1e28"
+    else:
+        high_in = sum(1 for m in models if m.get("semantic_confidence", 0) >= 0.8)
+        has_latest = any(m.get("is_latest") for m in models)
+        if has_latest and high_in > 0:
+            badge_text, badge_color = "RECOMMENDED", "#0f62fe"
+        elif high_in > 0:
+            badge_text, badge_color = "GOOD", "#198038"
+        else:
+            badge_text, badge_color = "NICHE", "#8a3ffc"
+
+    card = mpatches.FancyBboxPatch((0.1, 0.1), 9.8, 9.8, boxstyle="round,pad=0.05,rounding_size=0.3",
+                                   facecolor=CARD_BG, edgecolor=BORDER, linewidth=1.5)
+    ax.add_patch(card)
+    accent = mpatches.Rectangle((0.1, 8.2), 9.8, 1.7, facecolor=uc["color"], edgecolor="none")
+    ax.add_patch(accent)
+    ax.text(0.5, 9.05, uc["icon"], fontsize=20, va="center", color="#ffffff")
+    ax.text(1.4, 9.05, uc["title"], fontsize=13, fontweight="bold", va="center", color="#ffffff")
+
+    badge = mpatches.FancyBboxPatch((7.3, 8.5), 2.4, 1.0, boxstyle="round,pad=0.02,rounding_size=0.15",
+                                    facecolor=badge_color, edgecolor="none")
+    ax.add_patch(badge)
+    ax.text(8.5, 9.0, badge_text, fontsize=8, fontweight="bold", ha="center", va="center", color="#ffffff")
+
+    if models:
+        best = max(models, key=lambda m: (m.get("is_latest", False), m.get("semantic_confidence", 0)))
+        mid = best.get("model_id", "")
+        if len(mid) > 24:
+            mid = mid[:22] + ".."
+        ax.text(0.5, 7.3, "Recommended Model:", fontsize=9, color=SUBTEXT)
+        ax.text(0.5, 6.3, mid, fontsize=12, fontweight="bold", color=TEXT, family="monospace")
+        ax.text(0.5, 5.0, f"Family: {best.get('family', '—')}", fontsize=10, color=SUBTEXT, style="italic")
+        ax.text(0.5, 4.0, f"Available Models: {count}", fontsize=10, color=TEXT, fontweight="bold")
+        desc_box = mpatches.FancyBboxPatch((0.5, 0.7), 9.0, 1.8, boxstyle="round,pad=0.05,rounding_size=0.15",
+                                           facecolor="#e8e8e8", edgecolor="none")
+        ax.add_patch(desc_box)
+        ax.text(5.0, 1.6, uc["desc"], ha="center", va="center", fontsize=9, color=SUBTEXT, style="italic", wrap=True)
+    else:
+        ax.text(5.0, 5.0, "No models in this category", ha="center", va="center", fontsize=10, color=SUBTEXT, style="italic")
 
 
 # ── Step 3: Generate Mermaid diagram (grouped by use-case) ──────────────────────
 def generate_mermaid_png(stats):
-    """Generate Mermaid mindmap grouped by use-case categories."""
+    """Mindmap: category → latest model → status. One node per item."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    provider = stats["provider"]
-
-    # Group families by use-case
-    use_case_groups = defaultdict(list)
-    for m in stats["all_models"]:
-        use_case = m.get("use_case", "Other")
-        family = m.get("family", "")
-        if family not in [fam for fam, _ in use_case_groups[use_case]]:
-            use_case_groups[use_case].append((family, len(stats["families"].get(family, []))))
-
-    # Build mindmap
-    lines = ["mindmap", f"  root(({provider}<br/>{stats['total']} Models<br/>{stats['family_count']} Families))"]
-
-    for use_case in sorted(use_case_groups.keys()):
-        lines.append(f"    {use_case}")
-        for family, count in sorted(use_case_groups[use_case], key=lambda x: x[1], reverse=True):
-            latest = stats["latest_per_family"].get(family, {})
-            rec = latest.get("recommendation", "").replace("[", "").replace("]", "")
-            lines.append(f"      {family} ({count})")
-            if rec:
-                lines.append(f"        {rec}")
-
-    mermaid_config = """%%{init: {
-  'theme': 'base',
-  'themeVariables': {
-    'primaryColor': '#dbeafe',
-    'primaryBorderColor': '#60a5fa',
-    'primaryTextColor': '#ffffff',
-    'tertiaryColor': '#e0f2fe',
-    'tertiaryBorderColor': '#0284c7',
-    'tertiaryTextColor': '#ffffff',
-    'fontSize': '14px',
-    'fontFamily': 'Arial, sans-serif'
-  }
-}}%%
-"""
-
-    mermaid_text = mermaid_config + "\n" + "\n".join(lines)
+    categorized = classify_models(stats)
+    lines = [
+        "%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0f62fe','primaryTextColor':'#ffffff','primaryBorderColor':'#0353e9','lineColor':'#525252','fontFamily':'Helvetica'}}}%%",
+        "mindmap",
+        f"  root(({stats['provider']}<br/>{stats['total']} Models<br/>{stats['family_count']} Families))"
+    ]
+    for uc in USE_CASE_MAP:
+        models = categorized.get(uc["key"], [])
+        if not models:
+            continue
+        count = len(models)
+        if uc["key"] in ("legacy", "fine_tuning"):
+            status = "DEPRECATED"
+        else:
+            high_in = sum(1 for m in models if m.get("semantic_confidence", 0) >= 0.8)
+            has_latest = any(m.get("is_latest") for m in models)
+            if has_latest and high_in > 0:
+                status = "RECOMMENDED"
+            elif high_in > 0:
+                status = "GOOD"
+            else:
+                status = "NICHE"
+        best = max(models, key=lambda m: (m.get("is_latest", False), m.get("semantic_confidence", 0)))
+        bid = best.get("model_id", "?")
+        bfam = best.get("family", "?")
+        cat_id = uc["key"].replace("_", "")
+        lines.append(f"    {cat_id}[{uc['icon']} {uc['title']}<br/>{count} models]")
+        lines.append(f"      {cat_id}_model[Latest: {bid}]")
+        lines.append(f"      {cat_id}_fam[Family: {bfam}]")
+        lines.append(f"      {cat_id}_status[Status: {status}]")
+    mermaid_text = "\n".join(lines)
     mmd_path = f"{OUTPUT_DIR}/model_mindmap_{ts}.mmd"
     png_path = f"{OUTPUT_DIR}/model_mindmap_{ts}.png"
-
     with open(mmd_path, "w") as f:
         f.write(mermaid_text)
-    print(f"   Mermaid markdown: {mmd_path}")
-
-    # Try mermaid-cli
-    mmdc_cmd = "mmdc"
-    try:
-        import shutil
-        if not shutil.which("mmdc"):
-            mmdc_cmd = "npx --yes @mermaid-js/mermaid-cli mmdc"
-    except:
-        pass
-
-    ret = os.system(f"{mmdc_cmd} -i {mmd_path} -o {png_path} -t default -b '#ffffff' -w 1400 -H 900 2>/dev/null")
+    print(f"\n=== MERMAID PREVIEW ===\n{mermaid_text}\n=====================\n")
+    ret = os.system(
+        f"npx --yes @mermaid-js/mermaid-cli mmdc -i {mmd_path} -o {png_path} -t default -b white -w 2400 -H 1600 2>/dev/null"
+    )
     if ret != 0 or not os.path.exists(png_path):
-        print("   ⚠️  mermaid-cli unavailable, using matplotlib fallback...")
-        png_path = _text_diagram_fallback(stats, ts)
-
-    if not os.path.exists(png_path) or os.path.getsize(png_path) == 0:
-        raise ValueError(f"Diagram failed to generate: {png_path}")
-
-    file_size_mb = os.path.getsize(png_path) / (1024 * 1024)
-    print(f"✅ Mermaid PNG: {png_path} ({file_size_mb:.2f} MB)")
+        print("⚠️ mermaid-cli failed, using matplotlib fallback")
+        png_path = _matplotlib_mindmap_fallback(stats, categorized, ts)
+    print(f"✅ Mindmap: {png_path}")
     return png_path, mmd_path
+
+
+def _matplotlib_mindmap_fallback(stats, categorized, ts):
+    import math
+    fig, ax = plt.subplots(figsize=(18, 14), facecolor="#ffffff")
+    ax.set_xlim(-12, 12)
+    ax.set_ylim(-10, 10)
+    ax.axis("off")
+    ax.set_aspect("equal")
+
+    center = mpatches.Circle((0, 0), 1.8, facecolor="#0f62fe", edgecolor="none")
+    ax.add_patch(center)
+    ax.text(0, 0.3, stats["provider"], ha="center", va="center", fontsize=14, fontweight="bold", color="#ffffff")
+    ax.text(0, -0.3, f"{stats['total']} Models", ha="center", va="center", fontsize=10, color="#ffffff")
+    ax.text(0, -0.7, f"{stats['family_count']} Families", ha="center", va="center", fontsize=10, color="#ffffff")
+
+    active = [uc for uc in USE_CASE_MAP if categorized.get(uc["key"])]
+    n = len(active)
+    for i, uc in enumerate(active):
+        angle = (2 * math.pi * i / n) - math.pi / 2
+        cx = 7 * math.cos(angle)
+        cy = 7 * math.sin(angle)
+        models = categorized[uc["key"]]
+        best = max(models, key=lambda m: (m.get("is_latest", False), m.get("semantic_confidence", 0)))
+        ax.plot([0, cx * 0.4], [0, cy * 0.4], color=uc["color"], linewidth=2, alpha=0.6)
+        bubble = mpatches.FancyBboxPatch((cx - 2.2, cy - 0.8), 4.4, 1.6,
+                                         boxstyle="round,pad=0.1,rounding_size=0.3",
+                                         facecolor=uc["color"], edgecolor="none")
+        ax.add_patch(bubble)
+        ax.text(cx, cy + 0.3, f"{uc['icon']} {uc['title']}", ha="center", va="center", fontsize=10, fontweight="bold", color="#ffffff")
+        ax.text(cx, cy - 0.3, f"{len(models)} models · {best.get('model_id', '')[:18]}", ha="center", va="center", fontsize=8, color="#ffffff")
+
+    path = f"{OUTPUT_DIR}/model_mindmap_{ts}.png"
+    fig.savefig(path, dpi=130, bbox_inches="tight", facecolor="#ffffff")
+    plt.close()
+    return path
 
 
 def _text_diagram_fallback(stats, ts):
@@ -873,7 +851,10 @@ def update_readme(stats, li_url, med_url):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
+    publish_mode = "--publish" in sys.argv
     json_path = sys.argv[1] if len(sys.argv) > 1 else "agents/model_discovery_candidates_openai.json"
+    if json_path == "--publish":
+        json_path = "agents/model_discovery_candidates_openai.json"
 
     print(f"\n{'='*60}")
     print(f"  DISCOVERY PUBLISHER")
@@ -901,6 +882,13 @@ def main():
 
     print("\n🗺  Generating model diagram...")
     diagram_png, diagram_mmd = generate_mermaid_png(stats)
+
+    if not publish_mode:
+        print("\n⏸  Visual generation complete. Publish steps skipped (use --publish to enable posting).")
+        print(f"📊 Chart:   {chart_png}")
+        print(f"🗺  Diagram: {diagram_png}")
+        print(f"📝 Mermaid: {diagram_mmd}")
+        return
 
     print("\n✍️  Generating content via Gemini...")
     linkedin_text, medium_content = generate_content(stats)
