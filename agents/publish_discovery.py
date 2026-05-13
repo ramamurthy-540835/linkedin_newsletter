@@ -23,7 +23,8 @@ import matplotlib.patches as mpatches
 # Vertex AI imports (optional)
 try:
     from google.cloud import aiplatform
-    import vertexai
+    from vertexai.preview.vision_models import ImageGenerationModel # Specific Imagen model import
+    import vertexai # Still need vertexai.init
     _HAS_VERTEX_AI = True
 except ImportError:
     _HAS_VERTEX_AI = False
@@ -156,9 +157,15 @@ def _score_model(model):
         score -= 30
     
     # Penalize legacy/deprecated models significantly
-    if model.get("family") == "legacy" or model.get("release_stage") == "deprecated" or "legacy" in model.get("status", ""):
-        score -= 80
+    # Only penalize if status is explicitly "deprecated" OR if it matches known legacy identifiers
+    is_explicitly_deprecated = model.get("status", "").lower() == "deprecated" or \
+                              model.get("release_stage", "").lower() == "deprecated"
+    is_known_legacy_id = any(k in model.get("model_id", "").lower() for k in ["babbage", "davinci"]) or \
+                         model.get("family", "").lower() == "gpt-3.5"
 
+    if is_explicitly_deprecated or is_known_legacy_id:
+        score -= 80 # Heavy penalty for deprecated/legacy
+    
     return score
 
 
@@ -191,53 +198,61 @@ def parse_json(path):
 
     provider = data.get("target_provider", "openai").upper()
     run_id = data.get("run_id", datetime.now().isoformat())
-    run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d")
-
-    source_parsed_count = len(all_models)
-    # Validate against the expected total models from the primary source.
-    # The current local JSON (agents/model_discovery_candidates_openai.json) yields 109 models
-    # from 'planned_bigquery_actions.inserts + .updates'.
-    EXPECTED_TOTAL_MODELS = 109
-    if source_parsed_count != EXPECTED_TOTAL_MODELS:
-        print(f"❌ ERROR: Model count mismatch. Expected {EXPECTED_TOTAL_MODELS} models from source of truth, but parsed {source_parsed_count}. Halting.")
+    raw_source_count = len(all_models) # Capture count directly from source
+    
+    EXPECTED_TOTAL_MODELS = 119 # As per the request for the source of truth
+    if raw_source_count != EXPECTED_TOTAL_MODELS:
+        print(f"❌ ERROR: Raw source count mismatch. Expected {EXPECTED_TOTAL_MODELS} models, but parsed {raw_source_count}. Halting.")
         sys.exit(1)
     
-    # We loaded models from the specified source. Now, print the summary.
-    # The 'DEBUG' message from previous iteration is replaced by more structured output below.
-    # print(f"\n[DEBUG] Loaded {source_parsed_count} models from source: {source_description}")
-
+    # No filtering allowed based on semantic confidence, enrichment availability, etc.
+    # All models loaded from the source must be processed and validated.
+    
     categorized_models = defaultdict(list)
     unclassified_models = []
-    enriched_count = 0 # Track models with semantic enrichment data
+    enriched_coverage_count = 0 # Track models with semantic enrichment data
 
     # Enrich each model with use_case and recommendation
     for m in all_models:
+        # Ensure semantic_confidence is consistently set for models where enrichment failed but a purpose was defaulted.
+        semantic_conf = m.get("semantic_confidence", 0)
+        if m.get("model_purpose") and semantic_conf == 0:
+            semantic_conf = 0.3 # Assign a baseline confidence if a purpose exists but semantic confidence is 0
+
+        # All models are processed regardless of enrichment status.
         use_case = _classify_model(m)
         m["use_case"] = use_case
-
-        semantic_conf = m.get("semantic_confidence", 0) # Use 0 if not present
-        if semantic_conf == 0 and m.get("model_purpose"): # If semantic_confidence is 0 but purpose is set by default enrichment
-            semantic_conf = 0.3 # Assign a baseline confidence for non-API errors if a purpose was derived.
+        
+        # Check if the model has any semantic enrichment data for coverage reporting
+        if semantic_conf > 0 or m.get("model_purpose"):
+            enriched_coverage_count += 1
 
         is_latest = m.get("is_latest", False)
         is_active = m.get("is_active", True)
         
-        if semantic_conf > 0 or m.get("model_purpose"):
-            enriched_count += 1
-
-        # Determine recommendation based on semantic_confidence and is_latest status
-        if semantic_conf >= 0.8 and is_latest and is_active:
+        # Determine recommendation based on new status logic.
+        # DEPRECATED only if status is explicitly "deprecated" OR model_id/family is in known legacy list.
+        is_explicitly_deprecated_status = m.get("status", "").lower() == "deprecated" or \
+                                          m.get("release_stage", "").lower() == "deprecated"
+        is_known_legacy_model = (
+            "babbage" in m.get("model_id", "").lower() or
+            "davinci" in m.get("model_id", "").lower() or
+            "gpt-3.5" == m.get("family", "").lower() # Only gpt-3.5 family as per request, not gpt-3.5 in ID.
+        )
+        
+        if is_explicitly_deprecated_status or is_known_legacy_model:
+            rec = "[DEPRECATED]"
+            color = "#da1e28"  # IBM Red
+        elif semantic_conf >= 0.8 and is_latest and is_active:
             rec = "[RECOMMENDED]"
             color = "#0f62fe"  # IBM Blue
         elif semantic_conf >= 0.8 and is_active:
             rec = "[GOOD]"
             color = "#198038"  # IBM Green
-        elif semantic_conf < 0.5 or not is_active:
-            rec = "[DEPRECATED]"
-            color = "#da1e28"  # IBM Red
-        else:
+        else: # Covers niche and other active models below 0.8 confidence, not explicitly deprecated
             rec = "[NICHE]"
             color = "#8a3ffc"  # IBM Purple
+
 
         m["semantic_confidence"] = semantic_conf
         m["recommendation"] = rec
@@ -267,9 +282,9 @@ def parse_json(path):
     # Compute confidence buckets using semantic_confidence across all parsed models
     stage_counts = defaultdict(int)
     conf_buckets = {"high": [], "medium": [], "low": []}
-    for m in all_models: # Iterate through all_models, not just enriched, to populate buckets
+    for m in all_models: # Iterate through all_models to populate buckets
         stage_counts[m.get("release_stage", "unknown")] += 1
-        semantic_conf = m.get("semantic_confidence", 0)
+        semantic_conf = m.get("semantic_confidence", 0) # Use the potentially adjusted semantic_conf
         if semantic_conf >= 0.8:
             conf_buckets["high"].append(m)
         elif semantic_conf >= 0.5:
@@ -281,14 +296,14 @@ def parse_json(path):
     for m in all_models:
         families[m["family"]].append(m)
 
-
     return {
         "provider": provider,
         "run_id": run_id,
         "run_date": run_date,
-        "source_description": source_description, # Add source_description to stats
-        "total": source_parsed_count, # Use the actual parsed count from the source
-        "enriched_coverage_count": enriched_count, # New field
+        "source_description": source_description,
+        "raw_source_count": raw_source_count, # New field for initial count
+        "total": raw_source_count, # Total models processed is the raw source count
+        "enriched_coverage_count": enriched_coverage_count,
         "families": dict(families),
         "family_count": len(families),
         "latest_per_family": {}, 
@@ -693,32 +708,29 @@ def call_vertex_imagen(prompt: str, output_path: str, gcp_project: str, gcp_loca
         return None
 
     try:
-        print(f"Calling Vertex AI Imagen for {output_path}...")
+        print(f"Calling Vertex AI Imagen for {output_path} with model: {imagen_model}...")
         vertexai.init(project=gcp_project, location=gcp_location)
-        model = vertexai.preview.generative_models.GenerativeModel(imagen_model)
         
-        # Max 40 input images if using `Image`, 1 for text-to-image
-        response = model.generate_content(
-            [prompt],
-            generation_config={
-                "max_output_images": 1,
-                "temperature": 0.4,
-                "top_p": 0.8,
-                "top_k": 40,
-                "timeout": 300 # seconds
-            }
+        # Initialize the ImageGenerationModel correctly
+        model = ImageGenerationModel.from_pretrained(imagen_model)
+        
+        images = model.generate_images(
+            prompt=prompt,
+            number_of_images=1, # Request only one image
+            aspect_ratio="16:9" # As per requirement
         )
 
-        if response.candidates and response.candidates[0].images:
-            image_bytes = response.candidates[0].images[0]._image_bytes
+        if images and images.images: # Check if images were returned
+            image_bytes = images.images[0]._image_bytes
             with open(output_path, "wb") as f:
                 f.write(image_bytes)
             print(f"✅ Imagen generated: {output_path}")
             return output_path
         else:
             print(f"⚠️ Imagen generation failed for {output_path}. No image candidates returned.")
-            if response.prompt_feedback and response.prompt_feedback.block_reason:
-                print(f"   Reason: {response.prompt_feedback.block_reason}")
+            # Imagen API response structure for errors might vary, log more detail if available
+            if hasattr(images, 'error') and images.error:
+                print(f"   Error details: {images.error}")
             return None
     except Exception as e:
         print(f"❌ Error calling Vertex AI Imagen for {output_path}: {e}")
@@ -1171,6 +1183,37 @@ def main():
     else:
         print("\n[DEBUG] No unclassified models.")
 
+    print(f"\nRAW SOURCE COUNT: {stats['raw_source_count']}")
+    print(f"PARSED COUNT: {stats['total']}")
+    print(f"ENRICHED COVERAGE: {stats['enriched_coverage_count']}/{stats['total']} models\n")
+
+    # Print summary statistics
+    high = len(stats['conf_buckets']['high'])
+    medium = len(stats['conf_buckets']['medium'])
+    low = len(stats['conf_buckets']['low'])
+    print(f"\n{'='*60}")
+    print(f"SUMMARY STATISTICS")
+    print(f"{'='*60}")
+    print(f"✅ High Confidence (>=0.8): {high} models")
+    print(f"⚠️  Medium Confidence (0.5-0.8): {medium} models")
+    print(f"❌ Low Confidence (<0.5): {low} models")
+    print(f"{'='*60}\n")
+    
+    print("\nCategory Counts:")
+    for uc_key, uc_data in USE_CASE_MAP_DICT.items():
+        count = len(stats["categorized_models"].get(uc_key, []))
+        best_model_info = stats["latest_per_usecase"].get(uc_key)
+        # Use only model_id and score for best_model_str
+        best_model_str = f"Best: {best_model_info['model_id']} (Score: {_score_model(best_model_info)})" if best_model_info else "N/A"
+        print(f"  - {uc_data['title']}: {count} models ({best_model_str})")
+    
+    if stats["unclassified_models"]:
+        print(f"\n[UNCLASSIFIED] {len(stats['unclassified_models'])} models were not classified:")
+        for um in stats["unclassified_models"]:
+            print(f"  - {um.get('model_id')} (Family: {um.get('family')})")
+    else:
+        print("\n[DEBUG] No unclassified models.")
+
     print(f"\n{'='*60}\n")
 
     # Build visual context before potentially exiting for validate_only
@@ -1200,19 +1243,20 @@ def main():
     # Optionally call Vertex AI Imagen
     if use_vertex_imagen:
         if _HAS_VERTEX_AI:
+            # Pass CLI arguments to the Imagen call
             dashboard_img_path = call_vertex_imagen(
                 dashboard_prompt, 
                 f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
-                current_gcp_project,
-                current_gcp_location,
-                current_imagen_model
+                current_gcp_project, # Use current_gcp_project
+                current_gcp_location, # Use current_gcp_location
+                current_imagen_model # Use current_imagen_model
             )
             mindmap_img_path = call_vertex_imagen(
                 mindmap_prompt, 
                 f"{OUTPUT_DIR}/mindmap_vertex_{ts}.png",
-                current_gcp_project,
-                current_gcp_location,
-                current_imagen_model
+                current_gcp_project, # Use current_gcp_project
+                current_gcp_location, # Use current_gcp_location
+                current_imagen_model # Use current_imagen_model
             )
         else:
             print("⚠️ Skipping Vertex AI Imagen call because libraries are not installed.")
