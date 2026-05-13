@@ -923,10 +923,20 @@ def call_vertex_imagen_with_retry(prompt: str, output_path: str, gcp_project: st
     2. Quality score < 70
     3. Generated image doesn't match requested content
 
-    Returns: (image_path, final_review) or (None, final_review) on max retries.
+    Returns: best available (image_path, review). Falls back to None only when all
+    generation attempts fail to produce an image file.
     """
+    target_score = 90.0
     current_prompt = prompt
     review = {"approved": False, "issues": ["No attempts run"], "quality_score": 0, "match_score": 0}
+    best_img_path = None
+    best_review = review
+    best_score = -1.0
+
+    def _has_critical_issues(review_obj: dict) -> bool:
+        issues_text = " ".join(review_obj.get("issues", [])).lower()
+        return any(k in issues_text for k in ["spelling", "duplicate", "missing"])
+
     for attempt in range(1, max_retries + 1):
         print(f"\n📸 Generation Attempt {attempt}/{max_retries}")
 
@@ -942,9 +952,23 @@ def call_vertex_imagen_with_retry(prompt: str, output_path: str, gcp_project: st
         print(f"   Quality Score: {review.get('quality_score', 0)}/100")
         print(f"   Match Score: {review.get('match_score', 0)}/100")
         print(f"   Confidence: {review.get('confidence', 'LOW')}")
+        quality_score = float(review.get("quality_score", 0))
+        match_score = float(review.get("match_score", 0))
+        composite_score = (0.6 * quality_score) + (0.4 * match_score)
+        critical = _has_critical_issues(review)
+        print(f"   Composite Score: {composite_score:.1f}/100 (target: {target_score:.1f})")
+        if critical:
+            print(f"   Critical Issues: YES")
+        else:
+            print(f"   Critical Issues: NO")
 
-        if review.get("approved"):
-            print(f"   ✅ APPROVED - Image meets all requirements")
+        if composite_score > best_score:
+            best_score = composite_score
+            best_img_path = img_path
+            best_review = review
+
+        if composite_score >= target_score and not critical:
+            print(f"   ✅ TARGET MET - Early stop at attempt {attempt}")
             return img_path, review
 
         # Report why it failed
@@ -958,6 +982,9 @@ def call_vertex_imagen_with_retry(prompt: str, output_path: str, gcp_project: st
             print(f"   🔄 Refining prompt and retrying...")
             current_prompt = _refine_prompt_from_issues(current_prompt, review)
 
+    if best_img_path:
+        print(f"   ⚠️ Max retries reached. Keeping best Imagen output (score: {best_score:.1f}).")
+        return best_img_path, best_review
     return None, review
 
 
