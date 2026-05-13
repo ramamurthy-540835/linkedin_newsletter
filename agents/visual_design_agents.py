@@ -13,14 +13,15 @@ import os
 import requests
 from typing import Dict, Any, Optional, List
 
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+def _google_api_key() -> str:
+    return os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY") or ""
 
 
 def _call_gemini_text(prompt: str, model_name: str, max_tokens: int, temperature: float, top_p: float) -> str:
     """Call Gemini API and return text response."""
     resp = requests.post(
         f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent",
-        headers={"x-goog-api-key": GOOGLE_API_KEY},
+        headers={"x-goog-api-key": _google_api_key()},
         json={
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -49,7 +50,7 @@ def build_visual_design_spec(stats: Dict[str, Any], style: str = "ibm-carbon") -
 
     Returns JSON spec with layout, sections, hierarchy, and visual rules.
     """
-    if not GOOGLE_API_KEY:
+    if not _google_api_key():
         return {"error": "GOOGLE_API_KEY not set", "spec": None, "approved": False, "warnings": ["GOOGLE_API_KEY not set"]}
 
     provider = stats.get("provider", "OpenAI")
@@ -159,7 +160,7 @@ def critique_visual_spec(spec: Dict[str, Any], stats: Dict[str, Any], style: str
 
     Returns: approved (bool), optimized_spec, suggestions, warnings.
     """
-    if not GOOGLE_API_KEY:
+    if not _google_api_key():
         return {"approved": False, "spec": spec, "warnings": ["GOOGLE_API_KEY not set"]}
 
     total = stats.get("total", 0)
@@ -302,7 +303,7 @@ def review_imagen_prompt_qa(prompt: str, stats: Dict[str, Any], image_type: str 
 
     Returns: approved (bool), final_prompt, warnings, must_include, must_avoid.
     """
-    if not GOOGLE_API_KEY:
+    if not _google_api_key():
         return {
             "approved": False,
             "final_prompt": "",
@@ -463,7 +464,7 @@ def review_generated_image(image_path: str, stats: Dict[str, Any], context: Dict
             "needs_retry": True
         }
 
-    if not GOOGLE_API_KEY:
+    if not _google_api_key():
         return {
             "approved": True,
             "issues": ["GOOGLE_API_KEY not set - skipping vision review"],
@@ -533,7 +534,7 @@ Return a clean list of all text found, line by line."""
 
     resp = requests.post(
         f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
-        headers={"x-goog-api-key": GOOGLE_API_KEY},
+        headers={"x-goog-api-key": _google_api_key()},
         json={
             "contents": [
                 {

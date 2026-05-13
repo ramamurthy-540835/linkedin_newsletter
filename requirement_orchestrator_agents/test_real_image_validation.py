@@ -22,14 +22,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+load_dotenv(REPO_ROOT / "backend/.env.local")
+load_dotenv(REPO_ROOT / "backend/.env")
+
 from agents.visual_design_agents import _extract_image_text
 from agents.requirements_validator import (
     compare_requirements_vs_actual,
     print_comparison_report
 )
-
-load_dotenv(REPO_ROOT / "backend/.env.local")
-load_dotenv(REPO_ROOT / "backend/.env")
 
 
 def load_prompt_as_requirements(prompt_file: str) -> dict:
