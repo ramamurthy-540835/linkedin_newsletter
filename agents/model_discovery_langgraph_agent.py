@@ -125,6 +125,16 @@ PROVIDER_CONFIG = {
         "doc_urls": ["https://docs.cohere.com/v2/docs/models"],
         "official_domains": ["docs.cohere.com", "api.cohere.ai"],
     },
+    "xai": {
+        "api_catalog": None,
+        "api_key_env": "XAI_API_KEY",
+        "doc_urls": [
+            "https://docs.x.ai/docs/models",
+            "https://docs.x.ai/docs/overview",
+            "https://docs.x.ai/docs/guides/chat",
+        ],
+        "official_domains": ["docs.x.ai", "x.ai", "api.x.ai"],
+    },
 }
 
 BLOCKED_PATH_TOKENS = ["/python/", "/java/", "/ruby/", "/go/", "/sdk/",
@@ -143,6 +153,8 @@ def provider_model_regex(provider: str) -> re.Pattern:
         return re.compile(r"^(models/)?(gemini|imagen|veo|gemma)-[a-z0-9.-]+$", re.I)
     if p == "anthropic":
         return re.compile(r"^claude-[a-z0-9.-]+$", re.I)
+    if p == "xai":
+        return re.compile(r"^grok-[a-z0-9.-]+$", re.I)
     return re.compile(r"^[a-z0-9][a-z0-9._/-]{1,80}$", re.I)
 
 
@@ -652,6 +664,36 @@ def _classify_anthropic_model(model_id: str) -> tuple[str, str, str]:
     return "unknown", mid, "stable"
 
 
+def _classify_xai_model(model_id: str) -> tuple[str, str, str]:
+    mid = model_id.lower().strip()
+    if mid.startswith("grok-3"):
+        family = "grok-3"
+        version = mid[len("grok-"):]
+    elif mid.startswith("grok-4"):
+        family = "grok-4"
+        version = mid[len("grok-"):]
+    elif mid.startswith("grok-code"):
+        family = "grok-code"
+        version = mid[len("grok-"):]
+    elif mid.startswith("grok-imagine-image"):
+        family = "grok-image"
+        version = mid[len("grok-"):]
+    elif mid.startswith("grok-imagine-video"):
+        family = "grok-video"
+        version = mid[len("grok-"):]
+    else:
+        family = "grok"
+        version = mid[len("grok-"):] if mid.startswith("grok-") else mid
+
+    if re.search(r"(\d{4}|\d{2,4}-\d{2,4}|-\d+)", mid):
+        stage = "versioned"
+    elif "mini" in mid or "fast" in mid:
+        stage = "optimized"
+    else:
+        stage = "stable"
+    return family, version, stage
+
+
 def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
     # Skip if loading from JSON
     if state.get("load_from_json_success"):
@@ -662,6 +704,8 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
     provider = state.get("target_provider", "openai").lower()
     config = PROVIDER_CONFIG.get(provider, {})
     api_url = config.get("api_catalog")
+    if provider == "xai":
+        api_url = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1").rstrip("/") + "/models"
     api_key_env = config.get("api_key_env")
 
     structured = []
@@ -692,7 +736,7 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
                             "discovery_tier": 1,
                             "raw_item": item,
                         })
-            elif provider in ["mistral", "cohere", "openrouter"]:
+            elif provider in ["mistral", "cohere", "openrouter", "xai"]:
                 for item in (data.get("data") if isinstance(data.get("data"), list) else [data]):
                     mid = item.get("id") if isinstance(item, dict) else str(item)
                     if mid:
@@ -700,9 +744,10 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
                         structured.append({
                             "model_id": mid,
                             "source_url": api_url,
-                            "source": f"{provider}_api",
+                            "source": "xai_api" if provider == "xai" else f"{provider}_api",
                             "confidence": 1.0,
                             "discovery_tier": 1,
+                            "raw_item": item if isinstance(item, dict) else {},
                         })
 
             source_used = len(structured) > 0
@@ -911,6 +956,8 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
             fam, ver, release_stage = _classify_anthropic_model(mid)
             if fam == "unknown":
                 unknown_models.append(mid)
+        elif provider == "xai":
+            fam, ver, release_stage = _classify_xai_model(mid)
         else:
             fam, ver = _derive_family_version(provider, mid_lower)
             release_stage = "stable"
@@ -945,6 +992,34 @@ def node_model_normalization(state: DiscoveryState) -> DiscoveryState:
                 }
             ],
         }
+        if provider == "xai":
+            created = (model.get("raw_item") or {}).get("created")
+            rec["created"] = created if created is not None else None
+            if fam in ["grok-3", "grok-4", "grok"]:
+                rec["model_purpose"] = "general reasoning, chat, analysis, and coding"
+                rec["recommended_for"] = ["general assistant workflows", "reasoning", "summarization", "content generation", "coding support"]
+                rec["avoid_for"] = ["image generation", "video generation", "audio transcription"]
+                rec["user_persona"] = ["developers", "product teams", "analysts"]
+                rec["capabilities"] = ["text generation", "reasoning", "chat", "coding"]
+            elif fam == "grok-code":
+                rec["model_purpose"] = "coding and software engineering assistance"
+                rec["recommended_for"] = ["code generation", "debugging", "refactoring", "developer workflows"]
+                rec["avoid_for"] = ["image generation", "video generation"]
+                rec["user_persona"] = ["developers", "engineering teams"]
+                rec["capabilities"] = ["code generation", "debugging", "software engineering"]
+            elif fam == "grok-image":
+                rec["model_purpose"] = "image generation"
+                rec["recommended_for"] = ["creative visuals", "marketing images", "concept art"]
+                rec["avoid_for"] = ["text reasoning", "code generation"]
+                rec["user_persona"] = ["designers", "marketers", "content teams"]
+                rec["capabilities"] = ["image generation", "visual content"]
+            elif fam == "grok-video":
+                rec["model_purpose"] = "video generation"
+                rec["recommended_for"] = ["short video concepts", "marketing clips", "storyboarding"]
+                rec["avoid_for"] = ["text reasoning", "code generation"]
+                rec["user_persona"] = ["creative teams", "marketers"]
+                rec["capabilities"] = ["video generation"]
+            rec["semantic_confidence"] = 0.8
         normalized.append(rec)
 
     state["normalized_models"] = normalized
@@ -1059,7 +1134,7 @@ def node_semantic_enrichment(state: DiscoveryState) -> DiscoveryState:
     skip_enrichment = state.get("skip_semantic_enrichment", False)
     provider = state.get("target_provider", "openai").lower()
 
-    if skip_enrichment or provider != "openai":
+    if skip_enrichment or provider not in ["openai"]:
         # Still add default enrichment fields even when skipping enrichment
         approved = state.get("approved_records", [])
         for model in approved:
@@ -1445,6 +1520,22 @@ def node_schema_check(state: DiscoveryState) -> DiscoveryState:
                 print(msg)
 
     state["schema_migrations"] = migrations
+    provider = state.get("target_provider", "openai").lower()
+    records = state.get("normalized_models", [])
+    if provider == "xai":
+        seen = set()
+        for rec in records:
+            key = (rec.get("provider"), rec.get("model_id"))
+            if key in seen:
+                state["errors"] = state.get("errors", []) + [f"Duplicate provider/model_id in normalized models: {key[0]}:{key[1]}"]
+            seen.add(key)
+            if not rec.get("family"):
+                state["errors"] = state.get("errors", []) + [f"NULL family for model_id={rec.get('model_id')}"]
+            if rec.get("discovery_tier") == 1 and rec.get("source_domain") != "api.x.ai":
+                state["errors"] = state.get("errors", []) + [f"Tier 1 xai source_domain must be api.x.ai, got {rec.get('source_domain')} for {rec.get('model_id')}"]
+        api_count = len(state.get("structured_models", []))
+        if api_count and len(records) != api_count:
+            state["errors"] = state.get("errors", []) + [f"Parsed count mismatch for xai: normalized={len(records)} api={api_count}"]
     return state
 
 
@@ -1793,6 +1884,9 @@ def node_audit(state: DiscoveryState) -> DiscoveryState:
         "stop_reason": state.get("stop_reason", ""),
         "dry_run": state.get("dry_run", False),
     }
+    if state.get("target_provider", "").lower() == "xai":
+        audit["source_url"] = os.getenv("XAI_BASE_URL", "https://api.x.ai/v1").rstrip("/") + "/models"
+        audit["api_model_count"] = len(state.get("structured_models", []))
 
     audit_path = "agents/model_discovery_audit.json"
     with open(audit_path, "w", encoding="utf-8") as f:
@@ -1944,7 +2038,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--target-provider",
-        choices=["openai", "google", "anthropic", "openrouter", "mistral", "cohere"],
+        choices=["openai", "google", "anthropic", "openrouter", "mistral", "cohere", "xai"],
         default="openai",
         help="Provider whose models to discover"
     )

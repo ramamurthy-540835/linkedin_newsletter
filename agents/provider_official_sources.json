@@ -54,5 +54,24 @@
       "site:docs.anthropic.com/en/api/messages Anthropic model parameter",
       "site:anthropic.com/pricing Claude API models"
     ]
+  },
+  "xai": {
+    "provider": "xai",
+    "official_domains": [
+      "docs.x.ai",
+      "x.ai",
+      "api.x.ai"
+    ],
+    "seed_urls": [
+      "https://docs.x.ai/docs/models",
+      "https://docs.x.ai/docs/overview",
+      "https://docs.x.ai/docs/guides/chat",
+      "https://x.ai/api"
+    ],
+    "search_queries": [
+      "site:docs.x.ai Grok model IDs",
+      "site:docs.x.ai xAI API models",
+      "site:x.ai/api Grok models pricing"
+    ]
   }
 }
