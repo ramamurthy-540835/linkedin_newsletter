@@ -35,6 +35,13 @@ except ImportError:
     _HAS_DESIGN_AGENTS = False
     print("WARNING: visual_design_agents module not found. Design agent pipeline will be skipped.")
 
+try:
+    from visual_design_orchestrator import VisualDesignOrchestrator
+    _HAS_VISUAL_ORCHESTRATOR = True
+except ImportError:
+    _HAS_VISUAL_ORCHESTRATOR = False
+    print("WARNING: visual_design_orchestrator module not found. Falling back to legacy prompt path.")
+
 # Vertex AI imports (optional)
 try:
     import vertexai
@@ -1004,6 +1011,7 @@ def _refine_prompt_from_issues(original_prompt: str, review: dict) -> str:
     if any("duplicate" in i.lower() for i in issues):
         if "no duplicate" not in refined.lower():
             refined += " | CRITICAL: Ensure NO duplicate text or labels."
+        refined += " | CRITICAL: Every card title and label must be unique. Do not repeat template labels like 'Model Name' or 'Category Name'."
 
     if any("spell" in i.lower() or "corruption" in i.lower() for i in issues):
         if "spell" not in refined.lower():
@@ -1015,6 +1023,12 @@ def _refine_prompt_from_issues(original_prompt: str, review: dict) -> str:
 
     if any("pipeline" in m.lower() for m in missing):
         refined += " | CRITICAL: Show all pipeline steps: API → LangGraph → Gemini → BigQuery → Publishing."
+
+    if any("high-confidence count" in i.lower() for i in issues) or any("high-confidence" in m.lower() for m in missing):
+        refined += " | CRITICAL: KPI row must include exact text 'High-Confidence Count: 12'."
+
+    if any("wrong model counts" in i.lower() for i in issues):
+        refined += " | CRITICAL: Use exact numbers only: 119 total models and 17 families. Do not invent any other totals."
 
     return refined
 
@@ -1385,7 +1399,7 @@ def main():
     review_imagen_prompts = "--review-imagen-prompts" in sys.argv
     skip_prompt_review = "--skip-prompt-review" in sys.argv
     save_reviewed_prompts_only = "--save-reviewed-prompts-only" in sys.argv
-    enable_design_agents = "--enable-design-agents" in sys.argv
+    enable_design_agents = "--disable-design-agents" not in sys.argv
     enable_image_review = "--enable-image-review" in sys.argv
     if use_vertex_imagen and not skip_prompt_review:
         review_imagen_prompts = True
@@ -1397,6 +1411,9 @@ def main():
     gcp_location_arg = None
     max_image_retries_arg = None
     style_arg = None
+    design_model_arg = None
+    review_model_arg = None
+    theme_arg = None
     dashboard_mode_arg = None
     for i, arg in enumerate(sys.argv):
         if arg == "--imagen-model" and i + 1 < len(sys.argv):
@@ -1413,6 +1430,12 @@ def main():
             style_arg = sys.argv[i+1]
         elif arg == "--dashboard-mode" and i + 1 < len(sys.argv):
             dashboard_mode_arg = sys.argv[i+1]
+        elif arg == "--design-model" and i + 1 < len(sys.argv):
+            design_model_arg = sys.argv[i+1]
+        elif arg == "--review-model" and i + 1 < len(sys.argv):
+            review_model_arg = sys.argv[i+1]
+        elif arg == "--theme" and i + 1 < len(sys.argv):
+            theme_arg = sys.argv[i+1]
 
     # Default to env vars if not provided via CLI, or use hardcoded defaults
     current_gcp_project = gcp_project_arg or GCP_PROJECT
@@ -1421,6 +1444,9 @@ def main():
     current_gemini_model = gemini_model_arg or GEMINI_MODEL
     max_retries = max_image_retries_arg if max_image_retries_arg is not None else 3
     style = style_arg or "ibm-carbon"
+    design_model = design_model_arg or "gemini-2.5-pro"
+    review_model = review_model_arg or "gemini-2.5-pro"
+    theme = theme_arg or "ibm-carbon-light"
     dashboard_mode = dashboard_mode_arg or "factual"
 
     # Determine json_path, skipping all flags
@@ -1433,7 +1459,7 @@ def main():
             skip_next = False
             continue
         if arg.startswith("--"):
-            if arg in ["--imagen-model", "--gcp-project", "--gcp-location", "--gemini-model"]:
+            if arg in ["--imagen-model", "--gcp-project", "--gcp-location", "--gemini-model", "--max-image-retries", "--style", "--dashboard-mode", "--design-model", "--review-model", "--theme"]:
                 skip_next = True # Value for this flag will be next
             continue
         cleaned_json_path_args.append(arg)
@@ -1541,8 +1567,19 @@ def main():
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     # Generate image prompts using design pipeline or simple generation
-    if enable_design_agents and _HAS_DESIGN_AGENTS:
-        print("\n🎨 USING MULTI-AGENT VISUAL DESIGN PIPELINE")
+    if enable_design_agents and _HAS_VISUAL_ORCHESTRATOR:
+        print("\n🎨 USING PRODUCTION VISUAL DESIGN ORCHESTRATOR")
+        orchestrator = VisualDesignOrchestrator(
+            design_model=design_model,
+            review_model=review_model,
+            theme=theme,
+        )
+        orchestration = orchestrator.run(stats, visual_context)
+        dashboard_prompt = orchestration["dashboard_prompt"]
+        mindmap_prompt = orchestration["architecture_prompt"]
+        design_pipeline_notes = orchestration.get("notes", {})
+    elif enable_design_agents and _HAS_DESIGN_AGENTS:
+        print("\n🎨 USING LEGACY MULTI-AGENT VISUAL DESIGN PIPELINE")
         dashboard_prompt, mindmap_prompt, design_pipeline_notes = generate_visual_design_pipeline(
             stats, visual_context, style=style, dashboard_mode=dashboard_mode, max_retries=max_retries
         )

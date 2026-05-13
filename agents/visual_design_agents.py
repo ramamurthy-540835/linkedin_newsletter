@@ -474,11 +474,10 @@ def review_generated_image(image_path: str, stats: Dict[str, Any], context: Dict
         }
 
     try:
-        extracted_text = _extract_image_text(image_path)
-        quality_check = _analyze_image_quality(extracted_text, stats)
-
         # Determine image type from context
         image_type = "dashboard" if "dashboard" in image_path.lower() else "architecture"
+        extracted_text = _extract_image_text(image_path)
+        quality_check = _analyze_image_quality(extracted_text, stats, image_type=image_type)
 
         # Validate that image matches request
         match_check = validate_image_matches_request(extracted_text, stats, image_type=image_type)
@@ -600,7 +599,7 @@ def _refine_prompt_from_issues(original_prompt: str, review: Dict[str, Any]) -> 
     return refined
 
 
-def _analyze_image_quality(extracted_text: str, stats: Dict[str, Any]) -> Dict[str, Any]:
+def _analyze_image_quality(extracted_text: str, stats: Dict[str, Any], image_type: str = "dashboard") -> Dict[str, Any]:
     """
     Analyze extracted text for quality issues.
 
@@ -692,16 +691,23 @@ def _analyze_image_quality(extracted_text: str, stats: Dict[str, Any]) -> Dict[s
         score -= 10
         suggestions.append("Check image generation - text may be too small or illegible")
 
-    # Check 6: Category keywords
-    categories = [
-        "complex reasoning", "fast chat", "image generation",
-        "video generation", "speech-to-text", "text-to-speech",
-        "embeddings", "moderation", "realtime audio", "multimodal vision"
-    ]
-    found_categories = sum(1 for cat in categories if cat in text_lower)
-    if found_categories < 3:
-        issues.append(f"Only {found_categories} categories found (expected ≥3)")
-        score -= 10
+    # Check 6: Structure-specific keyword checks
+    if image_type == "dashboard":
+        categories = [
+            "complex reasoning", "fast chat", "image generation",
+            "video generation", "speech-to-text", "text-to-speech",
+            "embeddings", "moderation", "realtime audio", "multimodal vision"
+        ]
+        found_categories = sum(1 for cat in categories if cat in text_lower)
+        if found_categories < 3:
+            issues.append(f"Only {found_categories} categories found (expected ≥3)")
+            score -= 10
+    elif image_type == "architecture":
+        pipeline_terms = ["official api", "langgraph", "gemini", "bigquery", "publishing"]
+        found_terms = sum(1 for term in pipeline_terms if term in text_lower)
+        if found_terms < 3:
+            issues.append(f"Only {found_terms} architecture pipeline terms found (expected ≥3)")
+            score -= 10
 
     approved = score >= 70 and len(issues) == 0
     return {
