@@ -11,14 +11,14 @@ import os
 import requests
 from typing import Dict, Any, List
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 
 def _call_gemini_json(prompt: str, model_name: str) -> Dict[str, Any]:
     """Call Gemini and return JSON response."""
     resp = requests.post(
         f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent",
-        headers={"x-goog-api-key": GEMINI_API_KEY},
+        headers={"x-goog-api-key": GOOGLE_API_KEY},
         json={
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -118,9 +118,9 @@ def compare_requirements_vs_actual(requirements: Dict[str, Any], actual: Dict[st
     Compare requirements vs actual results.
     Uses Gemini if available, falls back to simple text comparison.
     """
-    if not GEMINI_API_KEY:
+    if not GOOGLE_API_KEY:
         return {
-            "error": "GEMINI_API_KEY not set",
+            "error": "GOOGLE_API_KEY not set",
             "differences": [],
             "matches": [],
             "detailed_analysis": {"summary": "Gemini not configured"},
