@@ -193,26 +193,33 @@ def parse_json(path):
     run_id = data.get("run_id", datetime.now().isoformat())
     run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d")
 
-    parsed_model_count = len(all_models)
-    # Validate against the explicit expectation for the provided JSON file.
-    EXPECTED_TOTAL_MODELS = 109 # Updated to match agents/model_discovery_candidates_openai.json
-    if parsed_model_count != EXPECTED_TOTAL_MODELS:
-        print(f"❌ ERROR: Model count mismatch. Expected {EXPECTED_TOTAL_MODELS} models, but parsed {parsed_model_count}. Halting.")
+    source_parsed_count = len(all_models)
+    # Validate against the explicit expectation of total models from the ideal source of truth.
+    EXPECTED_TOTAL_MODELS = 119 
+    if source_parsed_count != EXPECTED_TOTAL_MODELS:
+        print(f"❌ ERROR: Model count mismatch. Expected {EXPECTED_TOTAL_MODELS} models from source of truth, but parsed {source_parsed_count}. Halting.")
         sys.exit(1)
     
-    print(f"\n[DEBUG] Loaded {parsed_model_count} models from source: {source_description}")
+    print(f"\n[DEBUG] Loaded {source_parsed_count} models from source: {source_description}")
 
     categorized_models = defaultdict(list)
     unclassified_models = []
+    enriched_count = 0 # Track models with semantic enrichment data
 
     # Enrich each model with use_case and recommendation
     for m in all_models:
         use_case = _classify_model(m)
         m["use_case"] = use_case
 
-        semantic_conf = m.get("semantic_confidence", m.get("confidence", 0))
+        semantic_conf = m.get("semantic_confidence", 0) # Use 0 if not present
+        if semantic_conf == 0 and m.get("model_purpose"): # If semantic_confidence is 0 but purpose is set by default enrichment
+            semantic_conf = 0.3 # Assign a baseline confidence for non-API errors if a purpose was derived.
+
         is_latest = m.get("is_latest", False)
         is_active = m.get("is_active", True)
+        
+        if semantic_conf > 0 or m.get("model_purpose"):
+            enriched_count += 1
 
         # Determine recommendation based on semantic_confidence and is_latest status
         if semantic_conf >= 0.8 and is_latest and is_active:
@@ -256,7 +263,7 @@ def parse_json(path):
     # Compute confidence buckets using semantic_confidence across all parsed models
     stage_counts = defaultdict(int)
     conf_buckets = {"high": [], "medium": [], "low": []}
-    for m in all_models:
+    for m in all_models: # Iterate through all_models, not just enriched, to populate buckets
         stage_counts[m.get("release_stage", "unknown")] += 1
         semantic_conf = m.get("semantic_confidence", 0)
         if semantic_conf >= 0.8:
@@ -266,9 +273,6 @@ def parse_json(path):
         else:
             conf_buckets["low"].append(m)
 
-    # Note: `families` and `latest_per_family` are not strictly needed for the use-case dashboard
-    # but are kept if `_text_diagram_fallback` is re-introduced or used elsewhere.
-    # For now, let's just make sure `family_count` is accurate for stats.
     families = defaultdict(list)
     for m in all_models:
         families[m["family"]].append(m)
@@ -278,16 +282,17 @@ def parse_json(path):
         "provider": provider,
         "run_id": run_id,
         "run_date": run_date,
-        "total": parsed_model_count, # Use the actual parsed count
+        "total": source_parsed_count, # Use the actual parsed count from the source
+        "enriched_coverage_count": enriched_count, # New field
         "families": dict(families),
         "family_count": len(families),
-        "latest_per_family": {}, # No longer actively used for main outputs, reset
+        "latest_per_family": {}, 
         "stage_counts": dict(stage_counts),
         "conf_buckets": conf_buckets,
         "all_models": all_models,
-        "categorized_models": categorized_models, # New field
-        "latest_per_usecase": best_per_usecase, # New field for best model per use-case
-        "unclassified_models": unclassified_models, # New field
+        "categorized_models": categorized_models, 
+        "latest_per_usecase": best_per_usecase, 
+        "unclassified_models": unclassified_models, 
     }
 
 
@@ -1131,7 +1136,9 @@ def main():
 
     print("📦 Parsing JSON and classifying models...")
     stats = parse_json(json_path)
-    print(f"   {stats['provider']} · {stats['total']} models · {stats['family_count']} families (parsed)\n")
+    print(f"   Source used: {source_description}")
+    print(f"   Total parsed: {stats['total']} models")
+    print(f"   Enriched coverage: {stats['enriched_coverage_count']}/{stats['total']} models\n")
 
     # Print summary statistics
     high = len(stats['conf_buckets']['high'])
