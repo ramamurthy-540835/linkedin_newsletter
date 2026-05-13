@@ -925,11 +925,13 @@ def call_vertex_imagen_with_retry(prompt: str, output_path: str, gcp_project: st
 
     Returns: (image_path, final_review) or (None, final_review) on max retries.
     """
+    current_prompt = prompt
+    review = {"approved": False, "issues": ["No attempts run"], "quality_score": 0, "match_score": 0}
     for attempt in range(1, max_retries + 1):
         print(f"\n📸 Generation Attempt {attempt}/{max_retries}")
 
         # Generate image
-        img_path = call_vertex_imagen(prompt, output_path, gcp_project, gcp_location, imagen_model)
+        img_path = call_vertex_imagen(current_prompt, output_path, gcp_project, gcp_location, imagen_model)
         if not img_path:
             print(f"   ❌ Generation failed, retrying...")
             continue
@@ -954,6 +956,7 @@ def call_vertex_imagen_with_retry(prompt: str, output_path: str, gcp_project: st
 
         if attempt < max_retries:
             print(f"   🔄 Refining prompt and retrying...")
+            current_prompt = _refine_prompt_from_issues(current_prompt, review)
 
     return None, review
 
@@ -1586,23 +1589,47 @@ def main():
             dashboard_ok = dashboard_safety_ok
             architecture_ok = architecture_safety_ok
             if dashboard_ok:
-                dashboard_img_path = call_vertex_imagen(
-                    reviewed_dashboard_prompt,
-                    f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
-                    current_gcp_project,
-                    current_gcp_location,
-                    current_imagen_model
-                )
+                if enable_image_review:
+                    dashboard_img_path, dashboard_review_result = call_vertex_imagen_with_retry(
+                        reviewed_dashboard_prompt,
+                        f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
+                        current_gcp_project,
+                        current_gcp_location,
+                        current_imagen_model,
+                        stats,
+                        max_retries=max_retries,
+                        image_type="dashboard"
+                    )
+                else:
+                    dashboard_img_path = call_vertex_imagen(
+                        reviewed_dashboard_prompt,
+                        f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
+                        current_gcp_project,
+                        current_gcp_location,
+                        current_imagen_model
+                    )
             else:
                 print("⚠️ Skipping dashboard Imagen call: review/safety gate failed.")
             if architecture_ok:
-                mindmap_img_path = call_vertex_imagen(
-                    reviewed_arch_prompt,
-                    f"{OUTPUT_DIR}/architecture_vertex_{ts}.png",
-                    current_gcp_project,
-                    current_gcp_location,
-                    current_imagen_model
-                )
+                if enable_image_review:
+                    mindmap_img_path, arch_review_result = call_vertex_imagen_with_retry(
+                        reviewed_arch_prompt,
+                        f"{OUTPUT_DIR}/architecture_vertex_{ts}.png",
+                        current_gcp_project,
+                        current_gcp_location,
+                        current_imagen_model,
+                        stats,
+                        max_retries=max_retries,
+                        image_type="architecture"
+                    )
+                else:
+                    mindmap_img_path = call_vertex_imagen(
+                        reviewed_arch_prompt,
+                        f"{OUTPUT_DIR}/architecture_vertex_{ts}.png",
+                        current_gcp_project,
+                        current_gcp_location,
+                        current_imagen_model
+                    )
             else:
                 print("⚠️ Skipping architecture Imagen call: review/safety gate failed.")
 
@@ -1612,12 +1639,14 @@ def main():
                 print("=" * 60)
                 if dashboard_img_path:
                     print(f"\nReviewing: {dashboard_img_path}")
-                    dashboard_review_result = review_generated_image(dashboard_img_path, stats, visual_context)
+                    if 'dashboard_review_result' not in locals():
+                        dashboard_review_result = review_generated_image(dashboard_img_path, stats, visual_context)
                     _print_image_review(dashboard_review_result, "Dashboard")
 
                 if mindmap_img_path:
                     print(f"\nReviewing: {mindmap_img_path}")
-                    arch_review_result = review_generated_image(mindmap_img_path, stats, visual_context)
+                    if 'arch_review_result' not in locals():
+                        arch_review_result = review_generated_image(mindmap_img_path, stats, visual_context)
                     _print_image_review(arch_review_result, "Architecture")
                 print("=" * 60)
         else:
