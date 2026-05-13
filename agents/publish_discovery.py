@@ -1178,6 +1178,36 @@ def _call_gemini_text(prompt: str, model_name: str, max_tokens: int, temperature
     return data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
 
+def _looks_truncated(text: str) -> bool:
+    if not text:
+        return True
+    t = text.strip()
+    if len(t) < 80:
+        return True
+    bad_endings = ("to", "and", "or", "with", "for", "in", "on", "the", "a", "an", "of")
+    return t.endswith(bad_endings)
+
+
+def _clean_medium_output(text: str, provider: str, total_models: int) -> str:
+    t = (text or "").strip()
+    if not t:
+        return t
+    # Remove common wrapper preambles from model output.
+    wrapper_prefixes = [
+        "Here is the data-driven Medium article",
+        "Here’s the data-driven Medium article",
+        "Here is your Medium article",
+    ]
+    for prefix in wrapper_prefixes:
+        if t.startswith(prefix):
+            marker = f"# How I Discovered All {provider}'s {total_models} AI Models Automatically"
+            idx = t.find(marker)
+            if idx >= 0:
+                t = t[idx:]
+                break
+    return t.strip()
+
+
 def generate_content(stats, gemini_model=GEMINI_MODEL):
     """Generate LinkedIn post and Medium article using Gemini with STRICT FACTS."""
     if not GEMINI_API_KEY:
@@ -1218,6 +1248,8 @@ CONSTRAINT: Only use numbers from STRICT FACTS block. Never mention specific mod
 Write ONLY the post text, no commentary."""
 
     linkedin_text = _call_gemini_text(li_prompt, gemini_model, 1500, 0.8, 0.9)
+    if _looks_truncated(linkedin_text):
+        linkedin_text = _call_gemini_text(li_prompt + "\n\nIMPORTANT: End with a complete sentence.", gemini_model, 2200, 0.7, 0.9)
 
     if not linkedin_text or len(linkedin_text) < 100:
         raise ValueError(f"LinkedIn post too short: {len(linkedin_text)} chars")
@@ -1322,6 +1354,16 @@ This is the future: automated, data-driven model ecosystem management.
 Tags: AI, LLM, {provider}, ModelOps, Automation, BigQuery, Gemini"""
 
     medium_content = _call_gemini_text(med_prompt, gemini_model, 4000, 0.7, 0.9)
+    medium_content = _clean_medium_output(medium_content, provider, stats["total"])
+    if _looks_truncated(medium_content) or len(medium_content) < 1200:
+        medium_content = _call_gemini_text(
+            med_prompt + "\n\nIMPORTANT: Return ONLY final markdown body. No preamble commentary. Complete all sections fully.",
+            gemini_model,
+            7000,
+            0.65,
+            0.9,
+        )
+        medium_content = _clean_medium_output(medium_content, provider, stats["total"])
 
     if not medium_content or len(medium_content) < 500:
         raise ValueError(f"Medium article too short: {len(medium_content)} chars")
