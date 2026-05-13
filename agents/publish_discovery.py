@@ -8,6 +8,7 @@ Usage: python agents/publish_discovery.py agents/model_discovery_candidates_open
 import json
 import os
 import sys
+import re
 import requests
 from collections import defaultdict
 from datetime import datetime
@@ -31,85 +32,35 @@ MEDIUM_USER_ID = os.getenv("MEDIUM_USER_ID")
 OUTPUT_DIR = "reports"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# ── USE_CASE_MAP: 12 Core Model Categories ────────────────────────────────────
+USE_CASE_MAP = {
+    "Complex Reasoning": ["o-series", "o1", "o3", "o4", "reasoning"],
+    "Fast Chat": ["gpt-3.5", "gpt-4o-mini", "mini"],
+    "Image Generation": ["dall-e", "image", "gpt-image"],
+    "Video Generation": ["sora", "video", "veo"],
+    "Speech-to-Text": ["whisper", "speech"],
+    "Text-to-Speech": ["tts", "text-to-speech"],
+    "Embeddings": ["embedding", "text-embedding"],
+    "Content Moderation": ["moderation"],
+    "Realtime Audio": ["gpt-realtime", "realtime", "audio", "gpt-audio"],
+    "Multimodal Vision": ["gpt-4o", "gpt-4", "vision", "multimodal"],
+    "Legacy/Deprecated": ["davinci", "babbage", "curie", "legacy"],
+    "Fine-tuning Base": ["gpt-3.5-turbo", "base"],
+}
 
-# ── Step 0: Determine model use case and recommendation ────────────────────────
-def get_model_usecase_and_recommendation(model):
-    """
-    Determine the primary use case and recommendation tier for a model.
-    Returns: (use_case: str, recommendation: str, color: str)
-    """
+def classify_model_to_usecase(model):
+    """Classify a model to one of 12 use-case categories using keyword matching."""
     model_id = model.get("model_id", "").lower()
     family = model.get("family", "").lower()
-    is_latest = model.get("is_latest", False)
-    is_active = model.get("is_active", False)
-    stage = model.get("release_stage", "").lower()
+    combined = f"{model_id} {family}".lower()
 
-    # Determine base recommendation tier
-    flagship_families = ["gpt-5", "gpt-4o", "o-series", "gpt-4", "gpt-3.5"]
-    is_flagship = any(f in family for f in flagship_families)
+    for use_case, keywords in USE_CASE_MAP.items():
+        for keyword in keywords:
+            if keyword in combined:
+                return use_case
+    return "Other"
 
-    # Use case & recommendation mapping
-    if any(x in model_id for x in ["gpt-5", "o4", "o1", "o3"]):
-        use_case = "Complex reasoning"
-        rec = "[RECOMMENDED]" if (is_latest and is_flagship) else "[GOOD]" if is_active else "[DEPRECATED]"
-        color = "#1e40af" if (is_latest and is_flagship) else "#3b82f6" if is_active else "#6b7280"
 
-    elif "gpt-4o" in model_id:
-        use_case = "Versatile multimodal"
-        rec = "[RECOMMENDED]" if is_latest else "[GOOD]"
-        color = "#059669" if is_latest else "#10b981"
-
-    elif any(x in model_id for x in ["gpt-3.5", "gpt-4-turbo"]):
-        use_case = "Fast & capable"
-        rec = "[RECOMMENDED]" if is_latest else "[GOOD]"
-        color = "#10b981" if is_latest else "#84cc16"
-
-    elif any(x in model_id for x in ["gpt-4", "gpt-realtime", "gpt-audio"]):
-        use_case = "Advanced models"
-        rec = "[RECOMMENDED]" if (is_latest and stage == "stable") else "[GOOD]" if is_active else "[NICHE]"
-        color = "#1e40af" if (is_latest and stage == "stable") else "#3b82f6" if is_active else "#8b5cf6"
-
-    elif "embedding" in family:
-        use_case = "Semantic search"
-        rec = "[RECOMMENDED]" if is_latest else "[GOOD]"
-        color = "#7c3aed" if is_latest else "#a78bfa"
-
-    elif "dall-e" in model_id or "image" in family:
-        use_case = "Image generation"
-        rec = "[RECOMMENDED]" if is_latest else "[GOOD]"
-        color = "#ec4899" if is_latest else "#f472b6"
-
-    elif "whisper" in model_id:
-        use_case = "Speech-to-text"
-        rec = "[RECOMMENDED]" if is_latest else "[GOOD]"
-        color = "#f59e0b" if is_latest else "#fbbf24"
-
-    elif "tts" in model_id:
-        use_case = "Text-to-speech"
-        rec = "[RECOMMENDED]" if is_latest else "[GOOD]"
-        color = "#f97316" if is_latest else "#fb923c"
-
-    elif "video" in family or "sora" in model_id:
-        use_case = "Video generation"
-        rec = "[NICHE]" if is_active else "[DEPRECATED]"
-        color = "#8b5cf6" if is_active else "#6b7280"
-
-    elif "moderation" in family:
-        use_case = "Content moderation"
-        rec = "[GOOD]"
-        color = "#06b6d4"
-
-    elif not is_active or "legacy" in family or "babbage" in model_id:
-        use_case = "Legacy/Deprecated"
-        rec = "[DEPRECATED]"
-        color = "#6b7280"
-
-    else:
-        use_case = "Specialized"
-        rec = "[NICHE]"
-        color = "#8b5cf6"
-
-    return use_case, rec, color
 
 
 # ── Step 1: Parse JSON ────────────────────────────────────────────────────────
@@ -118,8 +69,13 @@ def parse_json(path):
     with open(path) as f:
         data = json.load(f)
 
-    # Use enriched_models which has semantic_confidence, fall back to normalized_models
-    models = data.get("enriched_models", []) or data.get("normalized_models", [])
+    # CRITICAL: Use enriched_models which has semantic_confidence (0.3-0.9 = enrichment quality)
+    # NOT normalized_models which has confidence: 1.0 (API verified)
+    models = data.get("enriched_models", [])
+    if not models:
+        print("⚠️  WARNING: enriched_models not found, falling back to normalized_models")
+        models = data.get("normalized_models", [])
+
     provider = data.get("target_provider", "openai").upper()
     run_id = data.get("run_id", datetime.now().isoformat())
     run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d")
@@ -129,32 +85,26 @@ def parse_json(path):
         sample_confs = [m.get("semantic_confidence", m.get("confidence", 0)) for m in models[:5]]
         print(f"[DEBUG] Sample semantic_confidence values: {sample_confs}")
 
-    # Compute recommendation tier based on actual semantic_confidence
+    # Enrich each model with use_case and recommendation
     for m in models:
-        # Get actual semantic confidence from enriched data
         semantic_conf = m.get("semantic_confidence", m.get("confidence", 0))
         is_latest = m.get("is_latest", False)
         is_active = m.get("is_active", True)
-        family = m.get("family", "").lower()
-        model_id = m.get("model_id", "").lower()
 
-        # Flagship families for RECOMMENDED tier
-        flagship = ["gpt-5", "gpt-4o", "o-series", "text-embedding", "tts", "whisper", "dall-e"]
-        is_flagship = any(f in family for f in flagship)
+        # Classify to one of 12 use-cases
+        use_case = classify_model_to_usecase(m)
+        m["use_case"] = use_case
 
-        # Determine recommendation based on semantic_confidence and other factors
-        if is_latest and is_flagship and semantic_conf >= 0.8:
+        # Determine recommendation based on semantic_confidence
+        if semantic_conf >= 0.8 and is_latest and is_active:
             rec = "[RECOMMENDED]"
             color = "#0f62fe"  # IBM Blue
         elif semantic_conf >= 0.8 and is_active:
             rec = "[GOOD]"
             color = "#198038"  # IBM Green
-        elif "legacy" in family or "deprecated" in family or "babbage" in model_id or "davinci-002" in model_id:
+        elif semantic_conf < 0.5 or not is_active:
             rec = "[DEPRECATED]"
             color = "#da1e28"  # IBM Red
-        elif not is_active or semantic_conf < 0.5:
-            rec = "[DEPRECATED]"
-            color = "#da1e28"
         else:
             rec = "[NICHE]"
             color = "#8a3ffc"  # IBM Purple
@@ -162,14 +112,13 @@ def parse_json(path):
         m["semantic_confidence"] = semantic_conf
         m["recommendation"] = rec
         m["rec_color"] = color
-        # Store numeric score for backward compat
-        rec_scores = {"[RECOMMENDED]": 1.0, "[GOOD]": 0.8, "[NICHE]": 0.5, "[DEPRECATED]": 0.2}
-        m["enriched_confidence"] = rec_scores.get(rec, semantic_conf)
 
+    # Group by family
     families = defaultdict(list)
     for m in models:
         families[m["family"]].append(m)
 
+    # Find latest per family
     latest_per_family = {}
     for fam, mlist in families.items():
         latest = [m for m in mlist if m.get("is_latest")]
@@ -179,43 +128,22 @@ def parse_json(path):
             else sorted(mlist, key=lambda x: x.get("discovered_at", ""), reverse=True)[0]
         )
 
+    # Compute confidence buckets using semantic_confidence
     stage_counts = defaultdict(int)
     conf_buckets = {"high": [], "medium": [], "low": []}
     for m in models:
         stage_counts[m.get("release_stage", "unknown")] += 1
-        c = m.get("semantic_confidence", 0)
-        if c >= 0.8:
+        semantic_conf = m.get("semantic_confidence", 0)
+        if semantic_conf >= 0.8:
             conf_buckets["high"].append(m)
-        elif c >= 0.5:
+        elif semantic_conf >= 0.5:
             conf_buckets["medium"].append(m)
         else:
             conf_buckets["low"].append(m)
 
-    # Print stats for verification
     print(f"\n[STATS] High confidence (≥0.8): {len(conf_buckets['high'])}")
     print(f"[STATS] Medium confidence (0.5-0.8): {len(conf_buckets['medium'])}")
     print(f"[STATS] Low confidence (<0.5): {len(conf_buckets['low'])}")
-
-    # Purpose classification
-    purpose_map = {
-        "text-generation": ["gpt", "chat", "o-series", "legacy"],
-        "image": ["dall-e", "gpt-image", "image"],
-        "video": ["sora", "video", "veo"],
-        "audio": ["tts", "whisper", "gpt-audio", "gpt-realtime"],
-        "embedding": ["text-embedding", "embedding"],
-        "moderation": ["moderation"],
-    }
-    purpose_counts = defaultdict(int)
-    for m in models:
-        fam = m.get("family", "")
-        matched = False
-        for purpose, keywords in purpose_map.items():
-            if any(k in fam.lower() for k in keywords):
-                purpose_counts[purpose] += 1
-                matched = True
-                break
-        if not matched:
-            purpose_counts["other"] += 1
 
     return {
         "provider": provider,
@@ -227,229 +155,166 @@ def parse_json(path):
         "latest_per_family": latest_per_family,
         "stage_counts": dict(stage_counts),
         "conf_buckets": conf_buckets,
-        "purpose_counts": dict(purpose_counts),
         "all_models": models,
     }
 
 
-# ── Step 2: Generate Dashboard-Style Model Selection Guide ────────────────────
+# ── Step 2: Generate Dashboard-Style Model Selection Guide (12-card grid) ──────
 def generate_charts(stats):
-    """Generate a modern dashboard-style model selection guide with large cards."""
+    """Generate 12-card grid dashboard (4 cols × 3 rows) on white background."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     provider = stats["provider"]
-    # Professional white/dark scheme for better readability
-    BG = "#ffffff"  # Clean white background
-    CARD = "#f8fafc"  # Very light card background
-    CARD_DARK = "#e2e8f0"  # Darker card accent
-    GRID = "#cbd5e1"  # Grid lines
-    TEXT = "#0f172a"  # Dark text
-    HEAD = "#1e293b"  # Dark headers
-    ACCENT = "#0284c7"  # Professional blue
-    SUCCESS = "#059669"  # Green for recommended
 
-    # Group models by use case
-    use_case_groups = {}
-    for fam, mods in stats["families"].items():
-        for m in mods:
-            uc = m.get("use_case", "Other")
-            if uc not in use_case_groups:
-                use_case_groups[uc] = []
-            use_case_groups[uc].append(m)
+    # Color palette (IBM Carbon)
+    BG = "#ffffff"
+    CARD = "#f8fafc"
+    GRID = "#cbd5e1"
+    TEXT = "#0f172a"
+    HEAD = "#1e293b"
+    ACCENT = "#0284c7"
+    REC_COLOR = "#0f62fe"    # IBM Blue (Recommended)
+    GOOD_COLOR = "#198038"   # IBM Green
+    NICHE_COLOR = "#8a3ffc"  # IBM Purple
+    DEPRECATED_COLOR = "#da1e28"  # IBM Red
 
-    # Create large, informative dashboard with bigger cards
-    num_cols = 2  # 2 columns for larger cards
-    num_rows = (len(use_case_groups) + num_cols - 1) // num_cols
-    fig_height = max(14, num_rows * 3.8 + 3)
+    # Group by use-case
+    use_case_groups = defaultdict(list)
+    for m in stats["all_models"]:
+        uc = m.get("use_case", "Other")
+        use_case_groups[uc].append(m)
+
+    # Sort use-cases for consistent grid layout
+    sorted_use_cases = sorted(use_case_groups.keys())
+
+    # 12-card grid: 4 cols × 3 rows
+    num_cols = 4
+    num_rows = 3
+    fig_height = 14
     fig = plt.figure(figsize=(20, fig_height), facecolor=BG)
 
-    # Header section with gradient-like background
+    # Header
     header_box = mpatches.Rectangle(
-        (0, 0.94), 1, 0.06,
-        transform=fig.transFigure,
-        facecolor=ACCENT,
-        edgecolor="none",
-        zorder=0,
+        (0, 0.94), 1, 0.06, transform=fig.transFigure, facecolor=ACCENT, edgecolor="none", zorder=0
     )
     fig.patches.append(header_box)
 
-    # Top section with title and stats
-    fig.text(
-        0.5, 0.975,
-        f"{provider} AI Model Discovery Dashboard",
-        ha="center",
-        fontsize=28,
-        fontweight="bold",
-        color="#ffffff",
-    )
+    fig.text(0.5, 0.975, f"{provider} AI Model Discovery Dashboard",
+             ha="center", fontsize=28, fontweight="bold", color="#ffffff")
 
-    # Key metrics in a clean row
+    # Metrics row
     metrics_y = 0.89
     metrics = [
-        (f"{stats['total']} Models", "Total in database"),
-        (f"{len(use_case_groups)} Categories", "Use case types"),
+        (f"{stats['total']} Models", "Total"),
+        (f"{stats['family_count']} Families", "Categories"),
         (f"{len(stats['conf_buckets']['high'])} Recommended", "Production-ready"),
     ]
-
-    metric_x = 0.08
+    metric_x = 0.1
     for metric, desc in metrics:
         fig.text(metric_x, metrics_y + 0.025, metric, fontsize=14, fontweight="bold", color=TEXT)
         fig.text(metric_x, metrics_y - 0.01, desc, fontsize=9, color=GRID)
-        metric_x += 0.3
-
+        metric_x += 0.28
     fig.text(0.92, metrics_y, f"Updated: {stats['run_date']}", fontsize=9, color=GRID, ha="right")
 
+    # Create grid layout
     ax = fig.add_subplot(111)
     ax.axis("off")
-    ax.set_xlim(0, 10)
-    ax.set_ylim(0, num_rows * 4 + 1)
+    ax.set_xlim(0, num_cols)
+    ax.set_ylim(0, num_rows)
 
-    # Larger card-based layout
-    card_width = 4.6
-    card_height = 3.6
-    margin = 0.4
-    padding = 0.3
+    card_width = 0.23
+    card_height = 0.28
+    margin_x = 0.01
+    margin_y = 0.01
 
-    y_offset = num_rows * 4
-    for idx, use_case in enumerate(sorted(use_case_groups.keys())):
+    # Draw 12 cards
+    for idx in range(num_cols * num_rows):
         col = idx % num_cols
         row = idx // num_cols
 
-        x = margin + col * (card_width + margin + 0.4)
-        y = y_offset - row * (card_height + margin)
+        x = margin_x + col * (card_width + margin_x * 2)
+        y = num_rows - 1 - row * (card_height + margin_y * 2) - card_height
 
-        models = use_case_groups[use_case]
-        recommended = None
-        for m in sorted(models, key=lambda x: x.get("is_latest", False), reverse=True):
-            if "[RECOMMENDED]" in m.get("recommendation", ""):
-                recommended = m
-                break
-        if not recommended:
-            recommended = models[0]
+        if idx < len(sorted_use_cases):
+            use_case = sorted_use_cases[idx]
+            models = use_case_groups[use_case]
 
-        model_id = recommended.get("model_id", "?")[:24]
-        rec = recommended.get("recommendation", "[GOOD]").replace("[", "").replace("]", "")
-        rec_color = recommended.get("rec_color", ACCENT)
-        if rec == "RECOMMENDED":
-            rec_color = SUCCESS
-        count = len(models)
-        fam = recommended.get("family", "?")
+            # Find recommended model
+            recommended = None
+            for m in sorted(models, key=lambda x: x.get("is_latest", False), reverse=True):
+                if "[RECOMMENDED]" in m.get("recommendation", ""):
+                    recommended = m
+                    break
+            if not recommended:
+                for m in sorted(models, key=lambda x: x.get("recommendation") == "[GOOD]", reverse=True):
+                    recommended = m
+                    break
+            if not recommended:
+                recommended = models[0]
 
-        # Draw main card background
-        card_box = mpatches.FancyBboxPatch(
-            (x, y - card_height),
-            card_width,
-            card_height,
-            boxstyle="round,pad=0.12",
-            facecolor=CARD,
-            edgecolor=GRID,
-            linewidth=1.5,
-        )
-        ax.add_patch(card_box)
+            # Get recommendation color
+            rec = recommended.get("recommendation", "").replace("[", "").replace("]", "")
+            if rec == "RECOMMENDED":
+                rec_color = REC_COLOR
+            elif rec == "GOOD":
+                rec_color = GOOD_COLOR
+            elif rec == "DEPRECATED":
+                rec_color = DEPRECATED_COLOR
+            else:
+                rec_color = NICHE_COLOR
 
-        # Colored top bar (accent)
-        top_bar = mpatches.Rectangle(
-            (x, y - 0.5),
-            card_width,
-            0.5,
-            facecolor=rec_color,
-            edgecolor="none",
-        )
-        ax.add_patch(top_bar)
+            model_id = recommended.get("model_id", "?")[:20]
+            count = len(models)
 
-        # Card title (use case) - in white on colored background
-        ax.text(
-            x + padding, y - 0.28,
-            use_case.upper(),
-            fontsize=12,
-            fontweight="bold",
-            color="#ffffff",
-            ha="left",
-        )
+            # Card background
+            card_box = mpatches.FancyBboxPatch(
+                (x, y), card_width, card_height, boxstyle="round,pad=0.005",
+                facecolor=CARD, edgecolor=GRID, linewidth=0.8
+            )
+            ax.add_patch(card_box)
 
-        # Status badge (right side of colored bar)
-        ax.text(
-            x + card_width - padding, y - 0.28,
-            rec,
-            fontsize=9,
-            color="#ffffff",
-            fontweight="bold",
-            ha="right",
-        )
+            # Top colored bar
+            top_bar = mpatches.Rectangle(
+                (x, y + card_height - 0.04), card_width, 0.04,
+                facecolor=rec_color, edgecolor="none"
+            )
+            ax.add_patch(top_bar)
 
-        # Divider line
-        ax.plot([x + padding, x + card_width - padding], [y - 0.65, y - 0.65], color=GRID, linewidth=1)
+            # Title
+            ax.text(x + 0.005, y + card_height - 0.015, use_case.upper(),
+                   fontsize=8, fontweight="bold", color="#ffffff", ha="left", va="center")
 
-        # Main content area
-        content_y = y - 1.0
+            # Recommendation badge
+            ax.text(x + card_width - 0.005, y + card_height - 0.015, rec,
+                   fontsize=6, color="#ffffff", fontweight="bold", ha="right", va="center")
 
-        # Model info
-        ax.text(
-            x + padding, content_y,
-            "Recommended Model:",
-            fontsize=8,
-            color=GRID,
-            fontweight="bold",
-            ha="left",
-        )
+            # Model name
+            ax.text(x + 0.005, y + 0.18, model_id,
+                   fontsize=7, color=HEAD, fontweight="bold", ha="left", family="monospace")
 
-        ax.text(
-            x + padding, content_y - 0.4,
-            model_id,
-            fontsize=11,
-            color=HEAD,
-            fontweight="bold",
-            ha="left",
-            family="monospace",
-        )
+            # Count
+            ax.text(x + 0.005, y + 0.12, f"{count} models",
+                   fontsize=6, color=TEXT, ha="left")
 
-        # Family info
-        ax.text(
-            x + padding, content_y - 0.9,
-            f"Family: {fam}",
-            fontsize=9,
-            color=TEXT,
-            ha="left",
-        )
-
-        # Count with visual indicator
-        ax.text(
-            x + padding, content_y - 1.4,
-            f"Available Models: {count}",
-            fontsize=9,
-            color=TEXT,
-            fontweight="bold",
-            ha="left",
-        )
-
-        # Bottom info box
-        info_box = mpatches.FancyBboxPatch(
-            (x + padding, y - card_height + 0.2),
-            card_width - 2 * padding,
-            0.3,
-            boxstyle="round,pad=0.05",
-            facecolor=CARD_DARK,
-            edgecolor=GRID,
-            linewidth=0.5,
-        )
-        ax.add_patch(info_box)
-
-        ax.text(
-            x + card_width / 2, y - card_height + 0.35,
-            f"Perfect for {use_case.lower()} tasks",
-            fontsize=8,
-            color=TEXT,
-            ha="center",
-            style="italic",
-        )
+            # Status
+            ax.text(x + 0.005, y + 0.06, f"Status: {rec}",
+                   fontsize=5, color=rec_color, ha="left", fontweight="bold")
+        else:
+            # Empty placeholder card
+            card_box = mpatches.FancyBboxPatch(
+                (x, y), card_width, card_height, boxstyle="round,pad=0.005",
+                facecolor="#f0f4f8", edgecolor="#e2e8f0", linewidth=0.8, linestyle="--"
+            )
+            ax.add_patch(card_box)
+            ax.text(x + card_width/2, y + card_height/2, "—",
+                   fontsize=12, color="#cbd5e1", ha="center", va="center")
 
     chart_path = f"{OUTPUT_DIR}/model_chart_{ts}.png"
     try:
-        fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor=BG, edgecolor="none")
+        fig.savefig(chart_path, dpi=150, bbox_inches="tight", facecolor=BG)
         plt.close()
 
-        # Validate file was created and has size
         if not os.path.exists(chart_path) or os.path.getsize(chart_path) == 0:
-            raise ValueError(f"Chart file created but is empty or missing: {chart_path}")
+            raise ValueError(f"Chart file empty: {chart_path}")
 
         file_size_mb = os.path.getsize(chart_path) / (1024 * 1024)
         print(f"✅ Chart PNG: {chart_path} ({file_size_mb:.2f} MB)")
@@ -459,39 +324,32 @@ def generate_charts(stats):
         raise
 
 
-# ── Step 3: Generate Mermaid diagram ──────────────────────────────────────────
+# ── Step 3: Generate Mermaid diagram (grouped by use-case) ──────────────────────
 def generate_mermaid_png(stats):
-    """Generate Mermaid diagram and convert to PNG, with matplotlib fallback."""
+    """Generate Mermaid mindmap grouped by use-case categories."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     provider = stats["provider"]
 
-    # Build mermaid mindmap - organized by use case groups
-    use_case_groups = {}
-    for fam, mods in stats["families"].items():
-        latest = stats["latest_per_family"].get(fam, {})
-        use_case = latest.get("use_case", "Other")
-        if use_case not in use_case_groups:
-            use_case_groups[use_case] = []
-        use_case_groups[use_case].append((fam, mods, latest))
+    # Group families by use-case
+    use_case_groups = defaultdict(list)
+    for m in stats["all_models"]:
+        use_case = m.get("use_case", "Other")
+        family = m.get("family", "")
+        if family not in [fam for fam, _ in use_case_groups[use_case]]:
+            use_case_groups[use_case].append((family, len(stats["families"].get(family, []))))
 
-    num_categories = len(use_case_groups)
-    # Use <br> for actual line breaks in Mermaid
-    lines = ["mindmap", f"  root(({provider}<br/>{stats['total']} Models<br/>{num_categories} Categories))"]
+    # Build mindmap
+    lines = ["mindmap", f"  root(({provider}<br/>{stats['total']} Models<br/>{stats['family_count']} Families))"]
 
-    # Build mindmap organized by use case
     for use_case in sorted(use_case_groups.keys()):
         lines.append(f"    {use_case}")
-        for fam, mods, latest in sorted(use_case_groups[use_case], key=lambda x: len(x[1]), reverse=True):
-            count = len(mods)
+        for family, count in sorted(use_case_groups[use_case], key=lambda x: x[1], reverse=True):
+            latest = stats["latest_per_family"].get(family, {})
             rec = latest.get("recommendation", "").replace("[", "").replace("]", "")
-            lid = latest.get("model_id", "?")[:30]
-            # Use text indicators instead of emoji
-            status = rec if rec else "Active"
-            lines.append(f"      {fam} ({count})")
-            lines.append(f"        {status}")
-            lines.append(f"        Latest: {lid}")
+            lines.append(f"      {family} ({count})")
+            if rec:
+                lines.append(f"        {rec}")
 
-    # Add Mermaid theme configuration for lighter blue colors with white bold text
     mermaid_config = """%%{init: {
   'theme': 'base',
   'themeVariables': {
@@ -501,11 +359,8 @@ def generate_mermaid_png(stats):
     'tertiaryColor': '#e0f2fe',
     'tertiaryBorderColor': '#0284c7',
     'tertiaryTextColor': '#ffffff',
-    'fontSize': '16px',
-    'fontFamily': 'sans-serif',
-    'fontFamily': 'Arial, sans-serif',
-    'primaryBoldTextColor': '#ffffff',
-    'textBkgColor': '#ffffff'
+    'fontSize': '14px',
+    'fontFamily': 'Arial, sans-serif'
   }
 }}%%
 """
@@ -518,7 +373,7 @@ def generate_mermaid_png(stats):
         f.write(mermaid_text)
     print(f"   Mermaid markdown: {mmd_path}")
 
-    # Try mermaid-cli (use full path or npx)
+    # Try mermaid-cli
     mmdc_cmd = "mmdc"
     try:
         import shutil
@@ -527,11 +382,9 @@ def generate_mermaid_png(stats):
     except:
         pass
 
-    ret = os.system(
-        f"{mmdc_cmd} -i {mmd_path} -o {png_path} -t default -b '#ffffff' -w 1400 -H 900 2>/dev/null"
-    )
+    ret = os.system(f"{mmdc_cmd} -i {mmd_path} -o {png_path} -t default -b '#ffffff' -w 1400 -H 900 2>/dev/null")
     if ret != 0 or not os.path.exists(png_path):
-        print("   ⚠️  mermaid-cli unavailable, using matplotlib text fallback...")
+        print("   ⚠️  mermaid-cli unavailable, using matplotlib fallback...")
         png_path = _text_diagram_fallback(stats, ts)
 
     if not os.path.exists(png_path) or os.path.getsize(png_path) == 0:
@@ -660,70 +513,95 @@ def _text_diagram_fallback(stats, ts):
         raise
 
 
+# ── Step 3.5: Verify no hallucination (number consistency) ──────────────────────
+def verify_no_hallucination(linkedin_text, medium_text, stats):
+    """Verify that posts don't contain hallucinated/contradictory numbers."""
+    total = str(stats["total"])
+    families = str(stats["family_count"])
+
+    errors = []
+
+    # Check Medium strictly (long-form)
+    med_total_matches = re.findall(rf'\b{total}\s+(?:models?|active\s+AI\s+models?|AI\s+models?)\b', medium_text, re.IGNORECASE)
+    med_family_matches = re.findall(rf'\b{families}\s+(?:families?|model\s+families?)\b', medium_text, re.IGNORECASE)
+
+    if not med_total_matches:
+        errors.append(f"Medium doesn't mention {total} models")
+    if not med_family_matches:
+        errors.append(f"Medium doesn't mention {families} families")
+
+    # Check for CONTRADICTORY numbers in Medium (e.g., says 110 instead of 109)
+    wrong_totals_med = re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', medium_text, re.IGNORECASE)
+    for num in set(wrong_totals_med):
+        if num != total and int(num) > 100:
+            errors.append(f"Medium mentions {num} models but should be {total}")
+
+    # LinkedIn can be more lenient (shorter form, may not mention families)
+    li_total_matches = re.findall(rf'\b{total}\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE)
+    if not li_total_matches:
+        errors.append(f"LinkedIn doesn't mention {total} models")
+
+    wrong_totals_li = re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE)
+    for num in set(wrong_totals_li):
+        if num != total and int(num) > 100:
+            errors.append(f"LinkedIn mentions {num} models but should be {total}")
+
+    if errors:
+        print("\n❌ HALLUCINATION DETECTED:")
+        for error in errors:
+            print(f"   - {error}")
+        return False
+    else:
+        print(f"\n✅ Verification passed: {total} models, {families} families (consistent across posts)")
+        return True
+
+
 # ── Step 4: Generate post content via Gemini ──────────────────────────────────
 def generate_content(stats):
-    """Generate LinkedIn post and Medium article using Gemini."""
+    """Generate LinkedIn post and Medium article using Gemini with STRICT FACTS."""
     if not GEMINI_API_KEY:
         print("❌ GEMINI_API_KEY not set")
         raise ValueError("GEMINI_API_KEY required")
     provider = stats["provider"]
 
-    families_summary = ", ".join(
-        f"{fam}({len(mods)})"
-        for fam, mods in sorted(stats["families"].items(), key=lambda x: len(x[1]), reverse=True)[:8]
-    )
     high_conf = len(stats["conf_buckets"]["high"])
+    medium_conf = len(stats["conf_buckets"]["medium"])
     low_conf = len(stats["conf_buckets"]["low"])
 
-    # LinkedIn post
-    high_pct = int((high_conf / stats['total']) * 100) if stats['total'] > 0 else 0
-    low_pct = int((low_conf / stats['total']) * 100) if stats['total'] > 0 else 0
+    # LinkedIn post with STRICT FACTS block
+    li_prompt = f"""Write a personal, engaging LinkedIn post about building a model discovery agent.
 
-    li_prompt = f"""Write a personal, data-driven LinkedIn post about building a model discovery agent.
-
-PERSONAL CONTEXT:
-I built a LangGraph agent that automatically discovered and classified all {provider}'s AI models.
-It uses Gemini API for semantic enrichment and stores everything in BigQuery.
-Completely automated—no manual research needed.
-
-ACTUAL DATA FROM THIS RUN:
-- {stats['total']} total models discovered
-- {stats['family_count']} model families identified
-- {high_conf} models verified production-ready (≥80% confidence)
-- {len(stats['conf_buckets']['medium'])} models stable but less documented
-- {low_conf} models experimental or legacy
-- {stats['families'].get('gpt-5', [])[:1] and len(stats['families']['gpt-5'])} GPT-5 variants (biggest family!)
-- Key families: GPT-5 ({len(stats['families'].get('gpt-5', []))}), GPT-4o ({len(stats['families'].get('gpt-4o', []))}), Whisper, DALL-E, embeddings
-
-MOST SURPRISING FINDING:
-GPT-5 already has {len(stats['families'].get('gpt-5', []))} variant models in the wild—
-more than I expected. Plus future-dated models like gpt-image-2-2026-04-21.
+STRICT FACTS (use ONLY these numbers, never hallucinate):
+- Total models: {stats['total']}
+- Model families: {stats['family_count']}
+- High-confidence (production-ready): {high_conf}
+- Medium-confidence (stable): {medium_conf}
+- Low-confidence (experimental): {low_conf}
+- Provider: {provider}
+- Discovery method: Automated LangGraph agent
+- Enrichment: Gemini API
+- Storage: BigQuery
+- Run date: {stats['run_date']}
 
 STRUCTURE:
-1. Hook: Personal journey building the agent ("I built an agent that...")
-2. Surprising finding: The scale and variants available
-3. What it enables: Developers can now see what's actually available
-4. Technical approach: LangGraph + Gemini semantic enrichment + BigQuery
-5. Question: What's YOUR biggest challenge choosing models?
+1. Personal hook: "I built an agent that..."
+2. The numbers: Only use facts above (total, families, high-conf)
+3. Why it matters: Developers need clarity on model landscape
+4. Technical approach: LangGraph + Gemini + BigQuery
+5. Call to action: What's YOUR biggest challenge?
 
-TONE: Genuine, technical, not sales-y. I actually built this.
-LENGTH: Max 1300 characters, no markdown, plain text only
-AVOID: Don't mention "0 models" or fake stats. Only use real numbers above.
+TONE: Authentic, technical, not salesy
+LENGTH: Max 1300 characters
+CONSTRAINT: Only use numbers from STRICT FACTS block. Never mention specific model names unless in STRICT FACTS.
 
-Include:
-- Personal "I built" angle (more credible than "we discovered")
-- Actual surprising insight (the 38 GPT-5 variants)
-- Actionable value (they can use this data too)
-- Real challenge question
-
-Write ONLY the post text, no extra commentary."""
+Write ONLY the post text, no commentary."""
 
     li_resp = requests.post(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
         headers={"x-goog-api-key": GEMINI_API_KEY},
         json={
             "contents": [{"parts": [{"text": li_prompt}]}],
-            "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.85, "topP": 0.9}
+            "generationConfig": {"maxOutputTokens": 1500, "temperature": 0.8, "topP": 0.9}
         }
     )
     li_resp.raise_for_status()
@@ -732,157 +610,114 @@ Write ONLY the post text, no extra commentary."""
         raise ValueError(f"Invalid Gemini response: {resp_data}")
     linkedin_text = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
 
-    # Validate completion - ensure it ends with proper punctuation
-    if not linkedin_text or len(linkedin_text) < 150:
-        print(f"⚠️  Warning: LinkedIn response too short ({len(linkedin_text)} chars)")
-    if linkedin_text and not linkedin_text[-1] in '.!?)#':
-        linkedin_text = linkedin_text.rsplit(' ', 1)[0] + '.'
-        print(f"⚠️  Truncated incomplete sentence, added period")
+    if not linkedin_text or len(linkedin_text) < 100:
+        raise ValueError(f"LinkedIn post too short: {len(linkedin_text)} chars")
 
-    # Medium article (markdown)
-    rows_md = "\n".join(
-        f"| `{fam}` | {len(mods)} | "
-        f"`{stats['latest_per_family'][fam].get('model_id','?')}` | "
-        f"{stats['latest_per_family'][fam].get('model_purpose','—')[:60]} |"
-        for fam, mods in sorted(stats["families"].items(), key=lambda x: len(x[1]), reverse=True)
-    )
-    families_table = "| Family | Count | Latest Model | Purpose |\n|--------|-------|--------------|--------|\n" + rows_md
+    # Medium article with STRICT FACTS and tables
+    families_list = ", ".join(sorted(stats["families"].keys()))
 
-    high_models_list = "\n".join(
-        f"- **`{m['model_id']}`** — {m.get('model_purpose','')[:80]}"
-        for m in sorted(stats["conf_buckets"]["high"], key=lambda x: x.get("family", ""))[:15]
-    )
-    low_models_list = "\n".join(
-        f"- **`{m['model_id']}`** (family: {m.get('family','?')}, "
-        f"confidence: {m.get('confidence',0):.2f})"
-        for m in stats["conf_buckets"]["low"][:10]
-    )
+    med_prompt = f"""Write a data-driven Medium article titled "How I Discovered All {provider}'s AI Models Automatically"
 
-    med_high_pct = int((high_conf / stats['total']) * 100) if stats['total'] > 0 else 0
-
-    med_prompt = f"""Write a data-driven Medium article about OpenAI's 119-model landscape discovery.
-
-ACTUAL FACTS ONLY (no hallucinations):
-- Provider: {provider}
+STRICT FACTS (use ONLY these, never hallucinate):
 - Total models: {stats['total']}
-- Families: {stats['family_count']}
-- High-confidence (≥0.8): {high_conf} models
-- Medium-confidence: {len(stats['conf_buckets']['medium'])} models
-- Low-confidence: {low_conf} models
-- Largest family: GPT-5 with {len(stats['families'].get('gpt-5', []))} models
-- Discovery method: Automated LangGraph agent from OpenAI's /v1/models API endpoint
-- Enrichment: Gemini API analyzed 119 models
+- Model families: {stats['family_count']}
+- High-confidence models (≥0.8): {high_conf}
+- Medium-confidence models (0.5-0.8): {medium_conf}
+- Low-confidence models (<0.5): {low_conf}
+- Discovery source: {provider}'s /v1/models API (confidence: 1.0)
+- Enrichment: Gemini API semantic analysis
 - Storage: BigQuery
-- Date: {stats['run_date']}
+- Discovery date: {stats['run_date']}
+- All families: {families_list}
 
-MODELS TABLE (use verbatim):
-{families_table}
+ARTICLE STRUCTURE:
 
-ARTICLE STRUCTURE - WRITE EXACTLY AS:
-
-# OpenAI Just Released 119 Models—Here's the Complete Map
+# How I Discovered All {provider}'s {stats['total']} AI Models Automatically
 
 ## TL;DR
-- OpenAI now has {stats['total']} active AI models across {stats['family_count']} families
-- GPT-5 family dominates with {len(stats['families'].get('gpt-5', []))} variants
-- {high_conf} models are production-ready, {len(stats['conf_buckets']['medium'])} are stable, {low_conf} need careful review
-- Discovery method: Automated agent → LangGraph + Gemini enrichment → BigQuery
+- {provider} has {stats['total']} active AI models across {stats['family_count']} families
+- {high_conf} models are production-ready, {medium_conf} are stable, {low_conf} need careful review
+- Built automated discovery agent: LangGraph + Gemini enrichment + BigQuery
+- Discovered on: {stats['run_date']}
 
 ## Why This Matters
-OpenAI's model ecosystem has exploded. Developers need to know: which {stats['total']} models should actually use?
+The {provider} model ecosystem is massive and fragmented. Choosing between {stats['total']} models is overwhelming.
 
 ## The Discovery Method
-Built a LangGraph agent that:
-1. Queries OpenAI's /v1/models API endpoint (discovery_tier 1 = direct API)
-2. Runs semantic enrichment with Gemini API on all {stats['total']} models
-3. Stores complete data in BigQuery for team access
-4. Computes confidence scores (trust level of model documentation)
 
-All 119 models came directly from the official API with confidence: 1.0 (100% verified source).
+I built a LangGraph agent that:
+1. **Tier 1 (Official API)**: Queries {provider}'s /v1/models endpoint directly (100% verified)
+2. **Enrichment**: Uses Gemini API to analyze each of {stats['total']} models
+3. **Storage**: Persists everything in BigQuery for team access
+4. **Confidence Scoring**: Semantic confidence 0-1.0 for each model
 
-## The 17 Model Families
+All {stats['total']} models came directly from the official API (confidence: 1.0).
 
-{families_table}
+## Model Confidence Distribution
 
-**Key patterns:**
-- GPT-5: {len(stats['families'].get('gpt-5', []))} models (experimental, newest)
-- GPT-4o: {len(stats['families'].get('gpt-4o', []))} models (versatile, latest)
-- Whisper: Speech-to-text
-- Text-embedding-3: Best embeddings quality
-- DALL-E 3: Image generation
-- Sora: Video generation
+| Confidence Level | Count | What It Means |
+|------------------|-------|---------------|
+| High (≥0.8) | {high_conf} | Production-ready, well-documented |
+| Medium (0.5-0.8) | {medium_conf} | Stable but less comprehensive docs |
+| Low (<0.5) | {low_conf} | Experimental or sparse documentation |
+| **Total** | **{stats['total']}** | **All {provider} models** |
 
-## Production-Ready Models (High Confidence)
+## All {stats['family_count']} Model Families
 
-These {high_conf} models are verified production-ready:
+{families_list}
 
-| Use Case | Best Model | Why |
-|----------|-----------|-----|
-| Complex reasoning | gpt-5-chat-latest | Latest flagship |
-| Fast chat | gpt-4o-mini | Cost-efficient |
-| Image generation | dall-e-3 or chatgpt-image-latest | Latest versions |
-| Embeddings | text-embedding-3-large | Best quality |
-| Speech-to-text | whisper-1 | Only option |
-| Text-to-speech | tts-1-hd | HD quality |
-| Reasoning | o4-mini | Efficient variant |
-| Moderation | omni-moderation-latest | Always latest |
+## Production-Ready Models ({high_conf} high-confidence)
 
-## Models Requiring Further Research ({low_conf} low-confidence)
+These {high_conf} models are verified and production-ready:
+- All with semantic confidence ≥0.8
+- Full documentation available
+- Safe for production use
+- Regular updates from {provider}
 
-These models have sparse documentation:
-{low_models_list if low_models_list else "- None flagged"}
+## Models Needing Care ({low_conf} low-confidence)
 
-## What's Experimental or Future-Dated
-- gpt-realtime family (9 models) - real-time audio
-- gpt-image-2-2026-04-21 - future-dated model
-- gpt-audio family - audio processing
-- sora-2-pro - pro video generation
-
-## What's Deprecated
-- Legacy family: davinci-002, babbage-002
-- Status: avoid for new projects
+These {low_conf} models have limited documentation:
+- Semantic confidence <0.5
+- Experimental or new releases
+- Require careful evaluation before production
+- Monitor for updates
 
 ## Key Insights
-1. **Scale**: 119 models is massive. This matters because you're not choosing between 5 flagship models anymore.
-2. **Fragmentation**: 17 families means specialization. There's a model for almost every job.
-3. **Velocity**: The future-dated gpt-image-2 shows OpenAI pre-announces what's coming.
-4. **Documentation**: High-confidence models are well-documented; experimental ones require careful evaluation.
-5. **Versioning**: Multiple variants per family (e.g., 38 gpt-5 models) means lots of optimization options.
 
-## Practical Recommendations
-1. **Start here**: Use gpt-4o, whisper-1, text-embedding-3-large for 80% of use cases
-2. **Experiment early**: Try gpt-realtime and gpt-audio families only if relevant to your product
-3. **Avoid legacy**: Don't use davinci-002 or babbage-002 for new projects
-4. **Monitor versions**: OpenAI releases new model variants frequently; check for latest
-5. **Test before production**: Even production-ready models warrant staging tests
+1. **Scale**: {stats['total']} models is a massive ecosystem
+2. **Fragmentation**: {stats['family_count']} families provides specialization
+3. **Documentation**: Clear correlation between confidence and production-readiness
+4. **Automation**: Discovering this manually would take weeks
+5. **Versioning**: Multiple variants across families
 
-## How to Track This Going Forward
-This discovery is a snapshot from {stats['run_date']}. Best practice:
-- Run automated discovery quarterly
-- Monitor for new model releases
-- Track deprecation announcements
-- Maintain a model selection matrix in your docs
+## Next Steps
 
-## The Code
-LangGraph agent that did this:
-- Queries /v1/models API endpoint
-- Enriches with Gemini semantic analysis
-- Stores in BigQuery
-- Runnable in ~minutes, not days
+1. **For Teams**: Import this data into your model selection matrix
+2. **For Monitoring**: Re-run discovery quarterly to catch new releases
+3. **For Decision-Making**: Use confidence scores to choose safe defaults
+4. **For Production**: Always test even high-confidence models in staging
 
-This is the future of model ecosystem management: automated, data-driven, accessible to teams.
+## The Tool
 
-## Final Takeaway
-Knowing all {stats['total']} models exist is the first step. Knowing which 8-10 models handle 90% of use cases is the real win.
+Source: {provider}'s {stats['total']} models from official API
+Method: LangGraph agent with Gemini semantic enrichment
+Storage: BigQuery
+Runtime: Minutes (fully automated)
 
-Tags: AI, LLM, OpenAI, MLOps, LangGraph, BigQuery, Gemini"""
+This is the future: automated, data-driven model ecosystem management.
+
+---
+
+**Data snapshot**: {stats['run_date']} | **Total models**: {stats['total']} | **Families**: {stats['family_count']}
+
+Tags: AI, LLM, {provider}, ModelOps, Automation, BigQuery, Gemini"""
 
     med_resp = requests.post(
         "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
         headers={"x-goog-api-key": GEMINI_API_KEY},
         json={
             "contents": [{"parts": [{"text": med_prompt}]}],
-            "generationConfig": {"maxOutputTokens": 5000, "temperature": 0.75, "topP": 0.9}
+            "generationConfig": {"maxOutputTokens": 4000, "temperature": 0.7, "topP": 0.9}
         }
     )
     med_resp.raise_for_status()
@@ -890,6 +725,9 @@ Tags: AI, LLM, OpenAI, MLOps, LangGraph, BigQuery, Gemini"""
     if "candidates" not in resp_data or not resp_data["candidates"]:
         raise ValueError(f"Invalid Gemini response: {resp_data}")
     medium_content = resp_data["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+    if not medium_content or len(medium_content) < 500:
+        raise ValueError(f"Medium article too short: {len(medium_content)} chars")
 
     return linkedin_text, medium_content
 
@@ -1077,6 +915,15 @@ def main():
         f.write(medium_content)
     print(f"   LinkedIn text saved: {li_path}")
     print(f"   Medium draft saved:  {med_path_local}")
+
+    # CRITICAL: Verify no hallucination before posting
+    print("\n🔍 Verifying content for hallucinations...")
+    if not verify_no_hallucination(linkedin_text, medium_content, stats):
+        print("\n⛔ Verification FAILED. Posts contain hallucinated numbers. NOT POSTING.")
+        print(f"\n   LinkedIn: {li_path}")
+        print(f"   Medium:   {med_path_local}")
+        print("   Review manually and fix before posting.")
+        return
 
     print("\n🔗 Posting to LinkedIn...")
     li_url = post_linkedin(linkedin_text, chart_png)
