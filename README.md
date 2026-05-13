@@ -193,10 +193,12 @@ Use this prompt to continue frontend work:
 |-------|-------|
 | Provider | OPENAI |
 | Run Date | 20260512T1 |
-| Total Models | 109 |
+| Total Models | 119 |
 | Families | 13 |
-| High Confidence | 12 |
-| Needs Review | 96 |
+| High Confidence | N/A |
+| Needs Review | N/A |
 | LinkedIn Post | N/A |
-| Medium Article | reports/medium_draft_20260513_041025.md |
+| Medium Article | N/A |
+| Dashboard Visual | N/A |
+| Mindmap Visual | N/A |
 

@@ -34,6 +34,11 @@ LINKEDIN_TOKEN = os.getenv("LINKEDIN_ACCESS_TOKEN")
 LINKEDIN_PERSON_URN = os.getenv("LINKEDIN_AUTHOR_URN")
 MEDIUM_TOKEN = os.getenv("MEDIUM_TOKEN")
 MEDIUM_USER_ID = os.getenv("MEDIUM_USER_ID")
+GCP_PROJECT = os.getenv("GCP_PROJECT", "ctoteam")
+GCP_LOCATION = os.getenv("GCP_LOCATION", "us-central1")
+IMAGEN_MODEL = os.getenv("IMAGEN_MODEL", "imagen-4.0-generate-001")
+
+
 OUTPUT_DIR = "reports"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -67,6 +72,19 @@ def _classify_model(model):
     
     combined_text = f"{model_id} {family} {model_purpose} {recommended_for} {capabilities}"
 
+    # Define keywords for modalities to explicitly exclude from 'fast_chat'
+    # These should map directly to model_id/family patterns caught by higher-priority rules
+    modality_exclusion_keywords = [
+        "dall-e", "gpt-image", "chatgpt-image", # Image Generation
+        "sora", "video", # Video Generation
+        "whisper", "transcribe", "gpt-realtime-whisper", # Speech-to-Text
+        "tts", "text-to-speech", # Text-to-Speech
+        "text-embedding", # Embeddings
+        "omni-moderation", "moderation", # Content Moderation
+        "gpt-realtime", "gpt-audio", "audio-preview", # Realtime Audio
+        "vision", "multimodal" # Multimodal Vision
+    ]
+
     # Priority 1: Specific modalities
     if any(k in model_id for k in ["dall-e", "gpt-image", "chatgpt-image"]):
         return "image_generation"
@@ -98,9 +116,11 @@ def _classify_model(model):
     if "fine-tuning" in capabilities or "fine-tuning" in model_purpose:
         return "fine_tuning"
 
-    # Priority 5: Fast Chat (remaining general chat models, exclude already classified modalities)
-    if ("chat" in combined_text or "mini" in model_id or "nano" in model_id) and \
-       not any(uc_key in combined_text for uc_key in ["image", "video", "speech", "tts", "embedding", "moderation", "realtime", "vision", "multimodal"]):
+    # Priority 5: Fast Chat (remaining general chat models, explicitly excluding modalities)
+    # Ensure exclusion checks against model_id and family directly to avoid misclassification
+    is_modality_model = any(k in model_id or k in family for k in modality_exclusion_keywords)
+
+    if ("chat" in combined_text or "mini" in model_id or "nano" in model_id) and not is_modality_model:
         return "fast_chat"
 
     return "Other"
@@ -165,10 +185,11 @@ def parse_json(path):
     run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d")
 
     parsed_model_count = len(all_models)
-    # User specified expected total models = 119 for the given JSON structure.
-    # We will validate against this explicit expectation.
-    if parsed_model_count != 119:
-        print(f"❌ ERROR: Model count mismatch. Expected 119 models, but parsed {parsed_model_count}. Halting.")
+    # Validate against the explicit expectation of 119 models for the full dataset.
+    # The provided example JSON might be smaller, but the requirement is for 119.
+    EXPECTED_TOTAL_MODELS = 119 
+    if parsed_model_count != EXPECTED_TOTAL_MODELS:
+        print(f"❌ ERROR: Model count mismatch. Expected {EXPECTED_TOTAL_MODELS} models, but parsed {parsed_model_count}. Halting.")
         sys.exit(1)
     
     print(f"\n[DEBUG] Loaded {parsed_model_count} models from source: {source_description}")
@@ -537,6 +558,156 @@ def _matplotlib_mindmap_fallback(stats, categorized, best_models_per_usecase, ts
 
 
 # ── Step 3.5: Verify no hallucination (number consistency) ──────────────────────
+# ── Step 3.5: Build Visual Context ───────────────────────────────────────────
+def build_visual_context(stats):
+    """Extracts and structures relevant data for visual prompt generation."""
+    context = {
+        "provider": stats['provider'],
+        "total_models": stats['total'],
+        "family_count": stats['family_count'],
+        "high_confidence_count": len(stats['conf_buckets']['high']),
+        "categories": [],
+        "family_distribution": {}
+    }
+
+    # Top families by count
+    family_counts = defaultdict(int)
+    for model in stats["all_models"]:
+        family_counts[model.get("family", "unknown")] += 1
+    
+    sorted_families = sorted(family_counts.items(), key=lambda item: item[1], reverse=True)
+    context["family_distribution"] = {f: c for f, c in sorted_families[:5]} # Top 5 families
+
+    # Categories with best model and counts
+    for uc_key, uc_data in USE_CASE_MAP_DICT.items():
+        models_in_category = stats["categorized_models"].get(uc_key, [])
+        best_model = stats["latest_per_usecase"].get(uc_key)
+        
+        category_info = {
+            "key": uc_key,
+            "title": uc_data["title"],
+            "count": len(models_in_category),
+            "best_model_id": best_model.get("model_id", "N/A") if best_model else "N/A",
+            "best_model_family": best_model.get("family", "N/A") if best_model else "N/A",
+            "purpose_summary": best_model.get("model_purpose", uc_data["desc"]) if best_model else uc_data["desc"],
+            "capabilities": best_model.get("capabilities", []) if best_model else []
+        }
+        context["categories"].append(category_info)
+    
+    return context
+
+
+# ── Step 3.6: Generate Imagen Prompts ────────────────────────────────────────
+def generate_visual_prompts(context):
+    """Generates detailed prompts for Vertex AI Imagen based on extracted context."""
+    provider = context["provider"]
+    total_models = context["total_models"]
+    family_count = context["family_count"]
+    high_conf_count = context["high_confidence_count"]
+    
+    # Dashboard Prompt
+    dashboard_cards_prompt = []
+    for category in context["categories"]:
+        if category["count"] > 0:
+            caps_str = ", ".join(category["capabilities"][:2])
+            card_line = f"  - Card for '{category['title']}': Best model '{category['best_model_id']}' ({category['best_model_family']} family), {category['count']} models. Capabilities: {caps_str}."
+            dashboard_cards_prompt.append(card_line)
+    
+    top_families_str = ", ".join([f"{fam} ({count})" for fam, count in context["family_distribution"].items()])
+
+    dashboard_prompt = f"""
+Create a visually striking enterprise SaaS dashboard, designed for executives, titled "{provider} Model Discovery Intelligence".
+The dashboard should present data clearly, using a professional, clean, dark navy and white theme. Avoid any fake charts or numbers.
+The layout should be clean and structured, suitable for a 16:9 aspect ratio (LinkedIn-ready).
+
+Key metrics to display prominently at the top:
+- Total Models: {total_models}
+- Model Families: {family_count}
+- High Confidence Models: {high_conf_count}
+
+The dashboard must include individual, well-designed cards for the following model selection categories. Each card should clearly show the category title, the best recommended model for that category (model ID and family), and the total count of available models in that category. Incorporate capability chips within each card if possible.
+
+Categories and their details:
+{chr(10).join(dashboard_cards_prompt)}
+
+Ensure text is large, readable, and avoids any emojis or unnecessary clutter. The overall aesthetic should communicate data-driven insights with elegance.
+"""
+
+    # Mindmap Prompt
+    mindmap_branches_prompt = []
+    for category in context["categories"]:
+        if category["count"] > 0:
+            caps_str = ", ".join(category["capabilities"][:3]) # More capabilities for mindmap
+            branch_line = f"  - Branch for '{category['title']}' ({category['count']} models): Best model '{category['best_model_id']}' (Family: {category['best_model_family']}). Key capabilities: {caps_str}."
+            mindmap_branches_prompt.append(branch_line)
+
+    mindmap_prompt = f"""
+Design a clean, professional cloud architecture style mindmap or hierarchical diagram, representing an "{provider} Model Registry" for an enterprise. The visual should be suitable for LinkedIn (16:9 aspect ratio) and have readable text.
+
+The central node of the mindmap should be "{provider} Model Registry".
+
+The mindmap should clearly illustrate the architecture and data flow:
+1.  **Official API** (Source of Truth for Model Discovery, e.g., {provider}'s /v1/models endpoint)
+2.  **LangGraph Discovery Agent** (Automated process for model discovery)
+3.  **Gemini Enrichment Engine** (Semantic analysis and confidence scoring)
+4.  **BigQuery Registry** (Centralized data storage for all discovered models)
+5.  **Publishing Assets** (Outputs like dashboards, mindmaps, reports)
+
+Main branches extending from the central "{provider} Model Registry" node should represent key model use-case categories. For each category branch, display the category title, the number of models in that category, the best recommended model (model ID and family), and its key capabilities.
+
+Categories and their details:
+{chr(10).join(mindmap_branches_prompt)}
+
+Highlight the architecture flow visually. Ensure no hallucinated model names or numbers are present, only factual counts from the data. Avoid emojis. The style should be modern, clean, and enterprise-grade.
+"""
+
+    return dashboard_prompt, mindmap_prompt
+
+
+# ── Step 3.7: Call Vertex AI Imagen ──────────────────────────────────────────
+def call_vertex_imagen(prompt: str, output_path: str, gcp_project: str, gcp_location: str, imagen_model: str):
+    """
+    Calls Google Cloud Vertex AI Imagen to generate an image from a prompt.
+    Saves the generated image to output_path.
+    """
+    if not _HAS_VERTEX_AI:
+        print(f"❌ Vertex AI libraries not installed. Skipping Imagen generation for: {output_path}")
+        return None
+
+    try:
+        print(f"Calling Vertex AI Imagen for {output_path}...")
+        vertexai.init(project=gcp_project, location=gcp_location)
+        model = vertexai.preview.generative_models.GenerativeModel(imagen_model)
+        
+        # Max 40 input images if using `Image`, 1 for text-to-image
+        response = model.generate_content(
+            [prompt],
+            generation_config={
+                "max_output_images": 1,
+                "temperature": 0.4,
+                "top_p": 0.8,
+                "top_k": 40,
+                "timeout": 300 # seconds
+            }
+        )
+
+        if response.candidates and response.candidates[0].images:
+            image_bytes = response.candidates[0].images[0]._image_bytes
+            with open(output_path, "wb") as f:
+                f.write(image_bytes)
+            print(f"✅ Imagen generated: {output_path}")
+            return output_path
+        else:
+            print(f"⚠️ Imagen generation failed for {output_path}. No image candidates returned.")
+            if response.prompt_feedback and response.prompt_feedback.block_reason:
+                print(f"   Reason: {response.prompt_feedback.block_reason}")
+            return None
+    except Exception as e:
+        print(f"❌ Error calling Vertex AI Imagen for {output_path}: {e}")
+        return None
+
+
+# ── Step 3.8: Verify no hallucination (number consistency) ──────────────────────
 def verify_no_hallucination(linkedin_text, medium_text, stats):
     """Verify that posts don't contain hallucinated/contradictory numbers."""
     total = str(stats["total"])
@@ -854,8 +1025,8 @@ def post_medium(content, title, token=MEDIUM_TOKEN, user_id=MEDIUM_USER_ID):
 
 
 # ── Step 7: Update README ─────────────────────────────────────────────────────
-def update_readme(stats, li_url, med_url):
-    """Update README.md with latest run badge."""
+def update_readme(stats, li_url, med_url, dashboard_img_path, mindmap_img_path):
+    """Update README.md with latest run badge and image links."""
     readme_path = "README.md"
     badge_block = f"""
 ## 📊 Latest Model Discovery Run
@@ -870,6 +1041,8 @@ def update_readme(stats, li_url, med_url):
 | Needs Review | {len(stats['conf_buckets']['low'])} |
 | LinkedIn Post | {li_url or 'N/A'} |
 | Medium Article | {med_url or 'N/A'} |
+| Dashboard Visual | {dashboard_img_path or 'N/A'} |
+| Mindmap Visual | {mindmap_img_path or 'N/A'} |
 
 """
     if os.path.exists(readme_path):
@@ -898,14 +1071,54 @@ def update_readme(stats, li_url, med_url):
 def main():
     publish_mode = "--publish" in sys.argv
     validate_only = "--validate-only" in sys.argv
+    generate_image_prompts_only = "--generate-image-prompts" in sys.argv
+    use_vertex_imagen = "--use-vertex-imagen" in sys.argv
     
-    # Determine json_path, skipping flags
+    # Parse specific CLI arguments for Vertex AI
+    imagen_model_arg = None
+    gcp_project_arg = None
+    gcp_location_arg = None
+    for i, arg in enumerate(sys.argv):
+        if arg == "--imagen-model" and i + 1 < len(sys.argv):
+            imagen_model_arg = sys.argv[i+1]
+        elif arg == "--gcp-project" and i + 1 < len(sys.argv):
+            gcp_project_arg = sys.argv[i+1]
+        elif arg == "--gcp-location" and i + 1 < len(sys.argv):
+            gcp_location_arg = sys.argv[i+1]
+
+    # Default to env vars if not provided via CLI, or use hardcoded defaults
+    current_gcp_project = gcp_project_arg or GCP_PROJECT
+    current_gcp_location = gcp_location_arg or GCP_LOCATION
+    current_imagen_model = imagen_model_arg or IMAGEN_MODEL
+
+    # Determine json_path, skipping all flags
     json_path_args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
-    json_path = json_path_args[0] if json_path_args else "agents/model_discovery_candidates_openai.json"
+    # Also skip potential values for flags, e.g., 'ctoteam' after '--gcp-project'
+    cleaned_json_path_args = []
+    skip_next = False
+    for arg in sys.argv[1:]:
+        if skip_next:
+            skip_next = False
+            continue
+        if arg.startswith("--"):
+            if arg in ["--imagen-model", "--gcp-project", "--gcp-location"]:
+                skip_next = True # Value for this flag will be next
+            continue
+        cleaned_json_path_args.append(arg)
+    
+    json_path = cleaned_json_path_args[0] if cleaned_json_path_args else "agents/model_discovery_candidates_openai.json"
+
 
     print(f"\n{'='*60}")
-    print(f"  DISCOVERY PUBLISHER (Validate Only: {validate_only})")
+    print(f"  DISCOVERY PUBLISHER")
     print(f"  Input: {json_path}")
+    print(f"  Validate Only: {validate_only}")
+    print(f"  Generate Image Prompts: {generate_image_prompts_only}")
+    print(f"  Use Vertex Imagen: {use_vertex_imagen}")
+    if use_vertex_imagen:
+        print(f"    GCP Project: {current_gcp_project}")
+        print(f"    GCP Location: {current_gcp_location}")
+        print(f"    Imagen Model: {current_imagen_model}")
     print(f"{'='*60}\n")
 
     print("📦 Parsing JSON and classifying models...")
@@ -940,22 +1153,76 @@ def main():
 
     print(f"\n{'='*60}\n")
 
+    # Build visual context before potentially exiting for validate_only
+    visual_context = build_visual_context(stats)
 
     if validate_only:
         print("\n✅ Validation complete. Exiting (--validate-only flag used).")
         return
 
-    print("📊 Generating charts...")
-    chart_png = generate_charts(stats)
+    dashboard_img_path = None
+    mindmap_img_path = None
+    
+    # Generate image prompts
+    dashboard_prompt, mindmap_prompt = generate_visual_prompts(visual_context)
+    
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dashboard_prompt_path = f"{OUTPUT_DIR}/dashboard_image_prompt_{ts}.txt"
+    mindmap_prompt_path = f"{OUTPUT_DIR}/mindmap_image_prompt_{ts}.txt"
 
-    print("\n🗺  Generating model diagram...")
-    diagram_png, diagram_mmd = generate_mermaid_png(stats, validate_only) # Pass validate_only
+    with open(dashboard_prompt_path, "w") as f:
+        f.write(dashboard_prompt)
+    with open(mindmap_prompt_path, "w") as f:
+        f.write(mindmap_prompt)
+    print(f"\n✅ Dashboard Image Prompt saved: {dashboard_prompt_path}")
+    print(f"✅ Mindmap Image Prompt saved: {mindmap_prompt_path}")
+
+    # Optionally call Vertex AI Imagen
+    if use_vertex_imagen:
+        if _HAS_VERTEX_AI:
+            dashboard_img_path = call_vertex_imagen(
+                dashboard_prompt, 
+                f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
+                current_gcp_project,
+                current_gcp_location,
+                current_imagen_model
+            )
+            mindmap_img_path = call_vertex_imagen(
+                mindmap_prompt, 
+                f"{OUTPUT_DIR}/mindmap_vertex_{ts}.png",
+                current_gcp_project,
+                current_gcp_location,
+                current_imagen_model
+            )
+        else:
+            print("⚠️ Skipping Vertex AI Imagen call because libraries are not installed.")
+
+    if generate_image_prompts_only and not use_vertex_imagen:
+        print("\n✅ Image prompt generation complete. Exiting (--generate-image-prompts flag used, no --use-vertex-imagen).")
+        return
+
+    # Fallback to matplotlib if Imagen not used or failed
+    if not dashboard_img_path:
+        print("\n📊 Generating Matplotlib Dashboard chart (fallback)...")
+        chart_png = generate_charts(stats)
+        dashboard_img_path = chart_png
+    else:
+        print(f"\nSkipping Matplotlib Dashboard (Vertex Imagen used: {dashboard_img_path})")
+
+    if not mindmap_img_path:
+        print("\n🗺  Generating Mermaid/Matplotlib Mindmap (fallback)...")
+        diagram_png, diagram_mmd = generate_mermaid_png(stats, validate_only)
+        mindmap_img_path = diagram_png
+    else:
+        print(f"\nSkipping Mermaid/Matplotlib Mindmap (Vertex Imagen used: {mindmap_img_path})")
+
 
     if not publish_mode:
         print("\n⏸  Visual generation complete. Publish steps skipped (use --publish to enable posting).")
-        print(f"📊 Chart:   {chart_png}")
-        print(f"🗺  Diagram: {diagram_png}")
-        print(f"📝 Mermaid: {diagram_mmd}")
+        print(f"📊 Dashboard Image: {dashboard_img_path}")
+        print(f"🗺  Mindmap Image:   {mindmap_img_path}")
+        print(f"📝 Dashboard Prompt: {dashboard_prompt_path}")
+        print(f"📝 Mindmap Prompt:   {mindmap_prompt_path}")
         return
 
     print("\n✍️  Generating content via Gemini...")
@@ -982,22 +1249,23 @@ def main():
         return
 
     print("\n🔗 Posting to LinkedIn...")
-    li_url = post_linkedin(linkedin_text, chart_png)
+    # Use the dashboard_img_path (which could be Imagen or Matplotlib) for LinkedIn
+    li_url = post_linkedin(linkedin_text, dashboard_img_path)
 
     print("\n📝 Posting to Medium...")
     title = f"{stats['provider']} Has {stats['total']} Active AI Models -- Full Discovery Report {stats['run_date']}"
-    med_url = post_medium(medium_content, title)
+    med_url = post_medium(medium_content, title) # Medium doesn't directly support image upload in API, so the image is referenced in the text
 
     print("\n📖 Updating README...")
-    update_readme(stats, li_url, med_url)
+    update_readme(stats, li_url, med_url, dashboard_img_path, mindmap_img_path) # Pass image paths to README update
 
     print(f"\n{'='*60}")
     print("  PUBLISH COMPLETE")
     print(f"{'='*60}")
-    print(f"📊 Chart:        {chart_png}")
-    print(f"🗺  Diagram:      {diagram_png}")
-    print(f"📝 LinkedIn:     {li_url or li_path}")
-    print(f"📄 Medium:       {med_url or med_path_local}")
+    print(f"📊 Dashboard Image: {dashboard_img_path}")
+    print(f"🗺  Mindmap Image:   {mindmap_img_path}")
+    print(f"📝 LinkedIn:        {li_url or li_path}")
+    print(f"📄 Medium:          {med_url or med_path_local}")
     print(f"{'='*60}\n")
 
 
