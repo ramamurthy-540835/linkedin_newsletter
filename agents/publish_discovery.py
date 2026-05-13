@@ -80,57 +80,48 @@ def _classify_model(model):
     recommended_for = " ".join([r.lower() for r in model.get("recommended_for", [])])
     capabilities = " ".join([c.lower() for c in model.get("capabilities", [])])
     
-    combined_text = f"{model_id} {family} {model_purpose} {recommended_for} {capabilities}"
-
-    # Define keywords for modalities to explicitly exclude from 'fast_chat'
-    # These should map directly to model_id/family patterns caught by higher-priority rules
-    modality_exclusion_keywords = [
-        "dall-e", "gpt-image", "chatgpt-image", # Image Generation
-        "sora", "video", # Video Generation
-        "whisper", "transcribe", "gpt-realtime-whisper", # Speech-to-Text
-        "tts", "text-to-speech", # Text-to-Speech
-        "text-embedding", # Embeddings
-        "omni-moderation", "moderation", # Content Moderation
-        "gpt-realtime", "gpt-audio", "audio-preview", # Realtime Audio
-        "vision", "multimodal" # Multimodal Vision
-    ]
-
-    # Priority 1: Specific modalities
-    if any(k in model_id for k in ["dall-e", "gpt-image", "chatgpt-image"]):
-        return "image_generation"
-    if "sora" in model_id or ("video" in combined_text and "generation" in combined_text):
-        return "video_generation"
-    if any(k in model_id for k in ["whisper", "transcribe"]) or "gpt-realtime-whisper" in model_id:
-        return "speech_to_text"
-    if any(k in model_id for k in ["tts", "text-to-speech"]):
-        return "text_to_speech"
-    if "text-embedding" in model_id:
-        return "embeddings"
-    if "omni-moderation" in model_id or "content moderation" in combined_text:
-        return "content_moderation"
-    if any(k in model_id for k in ["gpt-realtime", "gpt-audio"]) or "audio-preview" in model_id:
-        return "realtime_audio"
-
-    # Priority 2: Core LLM categories, ordered by perceived capability/complexity
-    if any(k in model_id for k in ["o1", "o3", "o4"]) or "o-series" in family or any(k in family for k in ["gpt-5", "gpt-5.5"]) or "complex reasoning" in combined_text:
-        return "complex_reasoning"
+    model_id_lower = model.get("model_id", "").lower()
+    family_lower = model.get("family", "").lower()
+    model_purpose_lower = model.get("model_purpose", "").lower()
+    recommended_for_lower = " ".join([r.lower() for r in model.get("recommended_for", [])])
+    capabilities_lower = " ".join([c.lower() for c in model.get("capabilities", [])])
     
-    if any(k in model_id for k in ["gpt-4o", "gpt-4.1"]) or "vision" in combined_text or "multimodal" in combined_text:
+    combined_text = f"{model_id_lower} {family_lower} {model_purpose_lower} {recommended_for_lower} {capabilities_lower}"
+
+    # Priority 1: Specific modalities (use model_id where possible for precision)
+    if "sora" in model_id_lower:
+        return "video_generation"
+    if "text-embedding" in model_id_lower:
+        return "embeddings"
+    if any(k in model_id_lower for k in ["gpt-image", "dall-e", "chatgpt-image"]):
+        return "image_generation"
+    if any(k in model_id_lower for k in ["whisper", "transcribe"]):
+        return "speech_to_text"
+    if "tts" in model_id_lower:
+        return "text_to_speech"
+    if any(k in model_id_lower for k in ["realtime", "audio-preview", "gpt-audio"]):
+        return "realtime_audio"
+    if "moderation" in model_id_lower:
+        return "content_moderation"
+
+    # Priority 2: Core LLM categories (by family)
+    if family_lower in ["gpt-5", "o-series"]:
+        return "complex_reasoning"
+    if family_lower in ["gpt-4o", "gpt-4"]:
         return "multimodal_vision"
 
     # Priority 3: Legacy models
-    if any(k in model_id for k in ["babbage", "davinci"]) or "gpt-3.5" in family or "legacy" in family:
+    if any(k in model_id_lower for k in ["babbage", "davinci"]) or family_lower == "gpt-3.5":
         return "legacy"
     
     # Priority 4: Fine-tuning Base (explicitly mentions fine-tuning in purpose/capabilities)
-    if "fine-tuning" in capabilities or "fine-tuning" in model_purpose:
+    if "fine-tuning" in capabilities_lower or "fine-tuning" in model_purpose_lower:
         return "fine_tuning"
 
-    # Priority 5: Fast Chat (remaining general chat models, explicitly excluding modalities)
-    # Ensure exclusion checks against model_id and family directly to avoid misclassification
-    is_modality_model = any(k in model_id or k in family for k in modality_exclusion_keywords)
-
-    if ("chat" in combined_text or "mini" in model_id or "nano" in model_id) and not is_modality_model:
+    # Priority 5: Fast Chat (remaining chat-like models that haven't been classified)
+    # Ensure this is a fallback for general chat, not specific modalities
+    # The `combined_text` implicitly filters out modalities already caught by higher rules.
+    if "chat" in combined_text or "mini" in model_id_lower or "nano" in model_id_lower:
         return "fast_chat"
 
     return "Other"
