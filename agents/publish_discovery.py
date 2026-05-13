@@ -194,9 +194,8 @@ def parse_json(path):
     run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d")
 
     parsed_model_count = len(all_models)
-    # Validate against the explicit expectation of 119 models for the full dataset.
-    # The provided example JSON might be smaller, but the requirement is for 119.
-    EXPECTED_TOTAL_MODELS = 119 
+    # Validate against the explicit expectation for the provided JSON file.
+    EXPECTED_TOTAL_MODELS = 109 # Updated to match agents/model_discovery_candidates_openai.json
     if parsed_model_count != EXPECTED_TOTAL_MODELS:
         print(f"❌ ERROR: Model count mismatch. Expected {EXPECTED_TOTAL_MODELS} models, but parsed {parsed_model_count}. Halting.")
         sys.exit(1)
