@@ -198,5 +198,5 @@ Use this prompt to continue frontend work:
 | High Confidence | 12 |
 | Needs Review | 96 |
 | LinkedIn Post | N/A |
-| Medium Article | reports/medium_draft_20260513_034827.md |
+| Medium Article | reports/medium_draft_20260513_041025.md |
 
