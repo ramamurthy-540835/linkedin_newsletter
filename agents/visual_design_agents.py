@@ -382,23 +382,211 @@ If safety check fails, suggest specific fixes."""
 
 def review_generated_image(image_path: str, stats: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Image Quality Review Agent: Analyze generated image for quality and correctness.
-    Stub implementation (TODO: integrate multimodal Gemini).
+    Image Quality Review Agent: Analyze generated image using Gemini vision.
+    Checks for: spelling errors, text corruption, alignment, duplicates, readability.
 
-    Returns: approved (bool), issues, regenerate_suggestions, needs_retry.
+    Returns: approved (bool), issues, extracted_text, quality_score.
     """
     if not os.path.exists(image_path):
         return {
             "approved": False,
             "issues": [f"Image not found: {image_path}"],
-            "regenerate_suggestions": [],
+            "extracted_text": "",
+            "quality_score": 0,
+            "needs_retry": True
+        }
+
+    if not GEMINI_API_KEY:
+        return {
+            "approved": True,
+            "issues": ["GEMINI_API_KEY not set - skipping vision review"],
+            "extracted_text": "",
+            "quality_score": -1,
             "needs_retry": False
         }
 
+    try:
+        extracted_text = _extract_image_text(image_path)
+        quality_check = _analyze_image_quality(extracted_text, stats)
+
+        return {
+            "approved": quality_check.get("approved", False),
+            "issues": quality_check.get("issues", []),
+            "extracted_text": extracted_text,
+            "quality_score": quality_check.get("score", 0),
+            "needs_retry": len(quality_check.get("issues", [])) > 0,
+            "suggestions": quality_check.get("suggestions", [])
+        }
+    except Exception as e:
+        return {
+            "approved": False,
+            "issues": [f"Image review failed: {e}"],
+            "extracted_text": "",
+            "quality_score": 0,
+            "needs_retry": False
+        }
+
+
+def _extract_image_text(image_path: str) -> str:
+    """
+    Extract text from image using Gemini vision API.
+
+    Returns: Extracted text from image.
+    """
+    import base64
+
+    with open(image_path, "rb") as f:
+        image_data = base64.standard_b64encode(f.read()).decode("utf-8")
+
+    prompt = """Extract ALL text visible in this image.
+List every word, number, label, and text element exactly as it appears.
+Include: headers, card titles, metrics, numbers, badges, category names, model names.
+Return a clean list of all text found, line by line."""
+
+    resp = requests.post(
+        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        headers={"x-goog-api-key": GEMINI_API_KEY},
+        json={
+            "contents": [
+                {
+                    "parts": [
+                        {"text": prompt},
+                        {
+                            "inline_data": {
+                                "mime_type": "image/png",
+                                "data": image_data
+                            }
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "maxOutputTokens": 2000,
+                "temperature": 0.2,
+                "topP": 0.8,
+            },
+        },
+        timeout=60,
+    )
+    resp.raise_for_status()
+    data = resp.json()
+    if "candidates" not in data or not data["candidates"]:
+        raise ValueError(f"Invalid Gemini vision response: {data}")
+
+    try:
+        text = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+        return text
+    except (KeyError, IndexError, TypeError) as e:
+        raise ValueError(f"Failed to extract text from Gemini vision response: {data}. Error: {e}")
+
+
+def _analyze_image_quality(extracted_text: str, stats: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Analyze extracted text for quality issues.
+
+    Checks:
+    - Spelling errors
+    - Duplicate text
+    - Missing required numbers
+    - Broken formatting
+    - Readability issues
+
+    Returns: approved (bool), issues, score, suggestions.
+    """
+    issues = []
+    score = 100
+    suggestions = []
+
+    provider = stats.get("provider", "OpenAI")
+    total = str(stats.get("total", 0))
+    families = str(stats.get("family_count", 0))
+
+    text_lower = extracted_text.lower()
+    provider_lower = provider.lower()
+
+    # Check 1: Provider name present
+    if provider_lower not in text_lower:
+        issues.append(f"Provider '{provider}' not found in image text")
+        score -= 15
+        suggestions.append(f"Ensure provider name '{provider}' is clearly visible")
+
+    # Check 2: Key numbers present
+    if total not in extracted_text:
+        issues.append(f"Total model count '{total}' not found in image")
+        score -= 20
+        suggestions.append(f"Verify '{total} models' is displayed in metrics")
+    else:
+        # Check for close but wrong numbers
+        wrong_totals = set()
+        import re
+        for match in re.finditer(r'\b(\d+)\b', extracted_text):
+            num = match.group(1)
+            if num != total and int(num) > 100 and int(num) < int(total) + 10:
+                wrong_totals.add(num)
+        if wrong_totals:
+            issues.append(f"Found wrong model counts: {wrong_totals} (should be {total})")
+            score -= 20
+
+    if families not in extracted_text:
+        issues.append(f"Family count '{families}' not found in image")
+        score -= 15
+        suggestions.append(f"Verify '{families} families' is displayed")
+
+    # Check 3: Common misspellings
+    common_misspellings = {
+        "modeles": "models",
+        "familise": "families",
+        "recomended": "recommended",
+        "compelx": "complex",
+        "reasonning": "reasoning",
+        "moderation": "moderation",
+        "embeddings": "embeddings",
+        "transcrition": "transcription",
+        "geneartion": "generation",
+        "vedio": "video",
+        "pipleine": "pipeline",
+        "discvery": "discovery",
+    }
+
+    found_misspellings = []
+    for misspell, correct in common_misspellings.items():
+        if misspell in text_lower:
+            found_misspellings.append(f"{misspell}→{correct}")
+            score -= 10
+
+    if found_misspellings:
+        issues.append(f"Spelling errors found: {', '.join(found_misspellings)}")
+        suggestions.append("Regenerate image - text corruption detected")
+
+    # Check 4: Duplicate detection
+    lines = [l.strip() for l in extracted_text.split('\n') if l.strip()]
+    if len(lines) != len(set(lines)):
+        duplicates = [l for l in lines if lines.count(l) > 1]
+        issues.append(f"Duplicate text detected: {set(duplicates)}")
+        score -= 15
+        suggestions.append("Regenerate - duplicate cards/labels detected")
+
+    # Check 5: Text alignment/readability
+    if len(extracted_text) < 50:
+        issues.append("Very little text extracted - possible rendering issue")
+        score -= 10
+        suggestions.append("Check image generation - text may be too small or illegible")
+
+    # Check 6: Category keywords
+    categories = [
+        "complex reasoning", "fast chat", "image generation",
+        "video generation", "speech-to-text", "text-to-speech",
+        "embeddings", "moderation", "realtime audio", "multimodal vision"
+    ]
+    found_categories = sum(1 for cat in categories if cat in text_lower)
+    if found_categories < 3:
+        issues.append(f"Only {found_categories} categories found (expected ≥3)")
+        score -= 10
+
+    approved = score >= 70 and len(issues) == 0
     return {
-        "approved": True,
-        "issues": [],
-        "regenerate_suggestions": [],
-        "needs_retry": False,
-        "note": "Image quality review: stub (TODO: integrate multimodal Gemini vision)"
+        "approved": approved,
+        "issues": issues,
+        "score": max(0, score),
+        "suggestions": suggestions
     }

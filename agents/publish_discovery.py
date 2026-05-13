@@ -827,6 +827,35 @@ Return JSON:
         return {"approved": False, "final_prompt": "", "warnings": [f"review failed: {e}"], "must_include": [], "must_avoid": []}
 
 
+def _print_image_review(review_result: dict, image_type: str):
+    """Pretty-print image quality review results."""
+    approved = review_result.get("approved", False)
+    score = review_result.get("quality_score", 0)
+    issues = review_result.get("issues", [])
+    suggestions = review_result.get("suggestions", [])
+    extracted = review_result.get("extracted_text", "")
+
+    status = "✅ PASS" if approved else "⚠️  FAIL"
+    print(f"\n{status} | {image_type} Image | Quality: {score}/100")
+
+    if extracted:
+        print(f"\n  📄 Extracted Text (first 300 chars):")
+        preview = extracted[:300].replace("\n", " ").strip()
+        if len(preview) > 300:
+            preview += "..."
+        print(f"     {preview}")
+
+    if issues:
+        print(f"\n  ❌ Issues Found ({len(issues)}):")
+        for issue in issues:
+            print(f"     - {issue}")
+
+    if suggestions:
+        print(f"\n  💡 Suggestions:")
+        for suggestion in suggestions:
+            print(f"     - {suggestion}")
+
+
 def _enforce_prompt_safety_sentence(final_prompt: str) -> str:
     required = "no fake text, no misspellings, no tiny labels"
     if required in final_prompt.lower():
@@ -1500,6 +1529,21 @@ def main():
                 )
             else:
                 print("⚠️ Skipping architecture Imagen call: review/safety gate failed.")
+
+            # Optionally review generated images for quality issues
+            if enable_image_review:
+                print("\n🔍 IMAGE QUALITY REVIEW")
+                print("=" * 60)
+                if dashboard_img_path:
+                    print(f"\nReviewing: {dashboard_img_path}")
+                    dashboard_review_result = review_generated_image(dashboard_img_path, stats, visual_context)
+                    _print_image_review(dashboard_review_result, "Dashboard")
+
+                if mindmap_img_path:
+                    print(f"\nReviewing: {mindmap_img_path}")
+                    arch_review_result = review_generated_image(mindmap_img_path, stats, visual_context)
+                    _print_image_review(arch_review_result, "Architecture")
+                print("=" * 60)
         else:
             print("⚠️ Skipping Vertex AI Imagen call because libraries are not installed.")
 
