@@ -107,17 +107,21 @@ def _classify_model(model):
 
     # xAI-specific routing rules (short-circuit in required order)
     if provider_lower == "xai":
+        if model_id_lower in ["grok-3", "grok-3-mini"]:
+            return "fast_chat"
+        if "non-reasoning" in model_id_lower:
+            return "fast_chat"
         if "imagine-image" in model_id_lower:
             return "image_generation"
         if "imagine-video" in model_id_lower:
             return "video_generation"
-        if "code" in model_id_lower:
+        if "code" in model_id_lower and "grok" in model_id_lower:
             return "fine_tuning"
-        if model_id_lower in ["grok-4-fast-non-reasoning", "grok-3"]:
-            return "fast_chat"
         if "mini" in model_id_lower:
             return "fast_chat"
-        if (("reasoning" in model_id_lower) or model_id_lower.startswith("grok-4") or model_id_lower.startswith("grok-3")) and "non-reasoning" not in model_id_lower:
+        if "grok" in model_id_lower and "reasoning" in model_id_lower and "non-reasoning" not in model_id_lower:
+            return "complex_reasoning"
+        if model_id_lower.startswith("grok-"):
             return "complex_reasoning"
 
     if model_id_lower.startswith("sora"):
@@ -194,6 +198,12 @@ def _is_deprecated_model(model):
     current_prefixes = ("gpt-5", "gpt-4", "gpt-4o", "gpt-4.1", "gpt-realtime", "gpt-audio", "sora")
     if model_id_lower.startswith(current_prefixes):
         return False
+    RETIRING_MAY_15_2026 = [
+        "grok-4-1-fast", "grok-4-fast", "grok-4",
+        "grok-code-fast-1", "grok-imagine-image-pro"
+    ]
+    if model_id_lower in RETIRING_MAY_15_2026:
+        return True
 
     return False
 
@@ -204,6 +214,9 @@ def _score_model(model):
     model_id_lower = model.get("model_id", "").lower()
     provider_lower = model.get("provider", "").lower()
 
+    # xAI flagship override
+    if model_id_lower == "grok-4.3":
+        return 200
     # xAI-specific score boosts aligned with routing priorities
     if provider_lower == "xai":
         if "imagine-image" in model_id_lower:
@@ -218,6 +231,12 @@ def _score_model(model):
             score += 50
         elif (("reasoning" in model_id_lower) or model_id_lower.startswith("grok-4") or model_id_lower.startswith("grok-3")) and "non-reasoning" not in model_id_lower:
             score += 40
+        RETIRING_MAY_15 = [
+            "grok-4-1-fast", "grok-4-fast", "grok-4",
+            "grok-code-fast-1", "grok-imagine-image-pro"
+        ]
+        if model_id_lower in RETIRING_MAY_15:
+            return -50
     if model.get("is_latest", False):
         score += 100
     
@@ -449,10 +468,16 @@ def generate_charts(stats):
                    transform=ax_header.transAxes, ha="center", va="center",
                    fontsize=28, fontweight="bold", color="#ffffff", zorder=1)
 
+    category_best_ids = {v.get("model_id") for v in best_models_per_usecase.values() if v}
+    recommended_count = sum(
+        1 for m in stats["all_models"]
+        if m.get("recommendation") in ["[RECOMMENDED]", "[GOOD]"]
+        or (m.get("model_id") in category_best_ids and _score_model(m) >= 50)
+    )
     metrics = [
         (str(stats["total"]), "Total Models"),
         (str(stats["family_count"]), "Families"),
-        (str(len([m for m in stats["all_models"] if m.get("recommendation") == "[RECOMMENDED]"])), "Recommended"),
+        (str(recommended_count), "Recommended"),
         (str(len(stats["conf_buckets"]["high"])), "High Confidence"),
     ]
     for i, (val, label) in enumerate(metrics):
@@ -547,11 +572,17 @@ def _render_card(ax, uc, models, best_model, CARD_BG, BORDER, TEXT, SUBTEXT):
         if len(desc_text) > 180: # Heuristic for maximum displayable text in box
             desc_text = desc_text[:177] + "..."
 
-        desc_box = mpatches.FancyBboxPatch((0.5, 0.7), 9.0, 4.0, # Made box taller
-                                           boxstyle="round,pad=0.05,rounding_size=0.15",
-                                           facecolor="#e8e8e8", edgecolor="none")
-        ax.add_patch(desc_box)
-        ax.text(5.0, 2.7, desc_text, ha="center", va="center", fontsize=8.5, color=SUBTEXT, style="italic", wrap=True)
+        lines_to_render = desc_text.split("\n", 1)
+        purpose_line = lines_to_render[0][:60] if lines_to_render else ""
+        cap_line = lines_to_render[1][:60] if len(lines_to_render) > 1 else "General purpose"
+        if not purpose_line and not cap_line:
+            purpose_line = "See xAI docs for details"
+            cap_line = ""
+        ax.text(0.5, 3.5, purpose_line, fontsize=9, color="#6f6f6f", style="italic", va="top")
+        if cap_line:
+            ax.text(0.5, 2.5, cap_line, fontsize=9, color="#6f6f6f", style="italic", va="top")
+        if best_model.get("model_id", "").lower() in ["grok-code-fast-1", "grok-imagine-image-pro", "grok-4-1-fast", "grok-4-fast", "grok-4"]:
+            ax.text(0.5, 1.8, "⚠ Retiring May 15, 2026", fontsize=8, color="#da1e28", va="top")
     else:
         # If no best_model, but category is 'fine_tuning' or 'legacy', show specific message
         if uc["key"] == "legacy":
@@ -1991,10 +2022,13 @@ Examples:
     elif use_xai_image:
         # xAI only for architecture-style visual, never for factual dashboard.
         xai_prompt = (
-            "Enterprise architecture infographic, IBM Carbon-inspired style, light background, "
-            "IBM blue accents, clean icons and arrows, minimal short labels, no dense text, "
-            "no fake dashboard UI, no tiny text, 16:9. "
-            f"Pipeline: Official API -> LangGraph -> Gemini -> BigQuery -> Publishing. {reviewed_arch_prompt}"
+            "Enterprise pipeline diagram, IBM Carbon light style, white background, "
+            "IBM blue (#0f62fe) connectors and icons. Show a LEFT-TO-RIGHT horizontal flow with 5 labeled boxes: "
+            "[xAI API] -> [LangGraph Agent] -> [Gemini Enrichment] -> [BigQuery Registry] -> [LinkedIn + Medium]. "
+            "Center of diagram: large circle labeled 'XAI Registry · 16 Models · 5 Families'. "
+            "Each box: rounded rectangle, light gray fill, blue border, bold label inside, small icon above (api, graph, brain, database, publish). "
+            "Typography: IBM Plex Sans, minimum 14pt, no decorative fonts. No lorem ipsum. No fake data. "
+            "No shadows heavier than 2px. No text outside the labeled boxes. Aspect ratio: 16:9. LinkedIn publication quality."
         )
         mindmap_img_path = call_xai_image(
             xai_prompt,
