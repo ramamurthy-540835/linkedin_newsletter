@@ -380,6 +380,73 @@ If safety check fails, suggest specific fixes."""
         }
 
 
+def validate_image_matches_request(extracted_text: str, stats: Dict[str, Any], image_type: str = "dashboard") -> Dict[str, Any]:
+    """
+    Validate that extracted image text matches what was requested in the prompt.
+
+    Checks:
+    - Provider name present
+    - Model count exact match
+    - Family count exact match
+    - High-confidence count present
+    - For dashboard: categories visible
+    - For architecture: pipeline components visible
+
+    Returns: match_score (0-100), missing_items, confidence.
+    """
+    text_lower = extracted_text.lower()
+    provider = stats.get("provider", "OpenAI").lower()
+    total = str(stats.get("total", 0))
+    families = str(stats.get("family_count", 0))
+    high_conf = str(len(stats.get("conf_buckets", {}).get("high", [])))
+
+    missing = []
+    score = 100
+
+    # 1. Provider check
+    if provider not in text_lower:
+        missing.append(f"Provider '{stats.get('provider', 'OpenAI')}' missing")
+        score -= 25
+
+    # 2. Total models check
+    if total not in extracted_text:
+        missing.append(f"Total count '{total}' missing")
+        score -= 25
+
+    # 3. Families check
+    if families not in extracted_text:
+        missing.append(f"Family count '{families}' missing")
+        score -= 20
+
+    # 4. High-confidence check
+    if high_conf not in extracted_text:
+        missing.append(f"High-confidence count '{high_conf}' missing")
+        score -= 15
+
+    # 5. Image-type specific checks
+    if image_type == "dashboard":
+        # Dashboard should show categories
+        categories = ["complex reasoning", "image generation", "chat", "embeddings"]
+        found = sum(1 for cat in categories if cat in text_lower)
+        if found < 2:
+            missing.append(f"Only {found} categories found (expected ≥2)")
+            score -= 15
+    elif image_type == "architecture":
+        # Architecture should show pipeline
+        pipeline_steps = ["official api", "langraph", "gemini", "bigquery", "registry"]
+        found = sum(1 for step in pipeline_steps if step in text_lower)
+        if found < 3:
+            missing.append(f"Only {found} pipeline steps found (expected ≥3)")
+            score -= 20
+
+    return {
+        "matches_request": score >= 70,
+        "match_score": max(0, score),
+        "missing_items": missing,
+        "confidence": "HIGH" if score >= 90 else "MEDIUM" if score >= 70 else "LOW"
+    }
+
+
 def review_generated_image(image_path: str, stats: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
     """
     Image Quality Review Agent: Analyze generated image using Gemini vision.
@@ -409,20 +476,41 @@ def review_generated_image(image_path: str, stats: Dict[str, Any], context: Dict
         extracted_text = _extract_image_text(image_path)
         quality_check = _analyze_image_quality(extracted_text, stats)
 
+        # Determine image type from context
+        image_type = "dashboard" if "dashboard" in image_path.lower() else "architecture"
+
+        # Validate that image matches request
+        match_check = validate_image_matches_request(extracted_text, stats, image_type=image_type)
+
+        # Combine checks
+        all_approved = quality_check.get("approved", False) and match_check.get("matches_request", False)
+        all_issues = quality_check.get("issues", []) + match_check.get("missing_items", [])
+
         return {
-            "approved": quality_check.get("approved", False),
-            "issues": quality_check.get("issues", []),
+            "approved": all_approved,
+            "quality_approved": quality_check.get("approved", False),
+            "matches_request": match_check.get("matches_request", False),
+            "issues": all_issues,
+            "quality_issues": quality_check.get("issues", []),
+            "missing_items": match_check.get("missing_items", []),
             "extracted_text": extracted_text,
             "quality_score": quality_check.get("score", 0),
-            "needs_retry": len(quality_check.get("issues", [])) > 0,
-            "suggestions": quality_check.get("suggestions", [])
+            "match_score": match_check.get("match_score", 0),
+            "confidence": match_check.get("confidence", "LOW"),
+            "needs_retry": len(all_issues) > 0,
+            "suggestions": quality_check.get("suggestions", []),
+            "image_type": image_type
         }
     except Exception as e:
         return {
             "approved": False,
+            "quality_approved": False,
+            "matches_request": False,
             "issues": [f"Image review failed: {e}"],
             "extracted_text": "",
             "quality_score": 0,
+            "match_score": 0,
+            "confidence": "LOW",
             "needs_retry": False
         }
 
@@ -478,6 +566,37 @@ Return a clean list of all text found, line by line."""
         return text
     except (KeyError, IndexError, TypeError) as e:
         raise ValueError(f"Failed to extract text from Gemini vision response: {data}. Error: {e}")
+
+
+def _refine_prompt_from_issues(original_prompt: str, review: Dict[str, Any]) -> str:
+    """
+    Refine Imagen prompt based on detected issues.
+
+    Adjusts prompt if:
+    - Text is duplicated → add "no duplicate text"
+    - Spelling issues → add "spell all text correctly"
+    - Missing items → add specific requirement
+    """
+    issues = review.get("issues", [])
+    refined = original_prompt
+
+    # Add constraints based on issues
+    if any("duplicate" in i.lower() for i in issues):
+        if "no duplicate" not in refined.lower():
+            refined += " | CRITICAL: Ensure NO duplicate text or labels."
+
+    if any("spell" in i.lower() or "corruption" in i.lower() for i in issues):
+        if "spell" not in refined.lower():
+            refined += " | CRITICAL: Spell every word correctly, no garbled text."
+
+    missing = review.get("missing_items", [])
+    if any("categor" in m.lower() for m in missing):
+        refined += " | CRITICAL: Show ALL model categories clearly and separately."
+
+    if any("pipeline" in m.lower() for m in missing):
+        refined += " | CRITICAL: Show all pipeline steps: API → LangGraph → Gemini → BigQuery → Publishing."
+
+    return refined
 
 
 def _analyze_image_quality(extracted_text: str, stats: Dict[str, Any]) -> Dict[str, Any]:

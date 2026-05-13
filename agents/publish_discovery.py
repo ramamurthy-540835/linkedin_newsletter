@@ -913,6 +913,82 @@ def call_vertex_imagen(prompt: str, output_path: str, gcp_project: str, gcp_loca
         return None
 
 
+def call_vertex_imagen_with_retry(prompt: str, output_path: str, gcp_project: str, gcp_location: str,
+                                   imagen_model: str, stats: dict, max_retries: int = 3, image_type: str = "dashboard"):
+    """
+    Call Vertex Imagen with automatic retry on quality/match failures.
+
+    Retries if:
+    1. Image generation fails
+    2. Quality score < 70
+    3. Generated image doesn't match requested content
+
+    Returns: (image_path, final_review) or (None, final_review) on max retries.
+    """
+    for attempt in range(1, max_retries + 1):
+        print(f"\n📸 Generation Attempt {attempt}/{max_retries}")
+
+        # Generate image
+        img_path = call_vertex_imagen(prompt, output_path, gcp_project, gcp_location, imagen_model)
+        if not img_path:
+            print(f"   ❌ Generation failed, retrying...")
+            continue
+
+        # Review image
+        review = review_generated_image(img_path, stats, {})
+
+        print(f"   Quality Score: {review.get('quality_score', 0)}/100")
+        print(f"   Match Score: {review.get('match_score', 0)}/100")
+        print(f"   Confidence: {review.get('confidence', 'LOW')}")
+
+        if review.get("approved"):
+            print(f"   ✅ APPROVED - Image meets all requirements")
+            return img_path, review
+
+        # Report why it failed
+        issues = review.get("issues", [])
+        if issues:
+            print(f"   ⚠️  Issues found:")
+            for issue in issues[:3]:  # Show top 3 issues
+                print(f"      - {issue}")
+
+        if attempt < max_retries:
+            print(f"   🔄 Refining prompt and retrying...")
+
+    return None, review
+
+
+def _refine_prompt_from_issues(original_prompt: str, review: dict) -> str:
+    """
+    Refine Imagen prompt based on detected issues.
+
+    Adjusts prompt if:
+    - Text is duplicated → add "no duplicate text"
+    - Spelling issues → add "spell all text correctly"
+    - Missing items → add specific requirement
+    """
+    issues = review.get("issues", [])
+    refined = original_prompt
+
+    # Add constraints based on issues
+    if any("duplicate" in i.lower() for i in issues):
+        if "no duplicate" not in refined.lower():
+            refined += " | CRITICAL: Ensure NO duplicate text or labels."
+
+    if any("spell" in i.lower() or "corruption" in i.lower() for i in issues):
+        if "spell" not in refined.lower():
+            refined += " | CRITICAL: Spell every word correctly, no garbled text."
+
+    missing = review.get("missing_items", [])
+    if any("categor" in m.lower() for m in missing):
+        refined += " | CRITICAL: Show ALL model categories clearly and separately."
+
+    if any("pipeline" in m.lower() for m in missing):
+        refined += " | CRITICAL: Show all pipeline steps: API → LangGraph → Gemini → BigQuery → Publishing."
+
+    return refined
+
+
 # ── Step 3.8: Verify no hallucination (number consistency) ──────────────────────
 def verify_no_hallucination(linkedin_text, medium_text, stats):
     """Verify that posts don't contain hallucinated/contradictory numbers."""
