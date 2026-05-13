@@ -12,6 +12,7 @@ import json
 import os
 import sys
 import re
+import glob
 import requests
 from collections import defaultdict
 from datetime import datetime
@@ -1514,6 +1515,41 @@ def update_readme(stats, li_url, med_url, dashboard_img_path, mindmap_img_path):
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
+    if "--help-usage" in sys.argv:
+        print(
+            """
+Usage helpers:
+  python agents/publish_discovery.py <candidates.json> [options]
+
+Common options:
+  --publish
+  --validate-only
+  --generate-image-prompts
+  --use-vertex-imagen
+  --use-xai-image
+  --xai-image-model <model_id>
+  --enable-image-review
+  --disable-design-agents
+  --design-model <gemini-model>
+  --review-model <gemini-model>
+  --gemini-model <gemini-model>
+  --max-image-retries <n>
+  --theme <theme-name>
+  --organize-by-provider
+  --clean-reports
+
+Examples:
+  # OpenAI with Vertex + review
+  python agents/publish_discovery.py agents/model_discovery_candidates_openai.json --publish --use-vertex-imagen --enable-image-review
+
+  # xAI with xAI architecture image + Gemini content/review
+  python agents/publish_discovery.py agents/model_discovery_candidates_xai.json --publish --use-xai-image --xai-image-model grok-imagine-image-pro --enable-image-review
+
+  # Clean and organize outputs into reports/<provider>/
+  python agents/publish_discovery.py agents/model_discovery_candidates_xai.json --organize-by-provider --clean-reports --generate-image-prompts
+"""
+        )
+        return
     publish_mode = "--publish" in sys.argv
     validate_only = "--validate-only" in sys.argv
     generate_image_prompts_only = "--generate-image-prompts" in sys.argv
@@ -1524,6 +1560,8 @@ def main():
     save_reviewed_prompts_only = "--save-reviewed-prompts-only" in sys.argv
     enable_design_agents = "--disable-design-agents" not in sys.argv
     enable_image_review = "--enable-image-review" in sys.argv
+    organize_by_provider = "--organize-by-provider" in sys.argv
+    clean_reports = "--clean-reports" in sys.argv
     if use_vertex_imagen and not skip_prompt_review:
         review_imagen_prompts = True
     gemini_model_arg = None
@@ -1620,6 +1658,19 @@ def main():
 
     print("📦 Parsing JSON and classifying models...")
     stats = parse_json(json_path)
+    global OUTPUT_DIR
+    if organize_by_provider:
+        provider_dir = stats.get("provider", "unknown").lower()
+        OUTPUT_DIR = os.path.join("reports", provider_dir)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if clean_reports:
+        for p in glob.glob(os.path.join(OUTPUT_DIR, "*")):
+            if os.path.isfile(p):
+                try:
+                    os.remove(p)
+                except Exception:
+                    pass
+        print(f"🧹 Cleaned report files in: {OUTPUT_DIR}")
     print(f"   Source used: {stats['source_description']}") # Access from stats
     print(f"   Total parsed: {stats['total']} models")
     print(f"   Enriched coverage: {stats['enriched_coverage_count']}/{stats['total']} models\n")
