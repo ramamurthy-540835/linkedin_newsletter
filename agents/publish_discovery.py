@@ -101,6 +101,22 @@ def _classify_model(model):
     """Deterministic, no-drop classification rules."""
     model_id_lower = model.get("model_id", "").lower()
     family_lower = model.get("family", "").lower()
+    provider_lower = model.get("provider", "").lower()
+
+    # xAI-specific routing rules (short-circuit in required order)
+    if provider_lower == "xai":
+        if "imagine-image" in model_id_lower:
+            return "image_generation"
+        if "imagine-video" in model_id_lower:
+            return "video_generation"
+        if "code" in model_id_lower:
+            return "fine_tuning"
+        if model_id_lower in ["grok-4-fast-non-reasoning", "grok-3"]:
+            return "fast_chat"
+        if "mini" in model_id_lower:
+            return "fast_chat"
+        if (("reasoning" in model_id_lower) or model_id_lower.startswith("grok-4") or model_id_lower.startswith("grok-3")) and "non-reasoning" not in model_id_lower:
+            return "complex_reasoning"
 
     if model_id_lower.startswith("sora"):
         return "video_generation"
@@ -163,6 +179,23 @@ def _is_deprecated_model(model):
 def _score_model(model):
     """Scores a model for recommendation within its use case."""
     score = 0
+    model_id_lower = model.get("model_id", "").lower()
+    provider_lower = model.get("provider", "").lower()
+
+    # xAI-specific score boosts aligned with routing priorities
+    if provider_lower == "xai":
+        if "imagine-image" in model_id_lower:
+            score += 70
+        elif "imagine-video" in model_id_lower:
+            score += 70
+        elif "code" in model_id_lower:
+            score += 50
+        elif model_id_lower in ["grok-4-fast-non-reasoning", "grok-3"]:
+            score += 60
+        elif "mini" in model_id_lower:
+            score += 50
+        elif (("reasoning" in model_id_lower) or model_id_lower.startswith("grok-4") or model_id_lower.startswith("grok-3")) and "non-reasoning" not in model_id_lower:
+            score += 40
     if model.get("is_latest", False):
         score += 100
     
@@ -931,8 +964,7 @@ def call_vertex_imagen(prompt: str, output_path: str, gcp_project: str, gcp_loca
 def call_xai_image(prompt: str, output_path: str, xai_model: str) -> str | None:
     xai_key = os.getenv("XAI_API_KEY")
     if not xai_key:
-        print("⚠️ XAI_API_KEY not set. Skipping xAI image generation.")
-        return None
+        raise ValueError("XAI_API_KEY not set — cannot use --use-xai-image")
     try:
         resp = requests.post(
             "https://api.x.ai/v1/images/generations",
