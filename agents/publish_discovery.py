@@ -427,10 +427,16 @@ def generate_charts(stats):
     TEXT = "#161616"
     SUBTEXT = "#525252"
 
-    fig = plt.figure(figsize=(20, 18), facecolor=BG) # Increased figure height
+    active_uc = [uc for uc in USE_CASE_MAP if len(categorized.get(uc["key"], [])) > 0]
+    if not active_uc:
+        active_uc = [uc for uc in USE_CASE_MAP if uc["key"] in ["complex_reasoning", "fast_chat", "image_generation", "video_generation"]]
+    card_count = len(active_uc)
+    card_rows = max(1, (card_count + 3) // 4)
+
+    fig = plt.figure(figsize=(20, 8 + (card_rows * 3.5)), facecolor=BG)
     gs = GridSpec(
-        nrows=5, ncols=4,
-        height_ratios=[1.0, 0.7, 3.5, 3.5, 3.5], # Adjusted row heights to fit more text
+        nrows=2 + card_rows, ncols=4,
+        height_ratios=[1.0, 0.7] + [3.5] * card_rows,
         hspace=0.35, wspace=0.25,
         left=0.04, right=0.96, top=0.97, bottom=0.03
     )
@@ -455,7 +461,7 @@ def generate_charts(stats):
         ax_m.text(0.5, 0.65, val, ha="center", va="center", fontsize=32, fontweight="bold", color="#0f62fe", transform=ax_m.transAxes)
         ax_m.text(0.5, 0.2, label, ha="center", va="center", fontsize=11, color=SUBTEXT, transform=ax_m.transAxes)
 
-    for idx, uc in enumerate(USE_CASE_MAP):
+    for idx, uc in enumerate(active_uc):
         row = 2 + idx // 4
         col = idx % 4
         ax = fig.add_subplot(gs[row, col])
@@ -568,7 +574,8 @@ def generate_mermaid_png(stats, validate_only=False):
         "mindmap",
         f"  root(({stats['provider']}<br/>{stats['total']} Models<br/>{stats['family_count']} Families))"
     ]
-    for uc in USE_CASE_MAP:
+    active_use_cases = [uc for uc in USE_CASE_MAP if categorized.get(uc["key"])]
+    for uc in active_use_cases:
         uc_key = uc["key"]
         models_in_category = categorized.get(uc_key, [])
         best = best_models_per_usecase.get(uc_key)
