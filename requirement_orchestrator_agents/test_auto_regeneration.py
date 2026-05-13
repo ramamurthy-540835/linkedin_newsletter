@@ -13,17 +13,22 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from agents.visual_design_agents import (
     review_generated_image,
     validate_image_matches_request,
     _refine_prompt_from_issues
 )
 
-load_dotenv("backend/.env.local")
-load_dotenv("backend/.env")
+load_dotenv(REPO_ROOT / "backend/.env.local")
+load_dotenv(REPO_ROOT / "backend/.env")
 
 def main():
-    reports_dir = Path("reports")
+    reports_dir = REPO_ROOT / "reports"
     images = sorted(reports_dir.glob("*_vertex_*.png"), key=lambda p: os.path.getmtime(p), reverse=True)
 
     if not images:

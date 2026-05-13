@@ -17,14 +17,19 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from agents.visual_design_agents import _extract_image_text
 from agents.requirements_validator import (
     compare_requirements_vs_actual,
     print_comparison_report
 )
 
-load_dotenv("backend/.env.local")
-load_dotenv("backend/.env")
+load_dotenv(REPO_ROOT / "backend/.env.local")
+load_dotenv(REPO_ROOT / "backend/.env")
 
 
 def load_prompt_as_requirements(prompt_file: str) -> dict:
@@ -146,7 +151,7 @@ def extract_and_validate(prompt_file: str, image_file: str):
 
 def find_recent_files():
     """Find most recent prompt and image files."""
-    reports_dir = Path("reports")
+    reports_dir = REPO_ROOT / "reports"
 
     # Find most recent dashboard files
     prompts = list(reports_dir.glob("dashboard_reviewed_prompt_*.txt"))

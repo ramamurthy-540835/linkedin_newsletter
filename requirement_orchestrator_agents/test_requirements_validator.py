@@ -7,8 +7,14 @@ Reports differences without judgment.
 
 import json
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from agents.requirements_validator import (
     load_requirements_json,
     load_actual_results,
@@ -16,8 +22,8 @@ from agents.requirements_validator import (
     print_comparison_report
 )
 
-load_dotenv("backend/.env.local")
-load_dotenv("backend/.env")
+load_dotenv(REPO_ROOT / "backend/.env.local")
+load_dotenv(REPO_ROOT / "backend/.env")
 
 
 def create_sample_requirements():
@@ -92,12 +98,12 @@ def create_sample_requirements():
     }
 
     # Save requirements
-    os.makedirs("test_data", exist_ok=True)
+    os.makedirs(REPO_ROOT / "test_data", exist_ok=True)
 
-    with open("test_data/dashboard_requirements.json", "w") as f:
+    with open(REPO_ROOT / "test_data/dashboard_requirements.json", "w") as f:
         json.dump(dashboard_requirements, f, indent=2)
 
-    with open("test_data/architecture_requirements.json", "w") as f:
+    with open(REPO_ROOT / "test_data/architecture_requirements.json", "w") as f:
         json.dump(arch_requirements, f, indent=2)
 
     return dashboard_requirements, arch_requirements
@@ -148,10 +154,10 @@ Assets
 Clean arrows present
 Light background confirmed"""
 
-    with open("test_data/dashboard_actual.txt", "w") as f:
+    with open(REPO_ROOT / "test_data/dashboard_actual.txt", "w") as f:
         f.write(dashboard_actual)
 
-    with open("test_data/architecture_actual.txt", "w") as f:
+    with open(REPO_ROOT / "test_data/architecture_actual.txt", "w") as f:
         f.write(arch_actual)
 
     return dashboard_actual, arch_actual
@@ -169,11 +175,11 @@ def main():
     print("=" * 100)
 
     print("\n📂 Loading dashboard requirements...")
-    dashboard_req = load_requirements_json("test_data/dashboard_requirements.json")
+    dashboard_req = load_requirements_json(str(REPO_ROOT / "test_data/dashboard_requirements.json"))
     print(f"   ✓ Loaded")
 
     print("📂 Loading dashboard actual results...")
-    dashboard_actual = load_actual_results("test_data/dashboard_actual.txt")
+    dashboard_actual = load_actual_results(str(REPO_ROOT / "test_data/dashboard_actual.txt"))
     print(f"   ✓ Loaded")
 
     print("\n🤖 Running Gemini comparison agent...")
@@ -186,11 +192,11 @@ def main():
     print("=" * 100)
 
     print("\n📂 Loading architecture requirements...")
-    arch_req = load_requirements_json("test_data/architecture_requirements.json")
+    arch_req = load_requirements_json(str(REPO_ROOT / "test_data/architecture_requirements.json"))
     print(f"   ✓ Loaded")
 
     print("📂 Loading architecture actual results...")
-    arch_actual = load_actual_results("test_data/architecture_actual.txt")
+    arch_actual = load_actual_results(str(REPO_ROOT / "test_data/architecture_actual.txt"))
     print(f"   ✓ Loaded")
 
     print("\n🤖 Running Gemini comparison agent...")
