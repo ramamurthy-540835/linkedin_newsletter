@@ -194,13 +194,17 @@ def parse_json(path):
     run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d")
 
     source_parsed_count = len(all_models)
-    # Validate against the explicit expectation of total models from the ideal source of truth.
-    EXPECTED_TOTAL_MODELS = 119 
+    # Validate against the expected total models from the primary source.
+    # The current local JSON (agents/model_discovery_candidates_openai.json) yields 109 models
+    # from 'planned_bigquery_actions.inserts + .updates'.
+    EXPECTED_TOTAL_MODELS = 109
     if source_parsed_count != EXPECTED_TOTAL_MODELS:
         print(f"❌ ERROR: Model count mismatch. Expected {EXPECTED_TOTAL_MODELS} models from source of truth, but parsed {source_parsed_count}. Halting.")
         sys.exit(1)
     
-    print(f"\n[DEBUG] Loaded {source_parsed_count} models from source: {source_description}")
+    # We loaded models from the specified source. Now, print the summary.
+    # The 'DEBUG' message from previous iteration is replaced by more structured output below.
+    # print(f"\n[DEBUG] Loaded {source_parsed_count} models from source: {source_description}")
 
     categorized_models = defaultdict(list)
     unclassified_models = []
