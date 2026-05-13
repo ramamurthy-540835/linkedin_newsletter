@@ -11,7 +11,7 @@ from visual_design_agents import (
 
 
 class VisualDesignOrchestrator:
-    def __init__(self, design_model: str = "gemini-2.5-pro", review_model: str = "gemini-2.5-pro", theme: str = "ibm-carbon-light"):
+    def __init__(self, design_model: str = "gemini-2.5-flash", review_model: str = "gemini-2.5-flash", theme: str = "ibm-carbon-light"):
         self.design_model = design_model
         self.review_model = review_model
         self.theme = theme
@@ -91,11 +91,12 @@ class VisualDesignOrchestrator:
     def prompt_composer_agent(self, plans: Dict[str, Any], stats: Dict[str, Any]) -> Dict[str, str]:
         dashboard_spec = plans["dashboard"]["spec"]
         dashboard_prompt = compose_imagen_prompt_from_spec(dashboard_spec, stats, style=self.theme)
+        provider = stats.get("provider", "OPENAI")
         architecture_prompt = (
             f"Create a clean enterprise architecture infographic in IBM Carbon light style. "
             f"White/light-gray background, IBM blue accents, clear icon-based pipeline with arrows. "
             f"Show exactly these steps: {' -> '.join(plans['architecture']['pipeline_steps'])}. "
-            f"Center label: OPENAI Model Registry ({stats.get('total',0)} models, {stats.get('family_count',0)} families). "
+            f"Center label: {provider} Model Registry ({stats.get('total',0)} models, {stats.get('family_count',0)} families). "
             f"Use short readable labels only. No lorem ipsum. No tiny text. No dark mode. 16:9."
         )
         return {"dashboard": dashboard_prompt, "architecture": architecture_prompt}

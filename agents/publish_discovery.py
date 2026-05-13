@@ -104,6 +104,14 @@ def _classify_model(model):
 
     if model_id_lower.startswith("sora"):
         return "video_generation"
+    if "grok-imagine-video" in model_id_lower:
+        return "video_generation"
+    if "grok-imagine-image" in model_id_lower:
+        return "image_generation"
+    if model_id_lower.startswith("grok-code"):
+        return "complex_reasoning"
+    if model_id_lower.startswith("grok-4") or model_id_lower.startswith("grok-3"):
+        return "complex_reasoning"
     if model_id_lower.startswith("text-embedding"):
         return "embeddings"
     if any(k in model_id_lower for k in ["gpt-image", "dall-e", "chatgpt-image"]):
@@ -1488,8 +1496,8 @@ def main():
     current_gemini_model = gemini_model_arg or GEMINI_MODEL
     max_retries = max_image_retries_arg if max_image_retries_arg is not None else 3
     style = style_arg or "ibm-carbon"
-    design_model = design_model_arg or "gemini-2.5-pro"
-    review_model = review_model_arg or "gemini-2.5-pro"
+    design_model = design_model_arg or "gemini-2.5-flash"
+    review_model = review_model_arg or "gemini-2.5-flash"
     theme = theme_arg or "ibm-carbon-light"
     dashboard_mode = dashboard_mode_arg or "factual"
     xai_image_model = xai_image_model_arg or "grok-imagine-image-pro"
