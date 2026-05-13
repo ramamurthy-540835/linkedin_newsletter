@@ -319,17 +319,30 @@ def generate_mermaid_png(stats):
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     provider = stats["provider"]
 
-    # Build mermaid mindmap
-    lines = ["mindmap", f"  root(({provider}\\n{stats['total']} Models))"]
-    for fam in sorted(stats["families"].keys()):
-        mods = stats["families"][fam]
-        count = len(mods)
+    # Build mermaid mindmap - organized by use case groups
+    lines = ["mindmap", f"  root(({provider} AI Models: {stats['total']} Total))"]
+
+    # Group families by use case
+    use_case_groups = {}
+    for fam, mods in stats["families"].items():
         latest = stats["latest_per_family"].get(fam, {})
-        lid = latest.get("model_id", "?")
-        avg_c = sum(m.get("enriched_confidence", 0) for m in mods) / count
-        icon = "✅" if avg_c >= 0.8 else "⚠️" if avg_c >= 0.5 else "❌"
-        lines.append(f"    {fam}({icon} {fam}\\n{count} models)")
-        lines.append(f"      Latest: {lid}")
+        use_case = latest.get("use_case", "Other")
+        if use_case not in use_case_groups:
+            use_case_groups[use_case] = []
+        use_case_groups[use_case].append((fam, mods, latest))
+
+    # Build mindmap organized by use case
+    for use_case in sorted(use_case_groups.keys()):
+        lines.append(f"    {use_case}")
+        for fam, mods, latest in sorted(use_case_groups[use_case], key=lambda x: len(x[1]), reverse=True):
+            count = len(mods)
+            rec = latest.get("recommendation", "").replace("[", "").replace("]", "")
+            lid = latest.get("model_id", "?")[:30]
+            # Use text indicators instead of emoji
+            status = rec if rec else "Active"
+            lines.append(f"      {fam} ({count})")
+            lines.append(f"        {status}")
+            lines.append(f"        Latest: {lid}")
 
     mermaid_text = "\n".join(lines)
     mmd_path = f"{OUTPUT_DIR}/model_mindmap_{ts}.mmd"
