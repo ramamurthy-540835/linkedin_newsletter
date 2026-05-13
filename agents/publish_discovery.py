@@ -24,6 +24,9 @@ import matplotlib.patches as mpatches
 load_dotenv("backend/.env.local")
 load_dotenv("backend/.env")
 
+# Global dictionary for easier USE_CASE_MAP lookup
+USE_CASE_MAP_DICT = {}
+
 # ── Config from env ───────────────────────────────────────────────────────────
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -50,76 +53,139 @@ USE_CASE_MAP = [
     {"key": "fine_tuning", "title": "Fine-tuning Base", "icon": "FT", "color": "#ff832b", "desc": "Base models for customization"},
 ]
 
-USE_CASE_KEYWORDS = {
-    "complex_reasoning": ["o-series", "o1", "o3", "o4", "reasoning"],
-    "fast_chat": ["gpt-3.5", "gpt-4o-mini", "mini"],
-    "image_generation": ["dall-e", "image", "gpt-image"],
-    "video_generation": ["sora", "video", "veo"],
-    "speech_to_text": ["whisper", "speech"],
-    "text_to_speech": ["tts", "text-to-speech"],
-    "embeddings": ["embedding", "text-embedding"],
-    "content_moderation": ["moderation"],
-    "realtime_audio": ["gpt-realtime", "realtime", "audio", "gpt-audio"],
-    "multimodal_vision": ["gpt-4o", "gpt-4", "vision", "multimodal"],
-    "legacy": ["davinci", "babbage", "curie", "legacy"],
-    "fine_tuning": ["gpt-3.5-turbo", "base"],
-}
+# Populate the global dictionary for easy lookup
+USE_CASE_MAP_DICT = {uc["key"]: uc for uc in USE_CASE_MAP}
 
-def classify_model_to_usecase(model):
-    """Classify a model to one of 12 use-case categories using keyword matching."""
+
+def _classify_model(model):
+    """Classify a model to one of 12 use-case categories using attributes."""
     model_id = model.get("model_id", "").lower()
     family = model.get("family", "").lower()
-    combined = f"{model_id} {family}".lower()
+    model_purpose = model.get("model_purpose", "").lower()
+    recommended_for = " ".join([r.lower() for r in model.get("recommended_for", [])])
+    capabilities = " ".join([c.lower() for c in model.get("capabilities", [])])
+    
+    combined_text = f"{model_id} {family} {model_purpose} {recommended_for} {capabilities}"
 
-    for use_case, keywords in USE_CASE_KEYWORDS.items():
-        for keyword in keywords:
-            if keyword in combined:
-                return use_case
+    # Priority 1: Specific modalities
+    if any(k in model_id for k in ["dall-e", "gpt-image", "chatgpt-image"]):
+        return "image_generation"
+    if "sora" in model_id or ("video" in combined_text and "generation" in combined_text):
+        return "video_generation"
+    if any(k in model_id for k in ["whisper", "transcribe"]) or "gpt-realtime-whisper" in model_id:
+        return "speech_to_text"
+    if any(k in model_id for k in ["tts", "text-to-speech"]):
+        return "text_to_speech"
+    if "text-embedding" in model_id:
+        return "embeddings"
+    if "omni-moderation" in model_id or "content moderation" in combined_text:
+        return "content_moderation"
+    if any(k in model_id for k in ["gpt-realtime", "gpt-audio"]) or "audio-preview" in model_id:
+        return "realtime_audio"
+
+    # Priority 2: Core LLM categories, ordered by perceived capability/complexity
+    if any(k in model_id for k in ["o1", "o3", "o4"]) or "o-series" in family or any(k in family for k in ["gpt-5", "gpt-5.5"]) or "complex reasoning" in combined_text:
+        return "complex_reasoning"
+    
+    if any(k in model_id for k in ["gpt-4o", "gpt-4.1"]) or "vision" in combined_text or "multimodal" in combined_text:
+        return "multimodal_vision"
+
+    # Priority 3: Legacy models
+    if any(k in model_id for k in ["babbage", "davinci"]) or "gpt-3.5" in family or "legacy" in family:
+        return "legacy"
+    
+    # Priority 4: Fine-tuning Base (explicitly mentions fine-tuning in purpose/capabilities)
+    if "fine-tuning" in capabilities or "fine-tuning" in model_purpose:
+        return "fine_tuning"
+
+    # Priority 5: Fast Chat (remaining general chat models, exclude already classified modalities)
+    if ("chat" in combined_text or "mini" in model_id or "nano" in model_id) and \
+       not any(uc_key in combined_text for uc_key in ["image", "video", "speech", "tts", "embedding", "moderation", "realtime", "vision", "multimodal"]):
+        return "fast_chat"
+
     return "Other"
 
 
-def classify_models(stats):
-    grouped = defaultdict(list)
-    for m in stats["all_models"]:
-        grouped[m.get("use_case", "Other")].append(m)
-    return grouped
+def _score_model(model):
+    """Scores a model for recommendation within its use case."""
+    score = 0
+    if model.get("is_latest", False):
+        score += 100
+    
+    semantic_conf = model.get("semantic_confidence", 0)
+    score += int(semantic_conf * 50) # Scaled semantic confidence score (max 50)
 
+    if model.get("release_stage") == "stable":
+        score += 30
+    
+    # Bonus for being the latest non-versioned alias (e.g., 'gpt-4o' over 'gpt-4o-2024-05-13')
+    if model.get("is_latest", False) and model.get("version") in ["", "latest", model.get("family")]:
+        score += 20
 
+    # Penalize dated snapshots
+    if model.get("release_stage") == "versioned":
+        score -= 30
+    
+    # Penalize legacy/deprecated models significantly
+    if model.get("family") == "legacy" or model.get("release_stage") == "deprecated" or "legacy" in model.get("status", ""):
+        score -= 80
+
+    return score
 
 
 # ── Step 1: Parse JSON ────────────────────────────────────────────────────────
 def parse_json(path):
-    """Parse discovery JSON and compute statistics using enriched_models."""
+    """Parse discovery JSON and compute statistics from the primary source of truth."""
     with open(path) as f:
         data = json.load(f)
 
-    # CRITICAL: Use enriched_models which has semantic_confidence (0.3-0.9 = enrichment quality)
-    # NOT normalized_models which has confidence: 1.0 (API verified)
-    models = data.get("enriched_models", [])
-    if not models:
-        print("⚠️  WARNING: enriched_models not found, falling back to normalized_models")
-        models = data.get("normalized_models", [])
+    all_models = []
+    source_description = "normalized_models" # Default fallback
+    
+    # Prioritize planned_bigquery_actions.inserts + .updates
+    if data.get("planned_bigquery_actions"):
+        source_description = "planned_bigquery_actions.inserts + .updates"
+        all_models_map = {m["model_id"]: m for m in data["planned_bigquery_actions"].get("inserts", [])}
+        for m_update in data["planned_bigquery_actions"].get("updates", []):
+            all_models_map[m_update["model_id"]] = m_update # Updates overwrite existing
+        all_models = list(all_models_map.values())
+    elif data.get("enriched_models"):
+        source_description = "enriched_models"
+        all_models = data.get("enriched_models", [])
+    elif data.get("normalized_models"):
+        source_description = "normalized_models"
+        all_models = data.get("normalized_models", [])
+    else:
+        print("❌ ERROR: No model data found in planned_bigquery_actions, enriched_models, or normalized_models. Halting.")
+        sys.exit(1)
+
 
     provider = data.get("target_provider", "openai").upper()
     run_id = data.get("run_id", datetime.now().isoformat())
     run_date = run_id[:10] if len(run_id) >= 10 else datetime.now().strftime("%Y-%m-%d")
 
-    print(f"\n[DEBUG] Loaded {len(models)} models from {'enriched_models' if data.get('enriched_models') else 'normalized_models'}")
-    if models:
-        sample_confs = [m.get("semantic_confidence", m.get("confidence", 0)) for m in models[:5]]
-        print(f"[DEBUG] Sample semantic_confidence values: {sample_confs}")
+    parsed_model_count = len(all_models)
+    # User specified expected total models = 119 for the given JSON structure.
+    # We will validate against this explicit expectation.
+    if parsed_model_count != 119:
+        print(f"❌ ERROR: Model count mismatch. Expected 119 models, but parsed {parsed_model_count}. Halting.")
+        sys.exit(1)
+    
+    print(f"\n[DEBUG] Loaded {parsed_model_count} models from source: {source_description}")
+
+    categorized_models = defaultdict(list)
+    unclassified_models = []
 
     # Enrich each model with use_case and recommendation
-    for m in models:
+    for m in all_models:
+        use_case = _classify_model(m)
+        m["use_case"] = use_case
+
         semantic_conf = m.get("semantic_confidence", m.get("confidence", 0))
         is_latest = m.get("is_latest", False)
         is_active = m.get("is_active", True)
 
-        # Classify to one of 12 use-cases
-        use_case = classify_model_to_usecase(m)
-        m["use_case"] = use_case
-
-        # Determine recommendation based on semantic_confidence
+        # Determine recommendation based on semantic_confidence and is_latest status
         if semantic_conf >= 0.8 and is_latest and is_active:
             rec = "[RECOMMENDED]"
             color = "#0f62fe"  # IBM Blue
@@ -137,25 +203,31 @@ def parse_json(path):
         m["recommendation"] = rec
         m["rec_color"] = color
 
-    # Group by family
-    families = defaultdict(list)
-    for m in models:
-        families[m["family"]].append(m)
+        # Add model to categorized list or unclassified list
+        if use_case != "Other":
+            categorized_models[use_case].append(m)
+        else:
+            unclassified_models.append(m)
+    
+    # Select best model for each category using the scoring function
+    best_per_usecase = {}
+    for uc_key, models_in_category in categorized_models.items():
+        if models_in_category:
+            best_model_for_uc = max(models_in_category, key=_score_model)
+            best_per_usecase[uc_key] = best_model_for_uc
+            print(f"[DEBUG] Best model for '{USE_CASE_MAP_DICT.get(uc_key, {'title': uc_key})['title']}': {best_model_for_uc['model_id']} (Score: {_score_model(best_model_for_uc)})")
 
-    # Find latest per family
-    latest_per_family = {}
-    for fam, mlist in families.items():
-        latest = [m for m in mlist if m.get("is_latest")]
-        latest_per_family[fam] = (
-            latest[0]
-            if latest
-            else sorted(mlist, key=lambda x: x.get("discovered_at", ""), reverse=True)[0]
-        )
+    if unclassified_models:
+        print("\n[DEBUG] Unclassified Models:")
+        for um in unclassified_models:
+            print(f"  - {um.get('model_id')} (Family: {um.get('family')})")
+    else:
+        print("\n[DEBUG] No unclassified models.")
 
-    # Compute confidence buckets using semantic_confidence
+    # Compute confidence buckets using semantic_confidence across all parsed models
     stage_counts = defaultdict(int)
     conf_buckets = {"high": [], "medium": [], "low": []}
-    for m in models:
+    for m in all_models:
         stage_counts[m.get("release_stage", "unknown")] += 1
         semantic_conf = m.get("semantic_confidence", 0)
         if semantic_conf >= 0.8:
@@ -165,30 +237,38 @@ def parse_json(path):
         else:
             conf_buckets["low"].append(m)
 
-    print(f"\n[STATS] High confidence (≥0.8): {len(conf_buckets['high'])}")
-    print(f"[STATS] Medium confidence (0.5-0.8): {len(conf_buckets['medium'])}")
-    print(f"[STATS] Low confidence (<0.5): {len(conf_buckets['low'])}")
+    # Note: `families` and `latest_per_family` are not strictly needed for the use-case dashboard
+    # but are kept if `_text_diagram_fallback` is re-introduced or used elsewhere.
+    # For now, let's just make sure `family_count` is accurate for stats.
+    families = defaultdict(list)
+    for m in all_models:
+        families[m["family"]].append(m)
+
 
     return {
         "provider": provider,
         "run_id": run_id,
         "run_date": run_date,
-        "total": len(models),
+        "total": parsed_model_count, # Use the actual parsed count
         "families": dict(families),
         "family_count": len(families),
-        "latest_per_family": latest_per_family,
+        "latest_per_family": {}, # No longer actively used for main outputs, reset
         "stage_counts": dict(stage_counts),
         "conf_buckets": conf_buckets,
-        "all_models": models,
+        "all_models": all_models,
+        "categorized_models": categorized_models, # New field
+        "latest_per_usecase": best_per_usecase, # New field for best model per use-case
+        "unclassified_models": unclassified_models, # New field
     }
 
 
 # ── Step 2: Generate Dashboard-Style Model Selection Guide (12-card grid) ──────
 def generate_charts(stats):
-    """4x3 grid of use-case cards using GridSpec. No manual coordinates."""
+    """4x3 grid of use-case cards using GridSpec."""
     from matplotlib.gridspec import GridSpec
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    categorized = classify_models(stats)
+    categorized = stats["categorized_models"] # Use pre-classified models
+    best_models_per_usecase = stats["latest_per_usecase"] # Use pre-determined best models
 
     BG = "#ffffff"
     CARD_BG = "#f4f4f4"
@@ -196,12 +276,12 @@ def generate_charts(stats):
     TEXT = "#161616"
     SUBTEXT = "#525252"
 
-    fig = plt.figure(figsize=(20, 16), facecolor=BG)
+    fig = plt.figure(figsize=(20, 18), facecolor=BG) # Increased figure height
     gs = GridSpec(
         nrows=5, ncols=4,
-        height_ratios=[1.2, 0.8, 3, 3, 3],
+        height_ratios=[1.0, 0.7, 3.5, 3.5, 3.5], # Adjusted row heights to fit more text
         hspace=0.35, wspace=0.25,
-        left=0.04, right=0.96, top=0.97, bottom=0.04
+        left=0.04, right=0.96, top=0.97, bottom=0.03
     )
 
     ax_header = fig.add_subplot(gs[0, :])
@@ -228,34 +308,43 @@ def generate_charts(stats):
         row = 2 + idx // 4
         col = idx % 4
         ax = fig.add_subplot(gs[row, col])
-        _render_card(ax, uc, categorized.get(uc["key"], []), CARD_BG, BORDER, TEXT, SUBTEXT)
+        _render_card(ax, uc, categorized.get(uc["key"], []), best_models_per_usecase.get(uc["key"]), CARD_BG, BORDER, TEXT, SUBTEXT)
 
     chart_path = f"{OUTPUT_DIR}/model_chart_{ts}.png"
     fig.savefig(chart_path, dpi=130, bbox_inches="tight", facecolor=BG, edgecolor="none")
     plt.close()
-    print(f"✅ Chart PNG: {chart_path}")
+    print(f"Chart PNG: {chart_path}")
     return chart_path
 
 
-def _render_card(ax, uc, models, CARD_BG, BORDER, TEXT, SUBTEXT):
+def _render_card(ax, uc, models, best_model, CARD_BG, BORDER, TEXT, SUBTEXT):
     ax.set_xlim(0, 10)
     ax.set_ylim(0, 10)
     ax.axis("off")
 
     count = len(models)
+    
+    # Determine badge text based on the best_model's recommendation
+    badge_text, badge_color = "INFO", "#525252" # Default
+    if best_model:
+        rec_status = best_model.get("recommendation")
+        if rec_status == "[RECOMMENDED]":
+            badge_text, badge_color = "RECOMMENDED", "#0f62fe"
+        elif rec_status == "[GOOD]":
+            badge_text, badge_color = "GOOD", "#198038"
+        elif rec_status == "[NICHE]":
+            badge_text, badge_color = "NICHE", "#8a3ffc"
+        elif rec_status == "[DEPRECATED]":
+            badge_text, badge_color = "DEPRECATED", "#da1e28"
+            
+    # Explicitly mark legacy/fine_tuning categories as DEPRECATED if no models or specific recommendation
     if count == 0:
         badge_text, badge_color = "EMPTY", "#a8a8a8"
-    elif uc["key"] in ("legacy", "fine_tuning"):
+    elif uc["key"] == "legacy": # Force DEPRECATED for legacy category
         badge_text, badge_color = "DEPRECATED", "#da1e28"
-    else:
-        high_in = sum(1 for m in models if m.get("semantic_confidence", 0) >= 0.8)
-        has_latest = any(m.get("is_latest") for m in models)
-        if has_latest and high_in > 0:
-            badge_text, badge_color = "RECOMMENDED", "#0f62fe"
-        elif high_in > 0:
-            badge_text, badge_color = "GOOD", "#198038"
-        else:
-            badge_text, badge_color = "NICHE", "#8a3ffc"
+    elif uc["key"] == "fine_tuning" and badge_text == "INFO": # If fine-tuning and no strong recommendation
+        badge_text, badge_color = "CUSTOMIZE", "#ff832b"
+
 
     card = mpatches.FancyBboxPatch((0.1, 0.1), 9.8, 9.8, boxstyle="round,pad=0.05,rounding_size=0.3",
                                    facecolor=CARD_BG, edgecolor=BORDER, linewidth=1.5)
@@ -270,225 +359,181 @@ def _render_card(ax, uc, models, CARD_BG, BORDER, TEXT, SUBTEXT):
     ax.add_patch(badge)
     ax.text(8.5, 9.0, badge_text, fontsize=8, fontweight="bold", ha="center", va="center", color="#ffffff")
 
-    if models:
-        best = max(models, key=lambda m: (m.get("is_latest", False), m.get("semantic_confidence", 0)))
-        mid = best.get("model_id", "")
+    if best_model:
+        mid = best_model.get("model_id", "")
+        # Truncate model_id for card display if too long
         if len(mid) > 24:
-            mid = mid[:22] + ".."
+            mid_display = mid[:22] + "..."
+        else:
+            mid_display = mid
+        
         ax.text(0.5, 7.3, "Recommended Model:", fontsize=9, color=SUBTEXT)
-        ax.text(0.5, 6.3, mid, fontsize=12, fontweight="bold", color=TEXT, family="monospace")
-        ax.text(0.5, 5.0, f"Family: {best.get('family', '—')}", fontsize=10, color=SUBTEXT, style="italic")
-        ax.text(0.5, 4.0, f"Available Models: {count}", fontsize=10, color=TEXT, fontweight="bold")
-        desc_box = mpatches.FancyBboxPatch((0.5, 0.7), 9.0, 1.8, boxstyle="round,pad=0.05,rounding_size=0.15",
+        ax.text(0.5, 6.7, mid_display, fontsize=11, fontweight="bold", color=TEXT, family="monospace")
+        ax.text(0.5, 6.0, f"Family: {best_model.get('family', '---')}", fontsize=9, color=SUBTEXT, style="italic")
+        ax.text(0.5, 5.4, f"Available: {count}", fontsize=9, color=TEXT, fontweight="bold")
+
+        # Purpose summary
+        purpose_summary = best_model.get("model_purpose", best_model.get("selection_notes", uc["desc"]))
+        
+        # Capability chips
+        capabilities_list = best_model.get("capabilities", [])
+        capability_chips = ", ".join(capabilities_list[:2]) # Show first 2 capabilities
+        if len(capabilities_list) > 2:
+            capability_chips += ", ..."
+        
+        # Combine purpose and capabilities for the text box
+        desc_text = purpose_summary
+        if capability_chips:
+            desc_text += f"\nCapabilities: {capability_chips}"
+        
+        # Truncate combined description if too long
+        if len(desc_text) > 180: # Heuristic for maximum displayable text in box
+            desc_text = desc_text[:177] + "..."
+
+        desc_box = mpatches.FancyBboxPatch((0.5, 0.7), 9.0, 4.0, # Made box taller
+                                           boxstyle="round,pad=0.05,rounding_size=0.15",
                                            facecolor="#e8e8e8", edgecolor="none")
         ax.add_patch(desc_box)
-        ax.text(5.0, 1.6, uc["desc"], ha="center", va="center", fontsize=9, color=SUBTEXT, style="italic", wrap=True)
+        ax.text(5.0, 2.7, desc_text, ha="center", va="center", fontsize=8.5, color=SUBTEXT, style="italic", wrap=True)
     else:
-        ax.text(5.0, 5.0, "No models in this category", ha="center", va="center", fontsize=10, color=SUBTEXT, style="italic")
+        # If no best_model, but category is 'fine_tuning' or 'legacy', show specific message
+        if uc["key"] == "legacy":
+            ax.text(5.0, 5.0, "Contains older or phased-out model families.", ha="center", va="center", fontsize=10, color=SUBTEXT, style="italic")
+        elif uc["key"] == "fine_tuning":
+            ax.text(5.0, 5.0, "Base models for customization and fine-tuning.", ha="center", va="center", fontsize=10, color=SUBTEXT, style="italic")
+        else:
+            ax.text(5.0, 5.0, "No models in this category", ha="center", va="center", fontsize=10, color=SUBTEXT, style="italic")
 
 
 # ── Step 3: Generate Mermaid diagram (grouped by use-case) ──────────────────────
-def generate_mermaid_png(stats):
-    """Mindmap: category → latest model → status. One node per item."""
+def generate_mermaid_png(stats, validate_only=False):
+    """Mindmap: category -> best model -> status. Full model names."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    categorized = classify_models(stats)
+    categorized = stats["categorized_models"]
+    best_models_per_usecase = stats["latest_per_usecase"]
+
     lines = [
         "%%{init: {'theme':'base','themeVariables':{'primaryColor':'#0f62fe','primaryTextColor':'#ffffff','primaryBorderColor':'#0353e9','lineColor':'#525252','fontFamily':'Helvetica'}}}%%",
         "mindmap",
         f"  root(({stats['provider']}<br/>{stats['total']} Models<br/>{stats['family_count']} Families))"
     ]
     for uc in USE_CASE_MAP:
-        models = categorized.get(uc["key"], [])
-        if not models:
+        uc_key = uc["key"]
+        models_in_category = categorized.get(uc_key, [])
+        best = best_models_per_usecase.get(uc_key)
+
+        if not best:
             continue
-        count = len(models)
-        if uc["key"] in ("legacy", "fine_tuning"):
-            status = "DEPRECATED"
-        else:
-            high_in = sum(1 for m in models if m.get("semantic_confidence", 0) >= 0.8)
-            has_latest = any(m.get("is_latest") for m in models)
-            if has_latest and high_in > 0:
-                status = "RECOMMENDED"
-            elif high_in > 0:
-                status = "GOOD"
-            else:
-                status = "NICHE"
-        best = max(models, key=lambda m: (m.get("is_latest", False), m.get("semantic_confidence", 0)))
+
+        count = len(models_in_category)
+        
+        status = best.get("recommendation", "N/A").strip("[]")
+
         bid = best.get("model_id", "?")
         bfam = best.get("family", "?")
-        cat_id = uc["key"].replace("_", "")
-        lines.append(f"    {cat_id}[{uc['icon']} {uc['title']}<br/>{count} models]")
-        lines.append(f"      {cat_id}_model[Latest: {bid}]")
-        lines.append(f"      {cat_id}_fam[Family: {bfam}]")
-        lines.append(f"      {cat_id}_status[Status: {status}]")
+        
+        cat_id = uc_key.replace("_", "")
+        lines.append(f"    {cat_id}[{uc['icon']} {uc['title']}<br/>({count} models)]")
+        lines.append(f"      {cat_id}_model(Best: {bid})") # Use parentheses for normal nodes
+        lines.append(f"      {cat_id}_fam(Family: {bfam})")
+        lines.append(f"      {cat_id}_status(Status: {status})")
+        
+        capabilities_list = best.get("capabilities", [])
+        if capabilities_list:
+            caps_text = ", ".join(capabilities_list)
+            # Split long capability strings into multiple lines or nodes if necessary
+            # Mermaid-cli supports <br/> for line breaks in nodes
+            max_cap_len = 50 # Heuristic for splitting capabilities
+            current_cap_line = []
+            all_cap_lines = []
+            for cap in capabilities_list:
+                if len(", ".join(current_cap_line + [cap])) > max_cap_len and current_cap_line:
+                    all_cap_lines.append(", ".join(current_cap_line))
+                    current_cap_line = [cap]
+                else:
+                    current_cap_line.append(cap)
+            if current_cap_line:
+                all_cap_lines.append(", ".join(current_cap_line))
+            
+            for i, line in enumerate(all_cap_lines):
+                lines.append(f"      {cat_id}_caps{i}(Capabilities: {line})")
+
+
     mermaid_text = "\n".join(lines)
     mmd_path = f"{OUTPUT_DIR}/model_mindmap_{ts}.mmd"
     png_path = f"{OUTPUT_DIR}/model_mindmap_{ts}.png"
     with open(mmd_path, "w") as f:
         f.write(mermaid_text)
     print(f"\n=== MERMAID PREVIEW ===\n{mermaid_text}\n=====================\n")
+
+    if validate_only:
+        print(f"[VALIDATE-ONLY] Skipping Mermaid PNG generation.")
+        return png_path, mmd_path
+        
     ret = os.system(
-        f"npx --yes @mermaid-js/mermaid-cli mmdc -i {mmd_path} -o {png_path} -t default -b white -w 2400 -H 1600 2>/dev/null"
+        f"npx --yes @mermaid-js/mermaid-cli mmdc -i {mmd_path} -o {png_path} -t default -b white -w 3000 -H 2000 --scale 2 2>/dev/null"
     )
-    if ret != 0 or not os.path.exists(png_path):
-        print("⚠️ mermaid-cli failed, using matplotlib fallback")
-        png_path = _matplotlib_mindmap_fallback(stats, categorized, ts)
-    print(f"✅ Mindmap: {png_path}")
+    if ret != 0 or not os.path.exists(png_path) or os.path.getsize(png_path) == 0:
+        print("WARNING: mermaid-cli failed or produced empty file, using matplotlib fallback")
+        png_path = _matplotlib_mindmap_fallback(stats, categorized, best_models_per_usecase, ts)
+    print(f"Mindmap: {png_path}")
     return png_path, mmd_path
 
 
-def _matplotlib_mindmap_fallback(stats, categorized, ts):
+def _matplotlib_mindmap_fallback(stats, categorized, best_models_per_usecase, ts):
     import math
-    fig, ax = plt.subplots(figsize=(18, 14), facecolor="#ffffff")
-    ax.set_xlim(-12, 12)
-    ax.set_ylim(-10, 10)
+    fig, ax = plt.subplots(figsize=(24, 18), facecolor="#ffffff")
+    ax.set_xlim(-15, 15)
+    ax.set_ylim(-12, 12)
     ax.axis("off")
     ax.set_aspect("equal")
 
-    center = mpatches.Circle((0, 0), 1.8, facecolor="#0f62fe", edgecolor="none")
+    center = mpatches.Circle((0, 0), 2.2, facecolor="#0f62fe", edgecolor="none")
     ax.add_patch(center)
-    ax.text(0, 0.3, stats["provider"], ha="center", va="center", fontsize=14, fontweight="bold", color="#ffffff")
-    ax.text(0, -0.3, f"{stats['total']} Models", ha="center", va="center", fontsize=10, color="#ffffff")
-    ax.text(0, -0.7, f"{stats['family_count']} Families", ha="center", va="center", fontsize=10, color="#ffffff")
+    ax.text(0, 0.5, stats["provider"], ha="center", va="center", fontsize=16, fontweight="bold", color="#ffffff")
+    ax.text(0, 0, f"{stats['total']} Models", ha="center", va="center", fontsize=12, color="#ffffff")
+    ax.text(0, -0.4, f"{stats['family_count']} Families", ha="center", va="center", fontsize=12, color="#ffffff")
 
-    active = [uc for uc in USE_CASE_MAP if categorized.get(uc["key"])]
-    n = len(active)
-    for i, uc in enumerate(active):
+    active_use_cases = [uc for uc in USE_CASE_MAP if categorized.get(uc["key"])]
+    n = len(active_use_cases)
+    
+    radius = 9
+    for i, uc in enumerate(active_use_cases):
         angle = (2 * math.pi * i / n) - math.pi / 2
-        cx = 7 * math.cos(angle)
-        cy = 7 * math.sin(angle)
-        models = categorized[uc["key"]]
-        best = max(models, key=lambda m: (m.get("is_latest", False), m.get("semantic_confidence", 0)))
-        ax.plot([0, cx * 0.4], [0, cy * 0.4], color=uc["color"], linewidth=2, alpha=0.6)
-        bubble = mpatches.FancyBboxPatch((cx - 2.2, cy - 0.8), 4.4, 1.6,
-                                         boxstyle="round,pad=0.1,rounding_size=0.3",
-                                         facecolor=uc["color"], edgecolor="none")
-        ax.add_patch(bubble)
-        ax.text(cx, cy + 0.3, f"{uc['icon']} {uc['title']}", ha="center", va="center", fontsize=10, fontweight="bold", color="#ffffff")
-        ax.text(cx, cy - 0.3, f"{len(models)} models · {best.get('model_id', '')[:18]}", ha="center", va="center", fontsize=8, color="#ffffff")
+        cx = radius * math.cos(angle)
+        cy = radius * math.sin(angle)
+        
+        best = best_models_per_usecase.get(uc["key"])
 
-    path = f"{OUTPUT_DIR}/model_mindmap_{ts}.png"
-    fig.savefig(path, dpi=130, bbox_inches="tight", facecolor="#ffffff")
+        ax.plot([0, cx * 0.2], [0, cy * 0.2], color=uc["color"], linewidth=2, alpha=0.6, zorder=0)
+
+        bubble = mpatches.FancyBboxPatch((cx - 2.8, cy - 1.2), 5.6, 2.4,
+                                         boxstyle="round,pad=0.1,rounding_size=0.3",
+                                         facecolor=uc["color"], edgecolor="none", zorder=1)
+        ax.add_patch(bubble)
+        ax.text(cx, cy + 0.6, f"{uc['icon']} {uc['title']}", ha="center", va="center", fontsize=12, fontweight="bold", color="#ffffff")
+        
+        if best:
+            model_id_display = best.get("model_id", "?")
+            
+            # Simple word wrap for model_id in matplotlib fallback
+            wrapped_model_id = ""
+            current_line = []
+            for word in model_id_display.split('-'): # Split by common model_id separator
+                if len('-'.join(current_line + [word])) <= 20: # Keep line length reasonable
+                    current_line.append(word)
+                else:
+                    wrapped_model_id += '-'.join(current_line) + '\n'
+                    current_line = [word]
+            if current_line:
+                wrapped_model_id += '-'.join(current_line)
+            
+            ax.text(cx, cy - 0.2, f"Best: {wrapped_model_id}", ha="center", va="center", fontsize=9, color="#ffffff", wrap=True)
+
+    path = f"{OUTPUT_DIR}/model_mindmap_matplotlib_{ts}.png"
+    fig.savefig(path, dpi=150, bbox_inches="tight", facecolor="#ffffff")
     plt.close()
     return path
-
-
-def _text_diagram_fallback(stats, ts):
-    """Render a clean text-based class diagram as PNG using matplotlib."""
-    BG, CARD, TEXT, HEAD = "#ffffff", "#f0f4f8", "#1e40af", "#0f172a"
-    provider = stats["provider"]
-
-    families = sorted(stats["families"].keys())
-    n_fam = len(families)
-    cols = 4
-    rows = (n_fam + cols - 1) // cols
-
-    fig, ax = plt.subplots(figsize=(20, max(10, rows * 2.5)), facecolor=BG)
-    ax.set_facecolor(BG)
-    ax.axis("off")
-    ax.set_xlim(0, cols)
-    ax.set_ylim(-rows - 0.5, 1.5)
-
-    ax.text(
-        cols / 2,
-        1.2,
-        f"{provider} AI MODEL LANDSCAPE",
-        ha="center",
-        va="center",
-        fontsize=20,
-        fontweight="bold",
-        color="#0f172a",
-        fontfamily="sans-serif",
-    )
-    ax.text(
-        cols / 2,
-        0.8,
-        f"{stats['total']} Total Models  ·  {stats['family_count']} Families",
-        ha="center",
-        va="center",
-        fontsize=13,
-        color="#1e40af",
-        fontfamily="sans-serif",
-    )
-
-    for i, fam in enumerate(families):
-        mods = stats["families"][fam]
-        count = len(mods)
-        latest = stats["latest_per_family"].get(fam, {})
-        lid = latest.get("model_id", "?")[:20]
-        use_case = latest.get("use_case", "General")
-        rec = latest.get("recommendation", "")
-        rec_color = latest.get("rec_color", "#3b82f6")
-
-        col = i % cols
-        row = -(i // cols) - 1
-        cx, cy = col + 0.5, row + 0.5
-
-        rect = mpatches.FancyBboxPatch(
-            (col + 0.05, row + 0.08),
-            0.88,
-            0.82,
-            boxstyle="round,pad=0.02",
-            facecolor=CARD,
-            edgecolor=rec_color,
-            linewidth=2.5,
-        )
-        ax.add_patch(rect)
-
-        ax.text(
-            cx,
-            cy + 0.32,
-            f"{fam}",
-            ha="center",
-            va="center",
-            fontsize=10,
-            fontweight="bold",
-            color="#0f172a",
-            fontfamily="sans-serif",
-        )
-        ax.text(
-            cx, cy + 0.13, use_case, ha="center", va="center",
-            fontsize=8, fontweight="bold", color=rec_color, fontfamily="sans-serif"
-        )
-        ax.text(
-            cx, cy - 0.02, f"{count} models", ha="center", va="center", fontsize=7, color="#64748b", fontfamily="sans-serif"
-        )
-        ax.text(
-            cx, cy - 0.16, rec, ha="center", va="center", fontsize=7,
-            color="white", bbox=dict(boxstyle="round,pad=0.25", facecolor=rec_color, alpha=0.9)
-        )
-        ax.text(cx, cy - 0.32, lid, ha="center", va="center", fontsize=6, color="#94a3b8", fontfamily="monospace")
-
-    legend_patches = [
-        mpatches.Patch(color="#1e40af", label="[RECOMMENDED] - Production-ready, latest"),
-        mpatches.Patch(color="#10b981", label="[GOOD] - Stable, proven"),
-        mpatches.Patch(color="#f59e0b", label="[NICHE] - Specialized use cases"),
-        mpatches.Patch(color="#6b7280", label="[DEPRECATED] - Legacy models"),
-    ]
-    fig.legend(
-        handles=legend_patches,
-        loc="lower center",
-        ncol=2,
-        facecolor="#f8fafc",
-        edgecolor="#cbd5e1",
-        labelcolor="#0f172a",
-        fontsize=9,
-        framealpha=0.95,
-        bbox_to_anchor=(0.5, 0.04),
-    )
-
-    png_path = f"{OUTPUT_DIR}/model_diagram_{ts}.png"
-    try:
-        fig.savefig(png_path, dpi=150, bbox_inches="tight", facecolor=BG)
-        plt.close()
-
-        if not os.path.exists(png_path) or os.path.getsize(png_path) == 0:
-            raise ValueError(f"Diagram fallback failed: {png_path}")
-
-        return png_path
-    except Exception as e:
-        print(f"❌ Diagram fallback failed: {e}")
-        raise
 
 
 # ── Step 3.5: Verify no hallucination (number consistency) ──────────────────────
@@ -852,18 +897,20 @@ def update_readme(stats, li_url, med_url):
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     publish_mode = "--publish" in sys.argv
-    json_path = sys.argv[1] if len(sys.argv) > 1 else "agents/model_discovery_candidates_openai.json"
-    if json_path == "--publish":
-        json_path = "agents/model_discovery_candidates_openai.json"
+    validate_only = "--validate-only" in sys.argv
+    
+    # Determine json_path, skipping flags
+    json_path_args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
+    json_path = json_path_args[0] if json_path_args else "agents/model_discovery_candidates_openai.json"
 
     print(f"\n{'='*60}")
-    print(f"  DISCOVERY PUBLISHER")
+    print(f"  DISCOVERY PUBLISHER (Validate Only: {validate_only})")
     print(f"  Input: {json_path}")
     print(f"{'='*60}\n")
 
-    print("📦 Parsing JSON...")
+    print("📦 Parsing JSON and classifying models...")
     stats = parse_json(json_path)
-    print(f"   {stats['provider']} · {stats['total']} models · {stats['family_count']} families\n")
+    print(f"   {stats['provider']} · {stats['total']} models · {stats['family_count']} families (parsed)\n")
 
     # Print summary statistics
     high = len(stats['conf_buckets']['high'])
@@ -872,16 +919,37 @@ def main():
     print(f"\n{'='*60}")
     print(f"SUMMARY STATISTICS")
     print(f"{'='*60}")
-    print(f"✅ High Confidence (≥0.8): {high} models")
+    print(f"✅ High Confidence (>=0.8): {high} models")
     print(f"⚠️  Medium Confidence (0.5-0.8): {medium} models")
     print(f"❌ Low Confidence (<0.5): {low} models")
     print(f"{'='*60}\n")
+    
+    print("\nCategory Counts:")
+    for uc_key, uc_data in USE_CASE_MAP_DICT.items():
+        count = len(stats["categorized_models"].get(uc_key, []))
+        best_model_info = stats["latest_per_usecase"].get(uc_key)
+        best_model_str = f"Best: {best_model_info['model_id']} (Score: {_score_model(best_model_info)})" if best_model_info else "N/A"
+        print(f"  - {uc_data['title']}: {count} models ({best_model_str})")
+    
+    if stats["unclassified_models"]:
+        print(f"\n[UNCLASSIFIED] {len(stats['unclassified_models'])} models were not classified:")
+        for um in stats["unclassified_models"]:
+            print(f"  - {um.get('model_id')} (Family: {um.get('family')})")
+    else:
+        print("\n[DEBUG] No unclassified models.")
+
+    print(f"\n{'='*60}\n")
+
+
+    if validate_only:
+        print("\n✅ Validation complete. Exiting (--validate-only flag used).")
+        return
 
     print("📊 Generating charts...")
     chart_png = generate_charts(stats)
 
     print("\n🗺  Generating model diagram...")
-    diagram_png, diagram_mmd = generate_mermaid_png(stats)
+    diagram_png, diagram_mmd = generate_mermaid_png(stats, validate_only) # Pass validate_only
 
     if not publish_mode:
         print("\n⏸  Visual generation complete. Publish steps skipped (use --publish to enable posting).")
@@ -917,7 +985,7 @@ def main():
     li_url = post_linkedin(linkedin_text, chart_png)
 
     print("\n📝 Posting to Medium...")
-    title = f"{stats['provider']} Has {stats['total']} Active AI Models — Full Discovery Report {stats['run_date']}"
+    title = f"{stats['provider']} Has {stats['total']} Active AI Models -- Full Discovery Report {stats['run_date']}"
     med_url = post_medium(medium_content, title)
 
     print("\n📖 Updating README...")
