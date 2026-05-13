@@ -109,6 +109,8 @@ def _classify_model(model):
     if provider_lower == "xai":
         if model_id_lower in ["grok-3", "grok-3-mini"]:
             return "fast_chat"
+        if "grok-3" in model_id_lower:
+            return "fast_chat"
         if "non-reasoning" in model_id_lower:
             return "fast_chat"
         if "imagine-image" in model_id_lower:
@@ -338,8 +340,12 @@ def parse_json(path):
         rule_case = _classify_model(m)
         use_case = semantic_case or rule_case
         if semantic_case and rule_case and semantic_case != rule_case:
-            use_case = "unassigned_review"
-            m["category_reason"] = f"conflict semantic={semantic_case} rule={rule_case}"
+            if m.get("provider", "").lower() == "xai":
+                use_case = "fast_chat"
+                m["category_reason"] = f"xai_conflict_forced_fast_chat semantic={semantic_case} rule={rule_case}"
+            else:
+                use_case = "unassigned_review"
+                m["category_reason"] = f"conflict semantic={semantic_case} rule={rule_case}"
         else:
             m["category_reason"] = semantic_reason if semantic_case else f"rule:{rule_case}"
         m["use_case"] = use_case
@@ -452,21 +458,26 @@ def generate_charts(stats):
     card_count = len(active_uc)
     card_rows = max(1, (card_count + 3) // 4)
 
-    fig = plt.figure(figsize=(20, 8 + (card_rows * 3.5)), facecolor=BG)
+    fig = plt.figure(figsize=(22, 6 + card_rows * 6), facecolor=BG)
     gs = GridSpec(
         nrows=2 + card_rows, ncols=4,
-        height_ratios=[1.0, 0.7] + [3.5] * card_rows,
-        hspace=0.35, wspace=0.25,
-        left=0.04, right=0.96, top=0.97, bottom=0.03
+        height_ratios=[1.2, 0.8] + [4.0] * card_rows,
+        hspace=0.4, wspace=0.3,
+        left=0.03, right=0.97, top=0.97, bottom=0.03
     )
 
     ax_header = fig.add_subplot(gs[0, :])
     ax_header.axis("off")
-    rect = mpatches.Rectangle((0, 0), 1, 1, transform=ax_header.transAxes, facecolor="#0f62fe", zorder=0)
-    ax_header.add_patch(rect)
+    rect1 = mpatches.Rectangle((0, 0), 1, 1, transform=ax_header.transAxes, facecolor="#0043ce", zorder=0)
+    rect2 = mpatches.Rectangle((0.5, 0), 0.5, 1, transform=ax_header.transAxes, facecolor="#0f62fe", zorder=0, alpha=0.6)
+    ax_header.add_patch(rect1)
+    ax_header.add_patch(rect2)
     ax_header.text(0.5, 0.5, f"{stats['provider']} AI Model Discovery Dashboard",
                    transform=ax_header.transAxes, ha="center", va="center",
                    fontsize=28, fontweight="bold", color="#ffffff", zorder=1)
+    ax_header.text(0.5, 0.2, f"Automated Discovery · {stats['run_date']} · {stats['total']} Models Cataloged",
+                   transform=ax_header.transAxes, ha="center", va="center",
+                   fontsize=13, color="#a6c8ff", zorder=1)
 
     category_best_ids = {v.get("model_id") for v in best_models_per_usecase.values() if v}
     recommended_count = sum(
@@ -483,7 +494,11 @@ def generate_charts(stats):
     for i, (val, label) in enumerate(metrics):
         ax_m = fig.add_subplot(gs[1, i])
         ax_m.axis("off")
-        ax_m.text(0.5, 0.65, val, ha="center", va="center", fontsize=32, fontweight="bold", color="#0f62fe", transform=ax_m.transAxes)
+        kpi_bg = mpatches.FancyBboxPatch((0.02, 0.08), 0.96, 0.84, boxstyle="round,pad=0.02,rounding_size=0.04", transform=ax_m.transAxes, facecolor="#f4f4f4", edgecolor="#e0e0e0")
+        ax_m.add_patch(kpi_bg)
+        bar = mpatches.Rectangle((0, 0.1), 0.04, 0.8, transform=ax_m.transAxes, facecolor="#0f62fe", zorder=2)
+        ax_m.add_patch(bar)
+        ax_m.text(0.5, 0.65, val, ha="center", va="center", fontsize=38, fontweight="bold", color="#0f62fe", transform=ax_m.transAxes)
         ax_m.text(0.5, 0.2, label, ha="center", va="center", fontsize=11, color=SUBTEXT, transform=ax_m.transAxes)
 
     for idx, uc in enumerate(active_uc):
@@ -493,7 +508,8 @@ def generate_charts(stats):
         _render_card(ax, uc, categorized.get(uc["key"], []), best_models_per_usecase.get(uc["key"]), CARD_BG, BORDER, TEXT, SUBTEXT)
 
     chart_path = f"{OUTPUT_DIR}/model_chart_{ts}.png"
-    fig.savefig(chart_path, dpi=130, bbox_inches="tight", facecolor=BG, edgecolor="none")
+    fig.text(0.5, 0.01, f"Source: {stats['provider']} Official API  |  Method: LangGraph + Gemini  |  Storage: BigQuery  |  Generated: {stats['run_date']}", ha="center", fontsize=9, color="#6f6f6f")
+    fig.savefig(chart_path, dpi=180, bbox_inches="tight", facecolor=BG, edgecolor="none")
     plt.close()
     print(f"Chart PNG: {chart_path}")
     return chart_path
@@ -531,7 +547,7 @@ def _render_card(ax, uc, models, best_model, CARD_BG, BORDER, TEXT, SUBTEXT):
     card = mpatches.FancyBboxPatch((0.1, 0.1), 9.8, 9.8, boxstyle="round,pad=0.05,rounding_size=0.3",
                                    facecolor=CARD_BG, edgecolor=BORDER, linewidth=1.5)
     ax.add_patch(card)
-    accent = mpatches.Rectangle((0.1, 8.2), 9.8, 1.7, facecolor=uc["color"], edgecolor="none")
+    accent = mpatches.Rectangle((0.1, 7.7), 9.8, 2.2, facecolor=uc["color"], edgecolor="none")
     ax.add_patch(accent)
     ax.text(0.5, 9.05, uc["icon"], fontsize=20, va="center", color="#ffffff")
     ax.text(1.4, 9.05, uc["title"], fontsize=13, fontweight="bold", va="center", color="#ffffff")
@@ -540,6 +556,7 @@ def _render_card(ax, uc, models, best_model, CARD_BG, BORDER, TEXT, SUBTEXT):
                                     facecolor=badge_color, edgecolor="none")
     ax.add_patch(badge)
     ax.text(8.5, 9.0, badge_text, fontsize=8, fontweight="bold", ha="center", va="center", color="#ffffff")
+    ax.plot([0.15, 0.15], [0.1, 8.1], color=uc["color"], linewidth=3, solid_capstyle="round", zorder=2)
 
     if best_model:
         mid = best_model.get("model_id", "")
@@ -550,7 +567,7 @@ def _render_card(ax, uc, models, best_model, CARD_BG, BORDER, TEXT, SUBTEXT):
             mid_display = mid
         
         ax.text(0.5, 7.3, "Recommended Model:", fontsize=9, color=SUBTEXT)
-        ax.text(0.5, 6.7, mid_display, fontsize=11, fontweight="bold", color=TEXT, family="monospace")
+        ax.text(0.5, 6.7, mid_display, fontsize=13, fontweight="bold", color="#0f62fe", family="monospace")
         ax.text(0.5, 6.0, f"Family: {best_model.get('family', '---')}", fontsize=9, color=SUBTEXT, style="italic")
         ax.text(0.5, 5.4, f"Available: {count}", fontsize=9, color=TEXT, fontweight="bold")
 
@@ -1355,7 +1372,8 @@ STRUCTURE:
 5. Call to action: What's YOUR biggest challenge?
 
 TONE: Authentic, technical, not salesy
-LENGTH: Max 1300 characters
+LENGTH: 150-200 words
+MANDATORY: Write a complete LinkedIn post of 150-200 words. Do not stop mid-sentence. Complete all paragraphs.
 CONSTRAINT: Only use numbers from STRICT FACTS block. Never mention specific model names unless in STRICT FACTS.
 
 Write ONLY the post text, no commentary."""
@@ -1364,7 +1382,9 @@ Write ONLY the post text, no commentary."""
     if _looks_truncated(linkedin_text):
         linkedin_text = _call_gemini_text(li_prompt + "\n\nIMPORTANT: End with a complete sentence.", gemini_model, 2200, 0.7, 0.9)
 
-    if not linkedin_text or len(linkedin_text) < 100:
+    if not linkedin_text or len(linkedin_text) < 500:
+        linkedin_text = _call_gemini_text(li_prompt + "\n\nIMPORTANT: Ensure 150-200 words and complete ending.", gemini_model, 2500, 0.7, 0.9)
+    if not linkedin_text or len(linkedin_text) < 300:
         raise ValueError(f"LinkedIn post too short: {len(linkedin_text)} chars")
 
     # Medium article with STRICT FACTS and tables
@@ -1813,6 +1833,8 @@ Examples:
     print("\nCategory Counts:")
     for uc_key, uc_data in USE_CASE_MAP_DICT.items():
         count = len(stats["categorized_models"].get(uc_key, []))
+        if count == 0:
+            continue
         best_model_info = stats["latest_per_usecase"].get(uc_key)
         best_model_str = f"Best: {best_model_info['model_id']} (Score: {_score_model(best_model_info)})" if best_model_info else "N/A"
         print(f"  - {uc_data['title']}: {count} models ({best_model_str})")
@@ -1843,6 +1865,8 @@ Examples:
     print("\nCategory Counts:")
     for uc_key, uc_data in USE_CASE_MAP_DICT.items():
         count = len(stats["categorized_models"].get(uc_key, []))
+        if count == 0:
+            continue
         best_model_info = stats["latest_per_usecase"].get(uc_key)
         # Use only model_id and score for best_model_str
         best_model_str = f"Best: {best_model_info['model_id']} (Score: {_score_model(best_model_info)})" if best_model_info else "N/A"
