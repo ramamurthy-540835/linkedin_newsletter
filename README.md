@@ -185,3 +185,18 @@ Use this prompt to continue frontend work:
 3. Add BigQuery persistence mode for production analytics/audit.
 4. Add scheduled publishing worker path with Cloud Tasks and signed service auth.
 5. Add tests for routes and publish failure paths.
+
+
+## 📊 Latest Model Discovery Run
+
+| Field | Value |
+|-------|-------|
+| Provider | OPENAI |
+| Run Date | 20260512T1 |
+| Total Models | 119 |
+| Families | 17 |
+| High Confidence | 0 |
+| Needs Review | 0 |
+| LinkedIn Post | N/A |
+| Medium Article | reports/medium_draft_20260513_031231.md |
+
