@@ -55,9 +55,12 @@ except ImportError:
     _HAS_VERTEX_AI = False
     print("WARNING: Google Cloud Vertex AI libraries not found. Imagen generation will be skipped.")
 
-# Load .env file
-load_dotenv("backend/.env.local")
-load_dotenv("backend/.env")
+# Load .env files (repo root first, then backend-specific files).
+# Do not override already-exported shell environment variables.
+load_dotenv(".env.local", override=False)
+load_dotenv(".env", override=False)
+load_dotenv("backend/.env.local", override=False)
+load_dotenv("backend/.env", override=False)
 
 # Global dictionary for easier USE_CASE_MAP lookup
 USE_CASE_MAP_DICT = {}
@@ -1027,6 +1030,36 @@ def _imagen_prompt_safety_ok(final_prompt, provider, total_models):
     return has_provider and has_total and has_ratio and has_safety
 
 
+def _normalize_provider(value: str) -> str:
+    v = (value or "").strip().lower()
+    if not v:
+        return "openai"
+    return v
+
+
+def _provider_display(value: str) -> str:
+    p = _normalize_provider(value)
+    mapping = {
+        "openai": "OpenAI",
+        "xai": "xAI",
+        "google": "Google",
+        "anthropic": "Anthropic",
+    }
+    return mapping.get(p, p.upper())
+
+
+def _validate_provider_prompt_context(prompt_text: str, discovered_provider: str):
+    prompt_lower = (prompt_text or "").lower()
+    dp = _normalize_provider(discovered_provider)
+    if dp not in prompt_lower:
+        raise AssertionError(f"Prompt missing discovered provider context: {dp}")
+    if dp == "openai":
+        if "xai registry" in prompt_lower:
+            raise AssertionError("Provider leak detected: found 'xai registry' in OpenAI prompt")
+        if "xai api" in prompt_lower:
+            raise AssertionError("Provider leak detected: found 'xai api' in OpenAI prompt")
+
+
 # ── Step 3.7: Call Vertex AI Imagen ──────────────────────────────────────────
 def call_vertex_imagen(prompt: str, output_path: str, gcp_project: str, gcp_location: str, imagen_model: str):
     """
@@ -1948,6 +1981,25 @@ Examples:
     reviewed_dashboard_prompt = _enforce_prompt_safety_sentence(reviewed_dashboard_prompt)
     reviewed_arch_prompt = _enforce_prompt_safety_sentence(reviewed_arch_prompt)
 
+    discovered_provider = _normalize_provider(stats.get("provider", "openai"))
+    if use_xai_image:
+        renderer_provider = "xai"
+        renderer_model = xai_image_model
+    elif use_vertex_imagen:
+        renderer_provider = "vertex"
+        renderer_model = current_imagen_model
+    else:
+        renderer_provider = "matplotlib"
+        renderer_model = "n/a"
+
+    print(f"Discovered provider: {discovered_provider}")
+    print(f"Image renderer: {renderer_provider} ({renderer_model})")
+    print(f"Architecture provider context: {discovered_provider}")
+    print(f"Image rendering engine: {renderer_provider}")
+
+    _validate_provider_prompt_context(reviewed_dashboard_prompt, discovered_provider)
+    _validate_provider_prompt_context(reviewed_arch_prompt, discovered_provider)
+
     dashboard_review_json = f"{OUTPUT_DIR}/dashboard_prompt_review_{ts}.json"
     architecture_review_json = f"{OUTPUT_DIR}/architecture_prompt_review_{ts}.json"
     dashboard_reviewed_path = f"{OUTPUT_DIR}/dashboard_reviewed_prompt_{ts}.txt"
@@ -2044,16 +2096,8 @@ Examples:
         else:
             print("⚠️ Skipping Vertex AI Imagen call because libraries are not installed.")
     elif use_xai_image:
-        # xAI only for architecture-style visual, never for factual dashboard.
-        xai_prompt = (
-            "Enterprise pipeline diagram, IBM Carbon light style, white background, "
-            "IBM blue (#0f62fe) connectors and icons. Show a LEFT-TO-RIGHT horizontal flow with 5 labeled boxes: "
-            "[xAI API] -> [LangGraph Agent] -> [Gemini Enrichment] -> [BigQuery Registry] -> [LinkedIn + Medium]. "
-            "Center of diagram: large circle labeled 'XAI Registry · 16 Models · 5 Families'. "
-            "Each box: rounded rectangle, light gray fill, blue border, bold label inside, small icon above (api, graph, brain, database, publish). "
-            "Typography: IBM Plex Sans, minimum 14pt, no decorative fonts. No lorem ipsum. No fake data. "
-            "No shadows heavier than 2px. No text outside the labeled boxes. Aspect ratio: 16:9. LinkedIn publication quality."
-        )
+        # xAI is only the rendering engine here; prompt business context must follow discovered provider.
+        xai_prompt = reviewed_arch_prompt
         mindmap_img_path = call_xai_image(
             xai_prompt,
             f"{OUTPUT_DIR}/xai_architecture_{ts}.png",
