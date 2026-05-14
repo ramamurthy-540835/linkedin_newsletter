@@ -92,7 +92,8 @@ PROVIDER_CONFIG = {
         "official_domains": ["platform.openai.com", "openai.com", "api.openai.com"],
     },
     "google": {
-        "api_catalog": None,
+        "api_catalog": "https://generativelanguage.googleapis.com/v1beta/models",
+        "api_key_env": "GEMINI_API_KEY",
         "doc_urls": [
             "https://ai.google.dev/gemini-api/docs/models",
             "https://ai.google.dev/gemini-api/docs/pricing",
@@ -100,7 +101,8 @@ PROVIDER_CONFIG = {
         "official_domains": ["ai.google.dev", "cloud.google.com"],
     },
     "anthropic": {
-        "api_catalog": None,
+        "api_catalog": "https://api.anthropic.com/v1/models",
+        "api_key_env": "ANTHROPIC_API_KEY",
         "doc_urls": [
             "https://docs.anthropic.com/en/docs/about-claude/models",
             "https://www.anthropic.com/pricing",
@@ -234,6 +236,7 @@ class DiscoveryState(TypedDict, total=False):
     stopped: bool
     stop_reason: str
     export_candidates_only: bool
+    repair_duplicates: bool
     candidate_json_path: str
 
 
@@ -716,11 +719,19 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
         api_key = os.getenv(api_key_env) if api_key_env else None
 
         headers = {}
-        if api_key:
+        request_params = {}
+        if provider == "anthropic":
+            if api_key:
+                headers["x-api-key"] = api_key
+            headers["anthropic-version"] = "2023-06-01"
+        elif provider == "google":
+            if api_key:
+                request_params["key"] = api_key
+        elif api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
         try:
-            resp = requests.get(api_url, headers=headers, timeout=10)
+            resp = requests.get(api_url, headers=headers, params=request_params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
 
@@ -736,7 +747,21 @@ def node_official_structured_discovery(state: DiscoveryState) -> DiscoveryState:
                             "discovery_tier": 1,
                             "raw_item": item,
                         })
-            elif provider in ["mistral", "cohere", "openrouter", "xai"]:
+            elif provider == "google":
+                for item in data.get("models", []):
+                    mid = item.get("name", "").strip()
+                    if mid.startswith("models/"):
+                        mid = mid[len("models/"):]
+                    if mid:
+                        structured.append({
+                            "model_id": mid,
+                            "source_url": api_url,
+                            "source": "google_api",
+                            "confidence": 1.0,
+                            "discovery_tier": 1,
+                            "raw_item": item,
+                        })
+            elif provider in ["mistral", "cohere", "openrouter", "xai", "anthropic"]:
                 for item in (data.get("data") if isinstance(data.get("data"), list) else [data]):
                     mid = item.get("id") if isinstance(item, dict) else str(item)
                     if mid:
@@ -864,8 +889,10 @@ Include only URLs with current model information.
 Return ONLY the JSON object."""
 
     try:
-        resp = llm.invoke([HumanMessage(content=prompt)])
-        urls_data = _parse_json(resp.content, {})
+        gem = _call_gemini_rest(prompt, timeout=20)
+        if not gem.get("success"):
+            raise RuntimeError(gem.get("error", "Gemini fallback failed"))
+        urls_data = _parse_json(gem.get("text", ""), {})
         urls = urls_data.get("official_urls", [])
     except Exception as e:
         print(f"Tier 3 (Gemini) failed: {e}")
@@ -1357,7 +1384,7 @@ Generate JSON array for the {family_name} models:"""
 
 
 def node_version_history_merge(state: DiscoveryState) -> DiscoveryState:
-    if state.get("stopped", False):
+    if state.get("stopped", False) or state.get("load_from_json_success"):
         return state
 
     existing_by_key = {(r["provider"], r["model_id"]): r for r in state.get("existing_models", [])}
@@ -1386,7 +1413,7 @@ def node_version_history_merge(state: DiscoveryState) -> DiscoveryState:
 
 
 def node_safe_deprecation(state: DiscoveryState) -> DiscoveryState:
-    if state.get("stopped", False):
+    if state.get("stopped", False) or state.get("load_from_json_success"):
         return state
 
     provider = state.get("target_provider", "openai").lower()
@@ -1630,15 +1657,18 @@ def check_and_repair_duplicates(client, table_id: str, repair: bool = False) -> 
             "repaired": False
         }
 
-    # Repair: keep only the latest row per provider/model_id
+    # Repair: keep only one row per provider/model_id using ROW_NUMBER
     print("\n🔧 Repairing duplicates (keeping latest per provider/model_id)...")
     repair_sql = f"""
-    DELETE FROM `{table_id}`
-    WHERE CONCAT(provider, ':', model_id, ':', CAST(last_verified_at AS STRING)) NOT IN (
-        SELECT CONCAT(provider, ':', model_id, ':', CAST(MAX(last_verified_at) AS STRING))
+    CREATE OR REPLACE TABLE `{table_id}` AS
+    SELECT * EXCEPT(rn) FROM (
+        SELECT *, ROW_NUMBER() OVER (
+            PARTITION BY provider, model_id
+            ORDER BY last_seen_at DESC NULLS LAST, first_seen_at DESC NULLS LAST
+        ) as rn
         FROM `{table_id}`
-        GROUP BY provider, model_id
     )
+    WHERE rn = 1
     """
 
     try:
@@ -1670,6 +1700,42 @@ def check_and_repair_duplicates(client, table_id: str, repair: bool = False) -> 
         }
 
 
+def _build_upsert_row(rec: dict, debug: bool = False) -> dict:
+    """Build a clean row dict from a discovery record for BigQuery upsert."""
+    row = {}
+    core_fields = ["model_id", "provider", "display_name", "family", "version", "release_stage"]
+    string_fields = {"model_purpose", "selection_notes", "official_context"}
+    array_fields = {"recommended_for", "avoid_for", "user_persona", "capabilities"}
+    semantic_fields = list(string_fields | array_fields) + ["semantic_confidence"]
+
+    for field in core_fields:
+        if field in rec:
+            row[field] = rec[field]
+
+    for field in semantic_fields:
+        if field in string_fields:
+            row[field] = rec.get(field, "")
+        elif field in array_fields:
+            row[field] = rec.get(field, [])
+        else:
+            row[field] = rec.get(field, 0.0)
+
+    row["missing_scan_count"] = rec.get("missing_scan_count", 0)
+    row["last_seen_at"] = _now()
+    first_seen = rec.get("first_seen_at", _now())
+    if hasattr(first_seen, 'isoformat'):
+        first_seen = first_seen.isoformat()
+    row["first_seen_at"] = first_seen
+    row["discovery_tier"] = rec.get("discovery_tier", 1)
+
+    if not row.get("family"):
+        row["family"] = "unknown"
+        if debug:
+            print(f"  DEBUG: Set family=unknown for model_id={row.get('model_id')}")
+
+    return row
+
+
 def node_upsert(state: DiscoveryState) -> DiscoveryState:
     if state.get("dry_run", False) or state.get("stopped", False) or state.get("export_candidates_only", False):
         return state
@@ -1683,12 +1749,6 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
     if not to_write:
         return state
 
-    # DEBUG: Check first insert/update for family field
-    if state.get("debug") and to_write:
-        sample = to_write[0]
-        print(f"DEBUG upsert: first rec has family={sample.get('family')}, model_id={sample.get('model_id')}")
-
-    # Check for existing duplicates
     repair_duplicates = state.get("repair_duplicates", False)
     dup_check = check_and_repair_duplicates(client, table_id, repair=repair_duplicates)
 
@@ -1698,89 +1758,123 @@ def node_upsert(state: DiscoveryState) -> DiscoveryState:
         state["errors"] = state.get("errors", []) + [dup_check.get("stop_reason", "Duplicates found")]
         return state
 
-    # Fields that are safe to include (exist in BigQuery schema)
-    core_fields = ["model_id", "provider", "display_name", "family", "version", "release_stage"]
-    semantic_fields = ["model_purpose", "recommended_for", "avoid_for", "user_persona",
-                      "selection_notes", "capabilities", "semantic_confidence", "official_context"]
-    temporal_fields = ["missing_scan_count", "last_seen_at", "first_seen_at", "discovery_tier"]
+    debug = state.get("debug", False)
 
-    rows_to_insert = []
-    for rec in to_write:
-        row = {}
-
-        # DEBUG: Check if rec has family
-        if state.get("debug") and not rec.get("family"):
-            print(f"  DEBUG: rec missing family: model_id={rec.get('model_id')}")
-
-        # Add core fields
-        for field in core_fields:
-            if field in rec:
-                row[field] = rec[field]
-
-        # Add semantic fields (with sensible defaults)
-        for field in semantic_fields:
-            row[field] = rec.get(field, "" if field.endswith("_notes") or field.endswith("_context") else ([] if field.endswith("_for") or field.endswith("persona") or field == "capabilities" else 0.0))
-
-        # Add temporal fields
-        row["missing_scan_count"] = rec.get("missing_scan_count", 0)
-        row["last_seen_at"] = _now()
-
-        # Convert datetime to ISO string if needed
-        first_seen = rec.get("first_seen_at", _now())
-        if hasattr(first_seen, 'isoformat'):
-            first_seen = first_seen.isoformat()
-        row["first_seen_at"] = first_seen
-
-        row["discovery_tier"] = rec.get("discovery_tier", 1)
-
-        # Validate family is set (should be set during normalization)
-        if not row.get("family"):
-            row["family"] = "unknown"
-            if state.get("debug"):
-                print(f"  DEBUG: Set family=unknown for model_id={row.get('model_id')}")
-
-        rows_to_insert.append(row)
-
-    # Deduplicate source rows (keep latest per provider/model_id)
+    # Build and deduplicate rows
     dedup_map = {}
-    for row in rows_to_insert:
+    for rec in to_write:
+        row = _build_upsert_row(rec, debug)
         key = (row.get("provider"), row.get("model_id"))
-        # Keep row with latest last_verified_at
         if key not in dedup_map:
             dedup_map[key] = row
         else:
-            existing = dedup_map[key]
-            current_time = row.get("last_verified_at", "")
-            existing_time = existing.get("last_verified_at", "")
-            # Keep the one with later timestamp (string comparison works for ISO format)
-            if current_time > existing_time:
+            if row.get("last_seen_at", "") > dedup_map[key].get("last_seen_at", ""):
                 dedup_map[key] = row
 
     deduped_rows = list(dedup_map.values())
 
-    try:
-        errors = client.insert_rows_json(table_id, deduped_rows)
-        if errors:
-            msg = f"BigQuery insert errors: {errors}"
-            state["errors"] = state.get("errors", []) + [msg]
-            print(msg)
-        else:
-            print(f"Upserted {len(deduped_rows)} models to BigQuery")
-            print(f"  Inserts: {len(state.get('inserts', []))}")
-            print(f"  Updates: {len(state.get('updates', []))}")
+    if not deduped_rows:
+        return state
 
-            # Verify final state
-            verify_sql = f"""
-            SELECT COUNT(*) as total, COUNT(DISTINCT CONCAT(provider, ':', model_id)) as unique_models
-            FROM `{table_id}`
-            WHERE provider = '{state.get('target_provider', 'openai')}'
-            """
-            result = client.query(verify_sql).result()
-            stats = list(result)[0]
-            print(f"  BigQuery after upsert: {stats.total} total rows, {stats.unique_models} unique models")
+    try:
+        # Stage all rows into a temp table, then MERGE in one query
+        staging_table_id = f"{project}.linkedin_studio._staging_ai_models"
+        staging_schema = [
+            bigquery.SchemaField("provider", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("model_id", "STRING", mode="REQUIRED"),
+            bigquery.SchemaField("display_name", "STRING"),
+            bigquery.SchemaField("family", "STRING"),
+            bigquery.SchemaField("version", "STRING"),
+            bigquery.SchemaField("release_stage", "STRING"),
+            bigquery.SchemaField("model_purpose", "STRING"),
+            bigquery.SchemaField("recommended_for", "STRING", mode="REPEATED"),
+            bigquery.SchemaField("avoid_for", "STRING", mode="REPEATED"),
+            bigquery.SchemaField("user_persona", "STRING", mode="REPEATED"),
+            bigquery.SchemaField("selection_notes", "STRING"),
+            bigquery.SchemaField("capabilities", "STRING", mode="REPEATED"),
+            bigquery.SchemaField("semantic_confidence", "FLOAT64"),
+            bigquery.SchemaField("official_context", "STRING"),
+            bigquery.SchemaField("missing_scan_count", "INT64"),
+            bigquery.SchemaField("last_seen_at", "TIMESTAMP"),
+            bigquery.SchemaField("first_seen_at", "TIMESTAMP"),
+            bigquery.SchemaField("discovery_tier", "INT64"),
+        ]
+
+        staging_table = bigquery.Table(staging_table_id, schema=staging_schema)
+        staging_table = client.create_table(staging_table, exists_ok=True)
+
+        # Truncate staging table
+        client.query(f"DELETE FROM `{staging_table_id}` WHERE TRUE").result()
+
+        # Insert all rows into staging
+        errors = client.insert_rows_json(staging_table_id, deduped_rows)
+        if errors:
+            state["errors"] = state.get("errors", []) + [f"Staging insert errors: {errors}"]
+            return state
+
+        print(f"Staged {len(deduped_rows)} rows for MERGE")
+
+        # Single MERGE: update existing, insert new
+        merge_sql = f"""
+        MERGE `{table_id}` T
+        USING `{staging_table_id}` S
+        ON T.provider = S.provider AND T.model_id = S.model_id
+        WHEN MATCHED THEN UPDATE SET
+            T.display_name = S.display_name,
+            T.family = S.family,
+            T.version = S.version,
+            T.release_stage = S.release_stage,
+            T.model_purpose = S.model_purpose,
+            T.recommended_for = S.recommended_for,
+            T.avoid_for = S.avoid_for,
+            T.user_persona = S.user_persona,
+            T.selection_notes = S.selection_notes,
+            T.capabilities = S.capabilities,
+            T.semantic_confidence = S.semantic_confidence,
+            T.official_context = S.official_context,
+            T.missing_scan_count = S.missing_scan_count,
+            T.last_seen_at = S.last_seen_at,
+            T.first_seen_at = S.first_seen_at,
+            T.discovery_tier = S.discovery_tier
+        WHEN NOT MATCHED THEN INSERT (
+            provider, model_id, display_name, family, version, release_stage,
+            model_purpose, recommended_for, avoid_for, user_persona,
+            selection_notes, capabilities, semantic_confidence, official_context,
+            missing_scan_count, last_seen_at, first_seen_at, discovery_tier
+        ) VALUES (
+            S.provider, S.model_id, S.display_name, S.family, S.version, S.release_stage,
+            S.model_purpose, S.recommended_for, S.avoid_for, S.user_persona,
+            S.selection_notes, S.capabilities, S.semantic_confidence, S.official_context,
+            S.missing_scan_count, S.last_seen_at, S.first_seen_at, S.discovery_tier
+        )
+        """
+
+        job = client.query(merge_sql)
+        job.result()
+
+        num_updates = len(state.get("updates", []))
+        num_inserts = len(state.get("inserts", []))
+        print(f"MERGE complete: {num_inserts} inserts, {num_updates} updates ({len(deduped_rows)} total)")
+
+        # Clean up staging table
+        client.delete_table(staging_table_id, not_found_ok=True)
+
+        # Verify
+        verify_sql = f"""
+        SELECT COUNT(*) as total, COUNT(DISTINCT CONCAT(provider, ':', model_id)) as unique_models
+        FROM `{table_id}`
+        WHERE provider = '{state.get('target_provider', 'openai')}'
+        """
+        stats = list(client.query(verify_sql).result())[0]
+        print(f"  BigQuery after MERGE: {stats.total} total rows, {stats.unique_models} unique models")
 
     except Exception as e:
         state["errors"] = state.get("errors", []) + [f"BigQuery upsert failed: {e}"]
+        # Clean up staging on error
+        try:
+            client.delete_table(f"{project}.linkedin_studio._staging_ai_models", not_found_ok=True)
+        except Exception:
+            pass
 
     return state
 
