@@ -90,7 +90,58 @@ Return JSON:
 }}
 """
     txt = _call_llm(planner_prompt, planner_model, api_key)
-    return json.loads(txt)
+    parsed = _safe_json_loads(txt)
+    if parsed:
+        return parsed
+    return _fallback_prompt(context, image_type, txt)
+
+
+def _safe_json_loads(text: str):
+    if not text:
+        return None
+    cleaned = text.strip()
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        pass
+    m = re.search(r"\{.*\}", cleaned, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(0))
+        except Exception:
+            return None
+    return None
+
+
+def _fallback_prompt(context: Dict[str, Any], image_type: str, raw_text: str) -> Dict[str, Any]:
+    provider = context.get("provider_display_name", "OPENAI")
+    total = context.get("total_models", 0)
+    fam = context.get("total_families", 0)
+    if image_type == "architecture":
+        prompt = (
+            f"Create an enterprise architecture infographic for {provider}. "
+            f"Show exact pipeline blocks with arrows: Official API discovery -> LangGraph orchestration -> "
+            f"Semantic enrichment -> BigQuery registry -> Publishing pipeline. "
+            f"Center label: {provider} Model Registry ({total} models, {fam} families). "
+            "Light background, blue accents, large readable labels, minimal text. "
+            "Do not render brand/style-system names."
+        )
+    else:
+        prompt = (
+            f"Create an enterprise dashboard concept visual for {provider} model discovery. "
+            f"Use exact KPIs: Total Models {total}, Families {fam}, and metadata confidence buckets from provided facts. "
+            "Light theme, clean grid, readable typography, no dense tables, no fake UI screenshot style. "
+            "Do not render brand/style-system names."
+        )
+    return {
+        "title": f"{provider} {image_type.title()}",
+        "visual_strategy": "Deterministic fallback due to non-JSON planner output",
+        "prompt": prompt,
+        "validation_rules": ["exact facts only", "no brand contamination", "minimal readable text"],
+        "planner_raw_excerpt": (raw_text or "")[:300],
+    }
 
 
 def review_prompt(prompt_json: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
