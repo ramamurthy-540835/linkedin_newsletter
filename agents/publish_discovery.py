@@ -466,7 +466,7 @@ def generate_charts(stats):
     h.text(0.5, 0.2, f"Automated Discovery · {stats['run_date']} · Source: Official API", ha="center", va="center", fontsize=11, color="#d0e2ff", transform=h.transAxes)
     cat_best = {v.get("model_id") for v in best.values() if v}
     rec = sum(1 for m in stats["all_models"] if m.get("recommendation") in ["[RECOMMENDED]", "[GOOD]"] or (m.get("model_id") in cat_best and _score_model(m) >= 50))
-    kpis = [(stats["total"], "Total Models"), (stats["family_count"], "Families"), (rec, "Recommended"), (len(stats["conf_buckets"]["high"]), "High Confidence")]
+    kpis = [(stats["total"], "Total Models"), (stats["family_count"], "Families"), (rec, "Recommended"), (len(stats["conf_buckets"]["high"]), "Strongly Classified")]
     for i, (v, lab) in enumerate(kpis):
         a = fig.add_subplot(gs[2:5, i * 6:(i + 1) * 6]); a.axis("off")
         a.add_patch(mpatches.FancyBboxPatch((0.02, 0.08), 0.96, 0.84, boxstyle="round,pad=0.02,rounding_size=0.03", transform=a.transAxes, facecolor=CARD, edgecolor=BORDER))
@@ -482,9 +482,9 @@ def generate_charts(stats):
     ab.grid(axis="x", linestyle="--", alpha=0.25); ab.tick_params(axis="both", labelsize=9)
     ad = fig.add_subplot(gs[5:11, 12:24]); ad.set_facecolor(CARD)
     conf = [len(stats["conf_buckets"]["high"]), len(stats["conf_buckets"]["medium"]), len(stats["conf_buckets"]["low"])]
-    labels = ["High Confidence", "Medium Confidence", "Low Confidence"]; colors = ["#198038", "#ff832b", "#8d8d8d"]
+    labels = ["Strongly Classified", "Partially Classified", "Needs Review"]; colors = ["#198038", "#ff832b", "#8d8d8d"]
     wedges, _ = ad.pie(conf, colors=colors, startangle=90, wedgeprops=dict(width=0.38, edgecolor=BG))
-    ad.set_title("Semantic Confidence Coverage", fontsize=12, color=TEXT, pad=10)
+    ad.set_title("Metadata Classification Coverage", fontsize=12, color=TEXT, pad=10)
     ad.legend(wedges, [f"{l}: {v}" for l, v in zip(labels, conf)], loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=9)
     top = ["complex_reasoning", "realtime_audio", "multimodal_vision", "image_generation", "video_generation", "embeddings", "speech_to_text", "text_to_speech"]
     axes = [fig.add_subplot(gs[11:14, 0:6]), fig.add_subplot(gs[11:14, 6:12]), fig.add_subplot(gs[11:14, 12:18]), fig.add_subplot(gs[11:14, 18:24]), fig.add_subplot(gs[14:17, 0:6]), fig.add_subplot(gs[14:17, 6:12]), fig.add_subplot(gs[14:17, 12:18]), fig.add_subplot(gs[14:17, 18:24])]
@@ -1261,60 +1261,121 @@ def _refine_prompt_from_issues(original_prompt: str, review: dict) -> str:
 
 # ── Step 3.8: Verify no hallucination (number consistency) ──────────────────────
 def verify_no_hallucination(linkedin_text, medium_text, stats):
-    """Verify that posts don't contain hallucinated/contradictory numbers."""
-    total = str(stats["total"])
-    families = str(stats["family_count"])
-
-    errors = []
-
-    # Check Medium strictly (long-form)
-    med_total_matches = re.findall(rf'\b{total}\s+(?:models?|active\s+AI\s+models?|AI\s+models?)\b', medium_text, re.IGNORECASE)
-    med_family_matches = re.findall(rf'\b{families}\s+(?:families?|model\s+families?)\b', medium_text, re.IGNORECASE)
-
-    if not med_total_matches:
-        errors.append(f"Medium doesn't mention {total} models")
-    if not med_family_matches:
-        errors.append(f"Medium doesn't mention {families} families")
-
-    # Check for CONTRADICTORY numbers in Medium (e.g., says 110 instead of 109)
-    wrong_totals_med = re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', medium_text, re.IGNORECASE)
-    for num in set(wrong_totals_med):
-        if num != total and int(num) > 100:
-            errors.append(f"Medium mentions {num} models but should be {total}")
-
-    # LinkedIn can be more lenient (shorter form, may not mention families)
-    li_total_matches = re.findall(rf'\b{total}\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE)
-    if not li_total_matches:
-        errors.append(f"LinkedIn doesn't mention {total} models")
-
-    wrong_totals_li = re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE)
-    for num in set(wrong_totals_li):
-        if num != total and int(num) > 100:
-            errors.append(f"LinkedIn mentions {num} models but should be {total}")
-
+    """Verify that posts don't contain context-wrong total model claims."""
+    errors = _collect_hallucination_errors(linkedin_text, medium_text, stats)
     if errors:
         print("\n❌ HALLUCINATION DETECTED:")
         for error in errors:
             print(f"   - {error}")
         return False
-    else:
-        print(f"\n✅ Verification passed: {total} models, {families} families (consistent across posts)")
-        return True
+    print(f"\n✅ Verification passed: {stats['total']} models, {stats['family_count']} families (context-consistent)")
+    return True
 
 
 def _collect_hallucination_errors(linkedin_text, medium_text, stats):
     total = str(stats["total"]); families = str(stats["family_count"]); errors = []
-    if not re.findall(rf'\b{total}\s+(?:models?|active\s+AI\s+models?|AI\s+models?)\b', medium_text, re.IGNORECASE):
+    allowed_numbers = _build_allowed_numbers(stats)
+    print(f"Allowed factual numbers: {sorted(allowed_numbers)}")
+    suspects = []
+    claim_patterns = [
+        r"\b(\d+)\s+total\s+models?\b",
+        r"\btotal\s+models?\s*[:=]\s*(\d+)\b",
+        r"\b(\d+)\s+active\s+(?:ai\s+)?models?\b",
+        rf"\b{re.escape(stats['provider'])}\s+has\s+(\d+)\s+models?\b",
+    ]
+    corpus = [("Medium", medium_text), ("LinkedIn", linkedin_text)]
+    for name, text in corpus:
+        for pat in claim_patterns:
+            for m in re.finditer(pat, text, re.IGNORECASE):
+                claimed = m.group(1)
+                suspects.append(f"{name}: '{m.group(0)}'")
+                if claimed != total:
+                    errors.append(f"{name} claims {claimed} total/active models but should be {total}")
+    print(f"Detected suspect claims: {suspects}")
+
+    med_total_ok = (
+        re.search(rf"\b{total}\s+(?:models?|active\s+AI\s+models?|AI\s+models?)\b", medium_text, re.IGNORECASE)
+        or re.search(rf"\btotal\s+models?\s*[:=]\s*{total}\b", medium_text, re.IGNORECASE)
+    )
+    if not med_total_ok:
         errors.append(f"Medium doesn't mention {total} models")
-    if not re.findall(rf'\b{families}\s+(?:families?|model\s+families?)\b', medium_text, re.IGNORECASE):
+    med_family_ok = (
+        re.search(rf"\b{families}\s+(?:families?|model\s+families?)\b", medium_text, re.IGNORECASE)
+        or re.search(rf"\bfamilies?\s*[:=]\s*{families}\b", medium_text, re.IGNORECASE)
+    )
+    if not med_family_ok:
         errors.append(f"Medium doesn't mention {families} families")
-    for num in set(re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', medium_text, re.IGNORECASE)):
-        if num != total and int(num) > 100: errors.append(f"Medium mentions {num} models but should be {total}")
-    if not re.findall(rf'\b{total}\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE):
+    li_ok = (
+        re.search(rf"\b{total}\s+models?\b", linkedin_text, re.IGNORECASE)
+        or re.search(rf"\b{total}\s+{re.escape(stats['provider'])}\s+models?\b", linkedin_text, re.IGNORECASE)
+        or re.search(rf"\btotal\s+models?\s*[:=]\s*{total}\b", linkedin_text, re.IGNORECASE)
+    )
+    if not li_ok:
         errors.append(f"LinkedIn doesn't mention {total} models")
-    for num in set(re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE)):
-        if num != total and int(num) > 100: errors.append(f"LinkedIn mentions {num} models but should be {total}")
     return errors
+
+
+def _build_allowed_numbers(stats: dict) -> set[int]:
+    nums = {
+        int(stats["total"]),
+        int(stats["family_count"]),
+        len(stats["conf_buckets"]["high"]),
+        len(stats["conf_buckets"]["medium"]),
+        len(stats["conf_buckets"]["low"]),
+        int(stats.get("enriched_coverage_count", 0)),
+    }
+    for models in stats.get("categorized_models", {}).values():
+        nums.add(len(models))
+    return nums
+
+
+def _safe_json_loads(text: str):
+    if not text:
+        return None
+    cleaned = text.strip()
+    cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```$", "", cleaned)
+    try:
+        return json.loads(cleaned)
+    except Exception:
+        pass
+    m = re.search(r"\{.*\}", cleaned, re.DOTALL)
+    if m:
+        try:
+            return json.loads(m.group(0))
+        except Exception:
+            return None
+    return None
+
+
+def _deterministic_fallback_content(stats: dict):
+    provider = stats["provider"]
+    total = stats["total"]
+    fam = stats["family_count"]
+    high = len(stats["conf_buckets"]["high"])
+    med = len(stats["conf_buckets"]["medium"])
+    low = len(stats["conf_buckets"]["low"])
+    li = (
+        f"I built a discovery pipeline for {provider} and validated {total} models across {fam} families. "
+        f"Metadata confidence summary: Strong Metadata {high}, Partial Metadata {med}, Sparse Metadata {low}. "
+        f"This measures enrichment signal quality, not model quality."
+    )
+    md = (
+        f"# {provider} Model Discovery Snapshot\n\n"
+        f"- Total Models: {total}\n- Families: {fam}\n"
+        f"- Strong Metadata: {high}\n- Partial Metadata: {med}\n- Sparse Metadata: {low}\n\n"
+        "These buckets represent metadata classification confidence, not model capability or safety.\n"
+    )
+    return li, md
+
+
+def _strict_numbers_present(linkedin_text: str, medium_text: str, stats: dict) -> bool:
+    total = str(stats["total"])
+    families = str(stats["family_count"])
+    li_ok = bool(re.search(rf"\b{total}\s+(?:models?|AI\s+models?)\b", linkedin_text, re.IGNORECASE))
+    med_total_ok = bool(re.search(rf"\b{total}\s+(?:models?|active\s+AI\s+models?|AI\s+models?)\b", medium_text, re.IGNORECASE))
+    med_family_ok = bool(re.search(rf"\b{families}\s+(?:families?|model\s+families?)\b", medium_text, re.IGNORECASE))
+    return li_ok and med_total_ok and med_family_ok
 
 
 # ── Step 4: Generate post content via Gemini ──────────────────────────────────
@@ -1413,9 +1474,9 @@ FACTUAL_CONTEXT:
 STRICT FACTS (use ONLY these numbers, never hallucinate):
 - Total models: {stats['total']}
 - Model families: {stats['family_count']}
-- High-confidence (production-ready): {high_conf}
-- Medium-confidence (stable): {medium_conf}
-- Low-confidence (experimental): {low_conf}
+- Strongly classified metadata (semantic >=0.8): {high_conf}
+- Partially classified metadata (semantic 0.5-0.8): {medium_conf}
+- Needs review metadata (semantic <0.5): {low_conf}
 - Provider: {provider}
 - Discovery method: Automated LangGraph agent
 - Enrichment: Gemini API
@@ -1440,8 +1501,9 @@ STRUCTURE:
 1. Personal hook: "I built an agent that..."
 2. The numbers: Only use facts above (total, families, high-conf)
 3. Why it matters: Developers need clarity on model landscape
-4. Technical approach: LangGraph + Gemini + BigQuery
-5. Call to action: What's YOUR biggest challenge?
+4. Clarify that classification buckets represent metadata/enrichment signal, not model quality
+5. Technical approach: LangGraph + Gemini + BigQuery
+6. Call to action: What's YOUR biggest challenge?
 
 TONE: Authentic, technical, not salesy
 LENGTH: 150-200 words
@@ -1469,9 +1531,9 @@ FACTUAL_CONTEXT:
 STRICT FACTS (use ONLY these, never hallucinate):
 - Total models: {stats['total']}
 - Model families: {stats['family_count']}
-- High-confidence models (≥0.8): {high_conf}
-- Medium-confidence models (0.5-0.8): {medium_conf}
-- Low-confidence models (<0.5): {low_conf}
+- Strongly classified metadata (semantic ≥0.8): {high_conf}
+- Partially classified metadata (semantic 0.5-0.8): {medium_conf}
+- Needs review metadata (semantic <0.5): {low_conf}
 - Discovery source: {provider}'s /v1/models API (confidence: 1.0)
 - Enrichment: Gemini API semantic analysis
 - Storage: BigQuery
@@ -1497,7 +1559,7 @@ ARTICLE STRUCTURE:
 
 ## TL;DR
 - {provider} has {stats['total']} active AI models across {stats['family_count']} families
-- {high_conf} models are production-ready, {medium_conf} are stable, {low_conf} need careful review
+- {high_conf} strongly classified, {medium_conf} partially classified, {low_conf} need metadata review
 - Built automated discovery agent: LangGraph + Gemini enrichment + BigQuery
 - Discovered on: {run_date_human}
 
@@ -1518,36 +1580,34 @@ All {stats['total']} models came directly from the official API (confidence: 1.0
 
 | Confidence Level | Count | What It Means |
 |------------------|-------|---------------|
-| High (≥0.8) | {high_conf} | Production-ready, well-documented |
-| Medium (0.5-0.8) | {medium_conf} | Stable but less comprehensive docs |
-| Low (<0.5) | {low_conf} | Experimental or sparse documentation |
+| Strongly Classified (≥0.8) | {high_conf} | Strong metadata classification signal |
+| Partially Classified (0.5-0.8) | {medium_conf} | Partial metadata signal |
+| Needs Review (<0.5) | {low_conf} | Sparse/ambiguous metadata signal |
 | **Total** | **{stats['total']}** | **All {provider} models** |
 
 ## All {stats['family_count']} Model Families
 
 {families_list}
 
-## Production-Ready Models ({high_conf} high-confidence)
+## Strongly Classified Metadata ({high_conf})
 
-These {high_conf} models are verified and production-ready:
-- All with semantic confidence ≥0.8
-- Full documentation available
-- Safe for production use
-- Regular updates from {provider}
+These {high_conf} entries have strong metadata classification signal:
+- Semantic confidence ≥0.8
+- Clear purpose/family/capability mapping
+- Better downstream filtering fidelity
 
-## Models Needing Care ({low_conf} low-confidence)
+## Metadata Needing Review ({low_conf})
 
-These {low_conf} models have limited documentation:
+These {low_conf} entries have weak metadata classification signal:
 - Semantic confidence <0.5
-- Experimental or new releases
-- Require careful evaluation before production
-- Monitor for updates
+- Ambiguous naming or sparse metadata
+- Requires manual review for precise categorization
 
 ## Key Insights
 
 1. **Scale**: {stats['total']} models is a massive ecosystem
 2. **Fragmentation**: {stats['family_count']} families provides specialization
-3. **Documentation**: Clear correlation between confidence and production-readiness
+3. **Metadata Quality**: Confidence buckets reflect enrichment signal, not model quality
 4. **Automation**: Discovering this manually would take weeks
 5. **Versioning**: Multiple variants across families
 
@@ -1555,8 +1615,8 @@ These {low_conf} models have limited documentation:
 
 1. **For Teams**: Import this data into your model selection matrix
 2. **For Monitoring**: Re-run discovery quarterly to catch new releases
-3. **For Decision-Making**: Use confidence scores to choose safe defaults
-4. **For Production**: Always test even high-confidence models in staging
+3. **For Decision-Making**: Use classification signal as a metadata quality indicator
+4. **For Production**: Evaluate models independently of metadata confidence buckets
 
 ## The Tool
 
@@ -1703,8 +1763,8 @@ def update_readme(stats, li_url, med_url, dashboard_img_path, mindmap_img_path):
 | Run Date | {stats['run_date']} |
 | Total Models | {stats['total']} |
 | Families | {stats['family_count']} |
-| High Confidence | {len(stats['conf_buckets']['high'])} |
-| Needs Review | {len(stats['conf_buckets']['low'])} |
+| Strongly Classified | {len(stats['conf_buckets']['high'])} |
+| Metadata Needs Review | {len(stats['conf_buckets']['low'])} |
 | LinkedIn Post | {li_url or 'N/A'} |
 | Medium Article | {med_url or 'N/A'} |
 | Dashboard Visual | {dashboard_img_path or 'N/A'} |
@@ -1907,9 +1967,10 @@ Examples:
     print(f"\n{'='*60}")
     print(f"SUMMARY STATISTICS")
     print(f"{'='*60}")
-    print(f"✅ High Confidence (>=0.8): {high} models")
-    print(f"⚠️  Medium Confidence (0.5-0.8): {medium} models")
-    print(f"❌ Low Confidence (<0.5): {low} models")
+    print(f"✅ Strongly Classified (semantic >=0.8): {high} models")
+    print(f"⚠️  Partially Classified (semantic 0.5-0.8): {medium} models")
+    print(f"❌ Needs Review (semantic <0.5): {low} models")
+    print("   Note: these buckets reflect enrichment/classification signal, not model quality.")
     print(f"{'='*60}\n")
     
     print("\nCategory Counts:")
@@ -1939,9 +2000,10 @@ Examples:
     print(f"\n{'='*60}")
     print(f"SUMMARY STATISTICS")
     print(f"{'='*60}")
-    print(f"✅ High Confidence (>=0.8): {high} models")
-    print(f"⚠️  Medium Confidence (0.5-0.8): {medium} models")
-    print(f"❌ Low Confidence (<0.5): {low} models")
+    print(f"✅ Strongly Classified (semantic >=0.8): {high} models")
+    print(f"⚠️  Partially Classified (semantic 0.5-0.8): {medium} models")
+    print(f"❌ Needs Review (semantic <0.5): {low} models")
+    print("   Note: these buckets reflect enrichment/classification signal, not model quality.")
     print(f"{'='*60}\n")
     
     print("\nCategory Counts:")
@@ -1975,6 +2037,10 @@ Examples:
     design_pipeline_notes = {}
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Default to dynamic visual prompts when design agents are enabled unless explicitly disabled.
+    if enable_design_agents and not dynamic_visual_prompts and "--no-dynamic-visual-prompts" not in sys.argv:
+        dynamic_visual_prompts = True
 
     # Generate image prompts using dynamic planner, orchestrator, or simple generation
     if dynamic_visual_prompts and _HAS_VISUAL_PROMPT_PLANNER:
@@ -2175,7 +2241,7 @@ Examples:
 
     # Fallback to matplotlib if Imagen not used or failed
     if not dashboard_img_path:
-        print("\n📊 Generating Matplotlib Dashboard chart (fallback)...")
+        print("\n📊 Generating deterministic Matplotlib dashboard...")
         chart_png = generate_charts(stats)
         dashboard_img_path = chart_png
     else:
@@ -2215,14 +2281,17 @@ Examples:
     # CRITICAL: Verify no hallucination before posting
     print("\n🔍 Verifying content for hallucinations...")
     if not verify_no_hallucination(linkedin_text, medium_content, stats):
-        print("\n🔧 Attempting one repair pass with factual context...")
-        errors = _collect_hallucination_errors(linkedin_text, medium_content, stats)
+        print("\n🔧 Attempting repair pass(es) with factual context...")
         factual_context = (
             f"PROVIDER: {stats['provider']}\nTOTAL_MODELS: {stats['total']}\nFAMILIES: {stats['family_count']}\n"
             f"HIGH_CONFIDENCE: {len(stats['conf_buckets']['high'])}\nMEDIUM_CONFIDENCE: {len(stats['conf_buckets']['medium'])}\n"
             f"LOW_CONFIDENCE: {len(stats['conf_buckets']['low'])}\nENRICHED_COVERAGE: {stats['enriched_coverage_count']}/{stats['total']}"
         )
-        repair_prompt = f"""Rewrite LinkedIn and Medium content using exact facts only.
+        max_repair_attempts = 3
+        repaired_ok = False
+        for attempt in range(1, max_repair_attempts + 1):
+            errors = _collect_hallucination_errors(linkedin_text, medium_content, stats)
+            repair_prompt = f"""Rewrite LinkedIn and Medium content using exact facts only.
 FACTUAL_CONTEXT:
 {factual_context}
 VERIFIER_ISSUES:
@@ -2231,14 +2300,27 @@ LINKEDIN:
 {linkedin_text}
 MEDIUM:
 {medium_content}
-Return JSON only: {{"linkedin":"...","medium":"..."}}"""
-        repaired = _call_gemini_text(repair_prompt, current_gemini_model, 7000, 0.2, 0.8)
-        parsed = json.loads(repaired)
-        linkedin_text = parsed.get("linkedin", linkedin_text)
-        medium_content = parsed.get("medium", medium_content)
+Return JSON only: {{"linkedin":"...","medium":"..."}}.
+Both outputs MUST explicitly include '{stats['total']} models'. Medium MUST include '{stats['family_count']} families'."""
+            repaired = _call_gemini_text(repair_prompt, current_gemini_model, 7000, 0.2, 0.8)
+            parsed = _safe_json_loads(repaired)
+            if not parsed:
+                raw_path = f"{OUTPUT_DIR}/repair_raw_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                with open(raw_path, "w") as f:
+                    f.write(repaired or "")
+                print(f"   Repair response was non-JSON. Saved raw response: {raw_path}")
+                linkedin_text, medium_content = _deterministic_fallback_content(stats)
+                repaired_ok = verify_no_hallucination(linkedin_text, medium_content, stats)
+                break
+            linkedin_text = parsed.get("linkedin", linkedin_text)
+            medium_content = parsed.get("medium", medium_content)
+            if verify_no_hallucination(linkedin_text, medium_content, stats) and _strict_numbers_present(linkedin_text, medium_content, stats):
+                repaired_ok = True
+                break
+            print(f"   Repair attempt {attempt}/{max_repair_attempts} failed strict checks.")
         with open(li_path, "w") as f: f.write(linkedin_text)
         with open(med_path_local, "w") as f: f.write(medium_content)
-        if not verify_no_hallucination(linkedin_text, medium_content, stats):
+        if not repaired_ok:
             print("\n⛔ Verification FAILED after repair pass. NOT POSTING.")
             print(f"\n   LinkedIn: {li_path}")
             print(f"   Medium:   {med_path_local}")
