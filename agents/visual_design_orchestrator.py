@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Dict, Any
 
 from visual_design_agents import (
@@ -93,12 +94,15 @@ class VisualDesignOrchestrator:
         dashboard_prompt = compose_imagen_prompt_from_spec(dashboard_spec, stats, style=self.theme)
         provider = stats.get("provider", "OPENAI")
         architecture_prompt = (
-            f"Create a clean enterprise architecture infographic in IBM Carbon light style. "
-            f"White/light-gray background, IBM blue accents, clear icon-based pipeline with arrows. "
+            f"Create a clean enterprise architecture infographic in enterprise light dashboard style. "
+            f"White/light-gray background, blue accents, clear icon-based pipeline with arrows. "
             f"Show exactly these steps: {' -> '.join(plans['architecture']['pipeline_steps'])}. "
             f"Center label: {provider} Model Registry ({stats.get('total',0)} models, {stats.get('family_count',0)} families). "
-            f"Use short readable labels only. No lorem ipsum. No tiny text. No dark mode. 16:9."
+            f"Use short readable labels only. No lorem ipsum. No tiny text. No dark mode. 16:9. "
+            f"Do not render any brand/style-system names such as IBM, Carbon, or design system labels."
         )
+        dashboard_prompt = re.sub(r"IBM Carbon|Carbon Design System|IBM|Carbon", "enterprise light dashboard style", dashboard_prompt, flags=re.IGNORECASE)
+        architecture_prompt = re.sub(r"IBM Carbon|Carbon Design System|IBM|Carbon", "enterprise light dashboard style", architecture_prompt, flags=re.IGNORECASE)
         return {"dashboard": dashboard_prompt, "architecture": architecture_prompt}
 
     def prompt_qa_agent(self, prompt: str, stats: Dict[str, Any], image_type: str) -> Dict[str, Any]:

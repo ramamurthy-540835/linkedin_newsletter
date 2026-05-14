@@ -21,6 +21,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
+from textwrap import fill
 
 # Import visual design agents
 try:
@@ -42,6 +43,15 @@ try:
 except ImportError:
     _HAS_VISUAL_ORCHESTRATOR = False
     print("WARNING: visual_design_orchestrator module not found. Falling back to legacy prompt path.")
+try:
+    from visual_prompt_planner import (
+        build_factual_visual_context,
+        generate_visual_prompt,
+        review_prompt as review_dynamic_prompt,
+    )
+    _HAS_VISUAL_PROMPT_PLANNER = True
+except ImportError:
+    _HAS_VISUAL_PROMPT_PLANNER = False
 
 # Vertex AI imports (optional)
 try:
@@ -443,79 +453,66 @@ def parse_json(path):
 
 # ── Step 2: Generate Dashboard-Style Model Selection Guide (12-card grid) ──────
 def generate_charts(stats):
-    """4x3 grid of use-case cards using GridSpec."""
     from matplotlib.gridspec import GridSpec
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    categorized = stats["categorized_models"] # Use pre-classified models
-    best_models_per_usecase = stats["latest_per_usecase"] # Use pre-determined best models
-
-    BG = "#ffffff"
-    CARD_BG = "#f4f4f4"
-    BORDER = "#e0e0e0"
-    TEXT = "#161616"
-    SUBTEXT = "#525252"
-
-    active_uc = [uc for uc in USE_CASE_MAP if len(categorized.get(uc["key"], [])) > 0]
-    if not active_uc:
-        active_uc = [uc for uc in USE_CASE_MAP if uc["key"] in ["complex_reasoning", "fast_chat", "image_generation", "video_generation"]]
-    card_count = len(active_uc)
-    card_rows = max(1, (card_count + 3) // 4)
-
-    fig = plt.figure(figsize=(22, 6 + card_rows * 6), facecolor=BG)
-    gs = GridSpec(
-        nrows=2 + card_rows, ncols=4,
-        height_ratios=[1.2, 0.8] + [4.0] * card_rows,
-        hspace=0.4, wspace=0.3,
-        left=0.03, right=0.97, top=0.97, bottom=0.03
-    )
-
-    ax_header = fig.add_subplot(gs[0, :])
-    ax_header.axis("off")
-    rect1 = mpatches.Rectangle((0, 0), 1, 1, transform=ax_header.transAxes, facecolor="#0043ce", zorder=0)
-    rect2 = mpatches.Rectangle((0.5, 0), 0.5, 1, transform=ax_header.transAxes, facecolor="#0f62fe", zorder=0, alpha=0.6)
-    ax_header.add_patch(rect1)
-    ax_header.add_patch(rect2)
-    ax_header.text(0.5, 0.5, f"{stats['provider']} AI Model Discovery Dashboard",
-                   transform=ax_header.transAxes, ha="center", va="center",
-                   fontsize=28, fontweight="bold", color="#ffffff", zorder=1)
-    ax_header.text(0.5, 0.2, f"Automated Discovery · {stats['run_date']} · {stats['total']} Models Cataloged",
-                   transform=ax_header.transAxes, ha="center", va="center",
-                   fontsize=13, color="#a6c8ff", zorder=1)
-
-    category_best_ids = {v.get("model_id") for v in best_models_per_usecase.values() if v}
-    recommended_count = sum(
-        1 for m in stats["all_models"]
-        if m.get("recommendation") in ["[RECOMMENDED]", "[GOOD]"]
-        or (m.get("model_id") in category_best_ids and _score_model(m) >= 50)
-    )
-    metrics = [
-        (str(stats["total"]), "Total Models"),
-        (str(stats["family_count"]), "Families"),
-        (str(recommended_count), "Recommended"),
-        (str(len(stats["conf_buckets"]["high"])), "High Confidence"),
-    ]
-    for i, (val, label) in enumerate(metrics):
-        ax_m = fig.add_subplot(gs[1, i])
-        ax_m.axis("off")
-        kpi_bg = mpatches.FancyBboxPatch((0.02, 0.08), 0.96, 0.84, boxstyle="round,pad=0.02,rounding_size=0.04", transform=ax_m.transAxes, facecolor="#f4f4f4", edgecolor="#e0e0e0")
-        ax_m.add_patch(kpi_bg)
-        bar = mpatches.Rectangle((0, 0.1), 0.04, 0.8, transform=ax_m.transAxes, facecolor="#0f62fe", zorder=2)
-        ax_m.add_patch(bar)
-        ax_m.text(0.5, 0.65, val, ha="center", va="center", fontsize=38, fontweight="bold", color="#0f62fe", transform=ax_m.transAxes)
-        ax_m.text(0.5, 0.2, label, ha="center", va="center", fontsize=11, color=SUBTEXT, transform=ax_m.transAxes)
-
-    for idx, uc in enumerate(active_uc):
-        row = 2 + idx // 4
-        col = idx % 4
-        ax = fig.add_subplot(gs[row, col])
-        _render_card(ax, uc, categorized.get(uc["key"], []), best_models_per_usecase.get(uc["key"]), CARD_BG, BORDER, TEXT, SUBTEXT)
-
-    chart_path = f"{OUTPUT_DIR}/model_chart_{ts}.png"
+    categorized = stats["categorized_models"]
+    best = stats["latest_per_usecase"]
+    BG, CARD, BORDER, TEXT, SUB, BLUE = "#ffffff", "#f4f4f4", "#d9d9d9", "#161616", "#525252", "#0f62fe"
+    fig = plt.figure(figsize=(19.2, 10.8), facecolor=BG, constrained_layout=True)
+    gs = GridSpec(20, 24, figure=fig)
+    h = fig.add_subplot(gs[0:2, :]); h.axis("off")
+    h.add_patch(mpatches.FancyBboxPatch((0, 0.08), 1, 0.84, boxstyle="round,pad=0.01,rounding_size=0.02", transform=h.transAxes, facecolor=BLUE, edgecolor=BLUE))
+    h.text(0.5, 0.6, f"{stats['provider']} AI Model Discovery Intelligence", ha="center", va="center", fontsize=22, fontweight="bold", color="#fff", transform=h.transAxes)
+    h.text(0.5, 0.2, f"Automated Discovery · {stats['run_date']} · Source: Official API", ha="center", va="center", fontsize=11, color="#d0e2ff", transform=h.transAxes)
+    cat_best = {v.get("model_id") for v in best.values() if v}
+    rec = sum(1 for m in stats["all_models"] if m.get("recommendation") in ["[RECOMMENDED]", "[GOOD]"] or (m.get("model_id") in cat_best and _score_model(m) >= 50))
+    kpis = [(stats["total"], "Total Models"), (stats["family_count"], "Families"), (rec, "Recommended"), (len(stats["conf_buckets"]["high"]), "High Confidence")]
+    for i, (v, lab) in enumerate(kpis):
+        a = fig.add_subplot(gs[2:5, i * 6:(i + 1) * 6]); a.axis("off")
+        a.add_patch(mpatches.FancyBboxPatch((0.02, 0.08), 0.96, 0.84, boxstyle="round,pad=0.02,rounding_size=0.03", transform=a.transAxes, facecolor=CARD, edgecolor=BORDER))
+        a.text(0.5, 0.62, str(v), ha="center", va="center", fontsize=24, fontweight="bold", color=BLUE, transform=a.transAxes)
+        a.text(0.5, 0.24, lab, ha="center", va="center", fontsize=11, color=SUB, transform=a.transAxes)
+    family_counts = defaultdict(int)
+    for m in stats.get("all_models", []):
+        family_counts[m.get("family", "unknown")] += 1
+    fam = sorted(family_counts.items(), key=lambda x: x[1], reverse=True)[:8]
+    ab = fig.add_subplot(gs[5:11, 0:12]); ab.set_facecolor(CARD)
+    names = [k for k, _ in fam][::-1]; vals = [v for _, v in fam][::-1]
+    ab.barh(names, vals, color=BLUE, alpha=0.85); ab.set_title("Top Family Distribution", loc="left", fontsize=12, color=TEXT, pad=10)
+    ab.grid(axis="x", linestyle="--", alpha=0.25); ab.tick_params(axis="both", labelsize=9)
+    ad = fig.add_subplot(gs[5:11, 12:24]); ad.set_facecolor(CARD)
+    conf = [len(stats["conf_buckets"]["high"]), len(stats["conf_buckets"]["medium"]), len(stats["conf_buckets"]["low"])]
+    labels = ["High Confidence", "Medium Confidence", "Low Confidence"]; colors = ["#198038", "#ff832b", "#8d8d8d"]
+    wedges, _ = ad.pie(conf, colors=colors, startangle=90, wedgeprops=dict(width=0.38, edgecolor=BG))
+    ad.set_title("Semantic Confidence Coverage", fontsize=12, color=TEXT, pad=10)
+    ad.legend(wedges, [f"{l}: {v}" for l, v in zip(labels, conf)], loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=9)
+    top = ["complex_reasoning", "realtime_audio", "multimodal_vision", "image_generation", "video_generation", "embeddings", "speech_to_text", "text_to_speech"]
+    axes = [fig.add_subplot(gs[11:14, 0:6]), fig.add_subplot(gs[11:14, 6:12]), fig.add_subplot(gs[11:14, 12:18]), fig.add_subplot(gs[11:14, 18:24]), fig.add_subplot(gs[14:17, 0:6]), fig.add_subplot(gs[14:17, 6:12]), fig.add_subplot(gs[14:17, 12:18]), fig.add_subplot(gs[14:17, 18:24])]
+    lookup = {u["key"]: u for u in USE_CASE_MAP}
+    for ax, k in zip(axes, top):
+        uc = lookup.get(k, {"title": k, "color": BLUE}); cnt = len(categorized.get(k, [])); bm = best.get(k, {}) or {}
+        ax.axis("off"); ax.add_patch(mpatches.FancyBboxPatch((0.02, 0.08), 0.96, 0.84, boxstyle="round,pad=0.02,rounding_size=0.03", transform=ax.transAxes, facecolor=CARD, edgecolor=BORDER))
+        ax.text(0.05, 0.72, uc["title"], fontsize=10, fontweight="bold", color=uc["color"], transform=ax.transAxes)
+        ax.text(0.05, 0.46, f"Count: {cnt}", fontsize=10, color=TEXT, transform=ax.transAxes)
+        ax.text(0.05, 0.2, fill(f"Best: {bm.get('model_id','N/A')}", width=28), fontsize=8.5, color=SUB, family="monospace", transform=ax.transAxes)
+    at = fig.add_subplot(gs[17:20, :]); at.axis("off"); at.set_facecolor(CARD)
+    rows = []
+    for uc in USE_CASE_MAP:
+        bm = best.get(uc["key"])
+        if not bm: continue
+        rows.append([uc["title"], fill(bm.get("model_id", "N/A"), width=20), len(categorized.get(uc["key"], [])), bm.get("family", "N/A")])
+        if len(rows) >= 8: break
+    t = at.table(cellText=rows, colLabels=["Category", "Best Model", "Count", "Family"], loc="center", cellLoc="left")
+    t.auto_set_font_size(False); t.set_fontsize(9); t.scale(1, 1.2)
+    for (r, c), cell in t.get_celld().items():
+        cell.set_edgecolor(BORDER)
+        if r == 0: cell.set_facecolor(BLUE); cell.get_text().set_color("#fff"); cell.get_text().set_weight("bold")
+        else: cell.set_facecolor("#fff")
+    provider_slug = _normalize_provider(stats.get("provider", "unknown"))
+    chart_path = f"{OUTPUT_DIR}/dashboard_provider_{provider_slug}_{ts}.png"
     fig.text(0.5, 0.01, f"Source: {stats['provider']} Official API  |  Method: LangGraph + Gemini  |  Storage: BigQuery  |  Generated: {stats['run_date']}", ha="center", fontsize=9, color="#6f6f6f")
-    fig.savefig(chart_path, dpi=180, bbox_inches="tight", facecolor=BG, edgecolor="none")
-    plt.close()
-    print(f"Chart PNG: {chart_path}")
-    return chart_path
+    fig.savefig(chart_path, dpi=220, bbox_inches="tight", facecolor=BG, edgecolor="none")
+    plt.close(); print(f"Chart PNG: {chart_path}"); return chart_path
 
 
 def _render_card(ax, uc, models, best_model, CARD_BG, BORDER, TEXT, SUBTEXT):
@@ -1060,6 +1057,16 @@ def _validate_provider_prompt_context(prompt_text: str, discovered_provider: str
             raise AssertionError("Provider leak detected: found 'xai api' in OpenAI prompt")
 
 
+def _sanitize_branding_terms(prompt_text: str) -> str:
+    sanitized = prompt_text or ""
+    for token in ["IBM Carbon", "Carbon Design System", "IBM", "Carbon"]:
+        sanitized = re.sub(re.escape(token), "enterprise light dashboard style", sanitized, flags=re.IGNORECASE)
+    guard = " Do not render any brand/style-system names such as IBM, Carbon, or design system labels."
+    if guard.strip() not in sanitized:
+        sanitized += guard
+    return sanitized
+
+
 # ── Step 3.7: Call Vertex AI Imagen ──────────────────────────────────────────
 def call_vertex_imagen(prompt: str, output_path: str, gcp_project: str, gcp_location: str, imagen_model: str):
     """
@@ -1295,6 +1302,21 @@ def verify_no_hallucination(linkedin_text, medium_text, stats):
         return True
 
 
+def _collect_hallucination_errors(linkedin_text, medium_text, stats):
+    total = str(stats["total"]); families = str(stats["family_count"]); errors = []
+    if not re.findall(rf'\b{total}\s+(?:models?|active\s+AI\s+models?|AI\s+models?)\b', medium_text, re.IGNORECASE):
+        errors.append(f"Medium doesn't mention {total} models")
+    if not re.findall(rf'\b{families}\s+(?:families?|model\s+families?)\b', medium_text, re.IGNORECASE):
+        errors.append(f"Medium doesn't mention {families} families")
+    for num in set(re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', medium_text, re.IGNORECASE)):
+        if num != total and int(num) > 100: errors.append(f"Medium mentions {num} models but should be {total}")
+    if not re.findall(rf'\b{total}\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE):
+        errors.append(f"LinkedIn doesn't mention {total} models")
+    for num in set(re.findall(r'\b(\d+)\s+(?:models?|AI\s+models?)\b', linkedin_text, re.IGNORECASE)):
+        if num != total and int(num) > 100: errors.append(f"LinkedIn mentions {num} models but should be {total}")
+    return errors
+
+
 # ── Step 4: Generate post content via Gemini ──────────────────────────────────
 def _call_gemini_text(prompt: str, model_name: str, max_tokens: int, temperature: float, top_p: float) -> str:
     resp = requests.post(
@@ -1368,8 +1390,25 @@ def generate_content(stats, gemini_model=GEMINI_MODEL):
     latest_flagship = "grok-4.3 (latest flagship — released April 2026)" if provider.lower() == "xai" else "N/A"
     retiring_may_15 = "grok-4-1-fast, grok-4-fast, grok-4, grok-code-fast-1, grok-imagine-image-pro" if provider.lower() == "xai" else "N/A"
 
+    category_counts = []
+    for uc_key, uc_data in USE_CASE_MAP_DICT.items():
+        cnt = len(stats["categorized_models"].get(uc_key, []))
+        if cnt > 0:
+            category_counts.append(f"- {uc_data['title']}: {cnt}")
+    factual_context = f"""PROVIDER: {provider}
+TOTAL_MODELS: {stats['total']}
+FAMILIES: {stats['family_count']}
+HIGH_CONFIDENCE: {high_conf}
+MEDIUM_CONFIDENCE: {medium_conf}
+LOW_CONFIDENCE: {low_conf}
+ENRICHED_COVERAGE: {stats['enriched_coverage_count']}/{stats['total']}
+CATEGORY_COUNTS:
+{chr(10).join(category_counts)}"""
+
     # LinkedIn post with STRICT FACTS block
     li_prompt = f"""Write a personal, engaging LinkedIn post about building a model discovery agent.
+FACTUAL_CONTEXT:
+{factual_context}
 
 STRICT FACTS (use ONLY these numbers, never hallucinate):
 - Total models: {stats['total']}
@@ -1409,6 +1448,8 @@ LENGTH: 150-200 words
 MANDATORY: Write a complete LinkedIn post of 150-200 words. Do not stop mid-sentence. Complete all paragraphs.
 CONSTRAINT: Only use numbers from STRICT FACTS block. Never mention specific model names unless in STRICT FACTS.
 
+CONSTRAINT: Use these numbers exactly. Do not invent or recalculate counts. If mentioning count, copy from factual_context.
+
 Write ONLY the post text, no commentary."""
 
     linkedin_text = _call_gemini_text(li_prompt, gemini_model, 1500, 0.8, 0.9)
@@ -1422,6 +1463,8 @@ Write ONLY the post text, no commentary."""
 
     # Medium article with STRICT FACTS and tables
     med_prompt = f"""Write a data-driven Medium article titled "How I Discovered All {provider}'s AI Models Automatically"
+FACTUAL_CONTEXT:
+{factual_context}
 
 STRICT FACTS (use ONLY these, never hallucinate):
 - Total models: {stats['total']}
@@ -1528,7 +1571,8 @@ This is the future: automated, data-driven model ecosystem management.
 
 **Data snapshot**: {run_date_human} | **Total models**: {stats['total']} | **Families**: {stats['family_count']}
 
-Tags: AI, LLM, {provider}, ModelOps, Automation, BigQuery, Gemini"""
+Tags: AI, LLM, {provider}, ModelOps, Automation, BigQuery, Gemini
+CONSTRAINT: Use these numbers exactly. Do not invent or recalculate counts. If mentioning count, copy from factual_context."""
 
     medium_content = _call_gemini_text(med_prompt, gemini_model, 4000, 0.7, 0.9)
     medium_content = _clean_medium_output(medium_content, provider, stats["total"])
@@ -1736,6 +1780,7 @@ Examples:
     save_reviewed_prompts_only = "--save-reviewed-prompts-only" in sys.argv
     enable_design_agents = "--disable-design-agents" not in sys.argv
     enable_image_review = "--enable-image-review" in sys.argv
+    dynamic_visual_prompts = "--dynamic-visual-prompts" in sys.argv
     organize_by_provider = "--organize-by-provider" in sys.argv
     clean_reports = "--clean-reports" in sys.argv
     if use_vertex_imagen and not skip_prompt_review:
@@ -1753,6 +1798,7 @@ Examples:
     theme_arg = None
     dashboard_mode_arg = None
     xai_image_model_arg = None
+    planner_model_arg = None
     for i, arg in enumerate(sys.argv):
         if arg == "--imagen-model" and i + 1 < len(sys.argv):
             imagen_model_arg = sys.argv[i+1]
@@ -1776,6 +1822,8 @@ Examples:
             theme_arg = sys.argv[i+1]
         elif arg == "--xai-image-model" and i + 1 < len(sys.argv):
             xai_image_model_arg = sys.argv[i+1]
+        elif arg == "--planner-model" and i + 1 < len(sys.argv):
+            planner_model_arg = sys.argv[i+1]
 
     # Default to env vars if not provided via CLI, or use hardcoded defaults
     current_gcp_project = gcp_project_arg or GCP_PROJECT
@@ -1789,6 +1837,7 @@ Examples:
     theme = theme_arg or "ibm-carbon-light"
     dashboard_mode = dashboard_mode_arg or "factual"
     xai_image_model = xai_image_model_arg or "grok-imagine-image-pro"
+    planner_model = planner_model_arg or "gemini-2.5-flash"
 
     # Determine json_path, skipping all flags
     json_path_args = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
@@ -1927,8 +1976,23 @@ Examples:
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Generate image prompts using design pipeline or simple generation
-    if enable_design_agents and _HAS_VISUAL_ORCHESTRATOR:
+    # Generate image prompts using dynamic planner, orchestrator, or simple generation
+    if dynamic_visual_prompts and _HAS_VISUAL_PROMPT_PLANNER:
+        print("\n🎨 USING DYNAMIC VISUAL PROMPT PLANNER")
+        factual_context = build_factual_visual_context(stats)
+        dashboard_plan = generate_visual_prompt(factual_context, "dashboard", planner_model, GEMINI_API_KEY)
+        architecture_plan = generate_visual_prompt(factual_context, "architecture", planner_model, GEMINI_API_KEY)
+        dashboard_reviewed = review_dynamic_prompt(dashboard_plan, factual_context)
+        architecture_reviewed = review_dynamic_prompt(architecture_plan, factual_context)
+        dashboard_prompt = dashboard_reviewed.get("prompt", "")
+        mindmap_prompt = architecture_reviewed.get("prompt", "")
+        design_pipeline_notes = {
+            "planner_model": planner_model,
+            "dashboard_plan": dashboard_reviewed,
+            "architecture_plan": architecture_reviewed,
+            "factual_context": factual_context,
+        }
+    elif enable_design_agents and _HAS_VISUAL_ORCHESTRATOR:
         print("\n🎨 USING PRODUCTION VISUAL DESIGN ORCHESTRATOR")
         orchestrator = VisualDesignOrchestrator(
             design_model=design_model,
@@ -1978,8 +2042,8 @@ Examples:
         reviewed_dashboard_prompt = dashboard_review.get("final_prompt") or dashboard_prompt
         reviewed_arch_prompt = architecture_review.get("final_prompt") or mindmap_prompt
 
-    reviewed_dashboard_prompt = _enforce_prompt_safety_sentence(reviewed_dashboard_prompt)
-    reviewed_arch_prompt = _enforce_prompt_safety_sentence(reviewed_arch_prompt)
+    reviewed_dashboard_prompt = _sanitize_branding_terms(_enforce_prompt_safety_sentence(reviewed_dashboard_prompt))
+    reviewed_arch_prompt = _sanitize_branding_terms(_enforce_prompt_safety_sentence(reviewed_arch_prompt))
 
     discovered_provider = _normalize_provider(stats.get("provider", "openai"))
     if use_xai_image:
@@ -2036,7 +2100,7 @@ Examples:
                 if enable_image_review:
                     dashboard_img_path, dashboard_review_result = call_vertex_imagen_with_retry(
                         reviewed_dashboard_prompt,
-                        f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
+                        f"{OUTPUT_DIR}/dashboard_provider_{_normalize_provider(stats.get('provider','unknown'))}_{ts}.png",
                         current_gcp_project,
                         current_gcp_location,
                         current_imagen_model,
@@ -2047,7 +2111,7 @@ Examples:
                 else:
                     dashboard_img_path = call_vertex_imagen(
                         reviewed_dashboard_prompt,
-                        f"{OUTPUT_DIR}/dashboard_vertex_{ts}.png",
+                        f"{OUTPUT_DIR}/dashboard_provider_{_normalize_provider(stats.get('provider','unknown'))}_{ts}.png",
                         current_gcp_project,
                         current_gcp_location,
                         current_imagen_model
@@ -2098,9 +2162,10 @@ Examples:
     elif use_xai_image:
         # xAI is only the rendering engine here; prompt business context must follow discovered provider.
         xai_prompt = reviewed_arch_prompt
+        discovered_provider = _normalize_provider(stats.get("provider", "unknown"))
         mindmap_img_path = call_xai_image(
             xai_prompt,
-            f"{OUTPUT_DIR}/xai_architecture_{ts}.png",
+            f"{OUTPUT_DIR}/architecture_renderer_xai_provider_{discovered_provider}_{ts}.png",
             xai_image_model,
         )
 
@@ -2150,11 +2215,34 @@ Examples:
     # CRITICAL: Verify no hallucination before posting
     print("\n🔍 Verifying content for hallucinations...")
     if not verify_no_hallucination(linkedin_text, medium_content, stats):
-        print("\n⛔ Verification FAILED. Posts contain hallucinated numbers. NOT POSTING.")
-        print(f"\n   LinkedIn: {li_path}")
-        print(f"   Medium:   {med_path_local}")
-        print("   Review manually and fix before posting.")
-        return
+        print("\n🔧 Attempting one repair pass with factual context...")
+        errors = _collect_hallucination_errors(linkedin_text, medium_content, stats)
+        factual_context = (
+            f"PROVIDER: {stats['provider']}\nTOTAL_MODELS: {stats['total']}\nFAMILIES: {stats['family_count']}\n"
+            f"HIGH_CONFIDENCE: {len(stats['conf_buckets']['high'])}\nMEDIUM_CONFIDENCE: {len(stats['conf_buckets']['medium'])}\n"
+            f"LOW_CONFIDENCE: {len(stats['conf_buckets']['low'])}\nENRICHED_COVERAGE: {stats['enriched_coverage_count']}/{stats['total']}"
+        )
+        repair_prompt = f"""Rewrite LinkedIn and Medium content using exact facts only.
+FACTUAL_CONTEXT:
+{factual_context}
+VERIFIER_ISSUES:
+{chr(10).join('- ' + e for e in errors)}
+LINKEDIN:
+{linkedin_text}
+MEDIUM:
+{medium_content}
+Return JSON only: {{"linkedin":"...","medium":"..."}}"""
+        repaired = _call_gemini_text(repair_prompt, current_gemini_model, 7000, 0.2, 0.8)
+        parsed = json.loads(repaired)
+        linkedin_text = parsed.get("linkedin", linkedin_text)
+        medium_content = parsed.get("medium", medium_content)
+        with open(li_path, "w") as f: f.write(linkedin_text)
+        with open(med_path_local, "w") as f: f.write(medium_content)
+        if not verify_no_hallucination(linkedin_text, medium_content, stats):
+            print("\n⛔ Verification FAILED after repair pass. NOT POSTING.")
+            print(f"\n   LinkedIn: {li_path}")
+            print(f"   Medium:   {med_path_local}")
+            return
 
     print("\n🔗 Posting to LinkedIn...")
     # Use the dashboard_img_path (which could be Imagen or Matplotlib) for LinkedIn
