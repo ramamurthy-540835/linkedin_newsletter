@@ -1,41 +1,154 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Input from '@/components/Input';
 import Textarea from '@/components/Textarea';
 import Select from '@/components/Select';
+import Modal from '@/components/Modal';
 import LinkedInPreview from '@/components/LinkedInPreview';
-import ProgressStream from '@/components/ProgressStream';
-import { API_URL } from '@/lib/constants';
-import { savePost } from '@/lib/api';
+import {
+  IconLinkedIn,
+  IconSparkles,
+  IconCreate,
+  IconImage,
+  IconVideo,
+  IconLayers,
+  IconPoll,
+  IconNewspaper,
+  IconLightbulb,
+  IconMegaphone,
+  IconRocket,
+  IconUsers,
+  IconTarget,
+  IconZap,
+} from '@/components/icons';
+import {
+  savePost,
+  generateContentPlan,
+  generateImage,
+  startVideoGeneration,
+  getMediaJobStatus,
+  getMediaFileUrl,
+} from '@/lib/api';
+
+const CONTENT_TYPES = [
+  { value: 'text', label: 'Text Post', icon: IconCreate, desc: 'Standard LinkedIn post', color: 'blue' },
+  { value: 'thought_leadership', label: 'Thought Leadership', icon: IconLightbulb, desc: 'Expert insights & opinions', color: 'amber' },
+  { value: 'image', label: 'Image Post', icon: IconImage, desc: 'Post with AI-generated visual', color: 'purple' },
+  { value: 'video', label: 'Video Post', icon: IconVideo, desc: 'Post with AI-generated video', color: 'red' },
+  { value: 'carousel', label: 'Carousel', icon: IconLayers, desc: 'Multi-slide storytelling', color: 'teal' },
+  { value: 'poll', label: 'Poll', icon: IconPoll, desc: 'Engage with questions', color: 'green' },
+  { value: 'newsletter', label: 'Newsletter', icon: IconNewspaper, desc: 'Long-form article', color: 'indigo' },
+  { value: 'event_promotion', label: 'Event Promotion', icon: IconMegaphone, desc: 'Promote events & webinars', color: 'pink' },
+  { value: 'product_launch', label: 'Product Launch', icon: IconRocket, desc: 'Announce products & features', color: 'orange' },
+  { value: 'hiring', label: 'Hiring Post', icon: IconUsers, desc: 'Recruit top talent', color: 'cyan' },
+];
 
 const TONES = [
   { value: 'professional', label: 'Professional' },
   { value: 'thought-leader', label: 'Thought Leader' },
   { value: 'educational', label: 'Educational' },
   { value: 'storytelling', label: 'Storytelling' },
-  { value: 'casual', label: 'Casual' }
+  { value: 'casual', label: 'Casual' },
+  { value: 'inspirational', label: 'Inspirational' },
+  { value: 'humorous', label: 'Humorous' },
+  { value: 'data-driven', label: 'Data-Driven' },
 ];
+
+const GOALS = [
+  { value: 'engagement', label: 'Engagement' },
+  { value: 'awareness', label: 'Brand Awareness' },
+  { value: 'leads', label: 'Lead Generation' },
+  { value: 'hiring', label: 'Hiring' },
+  { value: 'thought_leadership', label: 'Thought Leadership' },
+  { value: 'community', label: 'Community Building' },
+];
+
+const VISUAL_STYLES = [
+  { value: 'corporate', label: 'Corporate' },
+  { value: 'modern_saas', label: 'Modern SaaS' },
+  { value: 'infographic', label: 'Infographic' },
+  { value: 'futuristic_ai', label: 'Futuristic AI' },
+  { value: 'professional_business', label: 'Professional Business' },
+  { value: 'minimal', label: 'Minimal' },
+  { value: 'linkedin_brand', label: 'LinkedIn Personal Brand' },
+];
+
+const ASPECT_RATIOS = [
+  { value: '16:9', label: 'Landscape (16:9)' },
+  { value: '1:1', label: 'Square (1:1)' },
+  { value: '9:16', label: 'Portrait (9:16)' },
+];
+
+const IMAGE_PROVIDERS = [
+  { value: 'google-imagen-3', label: 'Google Imagen 3' },
+  { value: 'google-imagen-4', label: 'Google Imagen 4' },
+  { value: 'google-imagen-4-fast', label: 'Google Imagen 4 Fast' },
+  { value: 'google-imagen-4-ultra', label: 'Google Imagen 4 Ultra' },
+];
+
+const VIDEO_PROVIDERS = [
+  { value: 'google-veo', label: 'Google Veo' },
+  { value: 'google-veo-lite', label: 'Google Veo Lite' },
+];
+
+const VIDEO_DURATIONS = [
+  { value: '15', label: '15 sec' },
+  { value: '30', label: '30 sec' },
+  { value: '60', label: '60 sec' },
+];
+
+const VIDEO_STYLES = [
+  { value: 'corporate', label: 'Corporate' },
+  { value: 'tech_demo', label: 'Tech Demo' },
+  { value: 'storytelling', label: 'Storytelling' },
+  { value: 'explainer', label: 'Explainer' },
+  { value: 'social_media', label: 'Social Media' },
+];
+
+const COLOR_MAP = {
+  blue: { bg: 'bg-blue-50', border: 'border-blue-200', activeBorder: 'border-blue-500', text: 'text-blue-600', activeBg: 'bg-blue-50', ring: 'ring-blue-200' },
+  amber: { bg: 'bg-amber-50', border: 'border-amber-200', activeBorder: 'border-amber-500', text: 'text-amber-600', activeBg: 'bg-amber-50', ring: 'ring-amber-200' },
+  purple: { bg: 'bg-purple-50', border: 'border-purple-200', activeBorder: 'border-purple-500', text: 'text-purple-600', activeBg: 'bg-purple-50', ring: 'ring-purple-200' },
+  red: { bg: 'bg-red-50', border: 'border-red-200', activeBorder: 'border-red-500', text: 'text-red-600', activeBg: 'bg-red-50', ring: 'ring-red-200' },
+  teal: { bg: 'bg-teal-50', border: 'border-teal-200', activeBorder: 'border-teal-500', text: 'text-teal-600', activeBg: 'bg-teal-50', ring: 'ring-teal-200' },
+  green: { bg: 'bg-green-50', border: 'border-green-200', activeBorder: 'border-green-500', text: 'text-green-600', activeBg: 'bg-green-50', ring: 'ring-green-200' },
+  indigo: { bg: 'bg-indigo-50', border: 'border-indigo-200', activeBorder: 'border-indigo-500', text: 'text-indigo-600', activeBg: 'bg-indigo-50', ring: 'ring-indigo-200' },
+  pink: { bg: 'bg-pink-50', border: 'border-pink-200', activeBorder: 'border-pink-500', text: 'text-pink-600', activeBg: 'bg-pink-50', ring: 'ring-pink-200' },
+  orange: { bg: 'bg-orange-50', border: 'border-orange-200', activeBorder: 'border-orange-500', text: 'text-orange-600', activeBg: 'bg-orange-50', ring: 'ring-orange-200' },
+  cyan: { bg: 'bg-cyan-50', border: 'border-cyan-200', activeBorder: 'border-cyan-500', text: 'text-cyan-600', activeBg: 'bg-cyan-50', ring: 'ring-cyan-200' },
+};
 
 const LINKEDIN_PROFILE_KEY = 'linkedin_profile_url';
 
-function LinkedInProfileBadge({ profileUrl, onEdit }) {
-  if (!profileUrl) return null;
-  const handle = profileUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\/?/i, '').replace(/\/$/, '');
+function GenerationProgress({ steps }) {
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '8px',
-      background: '#EBF5FB', border: '1px solid #B3D4F5',
-      borderRadius: '8px', padding: '6px 12px', fontSize: '13px', color: '#1a5276'
-    }}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#0077B5"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-      <span>Connected as <strong>in/{handle}</strong></span>
-      <button onClick={onEdit} style={{
-        background: 'none', border: 'none', cursor: 'pointer',
-        color: '#0077B5', fontSize: '12px', textDecoration: 'underline', padding: 0
-      }}>Change</button>
+    <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-5">
+      <div className="space-y-3">
+        {steps.map((step, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+              step.status === 'done' ? 'bg-green-100 text-green-700' :
+              step.status === 'active' ? 'bg-studio-100 text-studio-700 animate-pulse-soft' :
+              step.status === 'error' ? 'bg-red-100 text-red-700' :
+              'bg-gray-100 text-gray-400'
+            }`}>
+              {step.status === 'done' ? '✓' : step.status === 'error' ? '!' : i + 1}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className={`text-sm font-medium ${
+                step.status === 'active' ? 'text-studio-700' :
+                step.status === 'done' ? 'text-green-700' :
+                step.status === 'error' ? 'text-red-700' :
+                'text-gray-400'
+              }`}>{step.label}</div>
+              {step.detail && <div className="text-xs text-gray-500 truncate">{step.detail}</div>}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -46,7 +159,7 @@ function ProfileSetupModal({ onSave, onSkip, existing }) {
 
   const validate = (val) => {
     if (!val) return 'Please enter your LinkedIn profile URL.';
-    if (!/linkedin\.com\/in\//i.test(val)) return 'Must be a LinkedIn profile URL (e.g. https://www.linkedin.com/in/yourname)';
+    if (!/linkedin\.com\/in\//i.test(val)) return 'Must be a LinkedIn profile URL';
     return '';
   };
 
@@ -57,104 +170,106 @@ function ProfileSetupModal({ onSave, onSkip, existing }) {
   };
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-    }}>
-      <div style={{
-        background: '#fff', borderRadius: '16px', padding: '32px',
-        width: '460px', boxShadow: '0 20px 60px rgba(0,0,0,0.18)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-          <div style={{
-            background: '#0077B5', borderRadius: '8px', width: '36px', height: '36px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: '16px', color: '#1a1a1a' }}>Connect your LinkedIn</div>
-            <div style={{ fontSize: '12px', color: '#666' }}>Used for publishing & post preview</div>
-          </div>
-        </div>
-
-        <label style={{ display: 'block', fontWeight: 600, fontSize: '13px', color: '#333', marginBottom: '6px' }}>
-          Your LinkedIn Profile URL
-        </label>
-        <input
-          type="url"
-          placeholder="https://www.linkedin.com/in/yourname"
-          value={url}
+    <Modal title="Connect your LinkedIn" onClose={onSkip}>
+      <div className="space-y-4">
+        <label className="block text-sm font-semibold text-gray-700">Your LinkedIn Profile URL</label>
+        <input type="url" placeholder="https://www.linkedin.com/in/yourname" value={url}
           onChange={e => { setUrl(e.target.value); setError(''); }}
           onKeyDown={e => e.key === 'Enter' && handleSave()}
-          style={{
-            width: '100%', boxSizing: 'border-box', padding: '10px 14px',
-            border: error ? '1.5px solid #e74c3c' : '1.5px solid #ddd',
-            borderRadius: '8px', fontSize: '14px', outline: 'none',
-            fontFamily: 'monospace', letterSpacing: '0.02em'
-          }}
-          autoFocus
-        />
-        {error && <div style={{ color: '#e74c3c', fontSize: '12px', marginTop: '5px' }}>{error}</div>}
-
-        <div style={{ fontSize: '12px', color: '#888', marginTop: '8px' }}>
-          Find it at <a href="https://www.linkedin.com/in/" target="_blank" rel="noreferrer" style={{ color: '#0077B5' }}>linkedin.com/in/your-name</a>. This is saved in your browser only.
-        </div>
-
-        <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
-          <button onClick={handleSave} style={{
-            flex: 1, background: '#0077B5', color: '#fff', border: 'none',
-            borderRadius: '8px', padding: '11px', fontWeight: 600, fontSize: '14px',
-            cursor: 'pointer'
-          }}>Save Profile</button>
-          <button onClick={onSkip} style={{
-            padding: '11px 18px', background: 'none', border: '1.5px solid #ddd',
-            borderRadius: '8px', fontSize: '14px', cursor: 'pointer', color: '#666'
-          }}>Skip for now</button>
+          className={`input-field font-mono ${error ? '!border-red-500' : ''}`}
+          autoFocus />
+        {error && <div className="text-red-500 text-xs">{error}</div>}
+        <div className="flex gap-3 pt-2">
+          <Button onClick={handleSave} variant="primary" className="flex-1">Save Profile</Button>
+          <Button onClick={onSkip} variant="ghost" className="border border-gray-200">Skip for now</Button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
-export default function CreatePage() {
+function CreatePageContent() {
   const searchParams = useSearchParams();
-  const [formData, setFormData] = useState({ title: '', topic: '', audience: '', tone: 'professional' });
-  const [postData, setPostData] = useState({ content: '', hashtags: [], cta: '' });
+
+  // Form state
+  const [topic, setTopic] = useState('');
+  const [audience, setAudience] = useState('');
+  const [tone, setTone] = useState('professional');
+  const [contentType, setContentType] = useState('text');
+  const [goal, setGoal] = useState('engagement');
+  const [ctaInput, setCtaInput] = useState('');
+  const [keywords, setKeywords] = useState('');
+  const [writingStyle, setWritingStyle] = useState('');
+  const [brandColors, setBrandColors] = useState('');
+  const [visualStyle, setVisualStyle] = useState('corporate');
+  const [aspectRatio, setAspectRatio] = useState('16:9');
+
+  // Media checkboxes
+  const [generateImg, setGenerateImg] = useState(false);
+  const [generateVid, setGenerateVid] = useState(false);
+
+  // Image options
+  const [imageProvider, setImageProvider] = useState('google-imagen-3');
+  const [imagePrompt, setImagePrompt] = useState('');
+
+  // Video options
+  const [videoProvider, setVideoProvider] = useState('google-veo');
+  const [videoDuration, setVideoDuration] = useState('30');
+  const [videoStyle, setVideoStyle] = useState('corporate');
+  const [videoScript, setVideoScript] = useState('');
+
+  // Generated content
+  const [postText, setPostText] = useState('');
+  const [hashtags, setHashtags] = useState([]);
+  const [cta, setCta] = useState('');
+  const [suggestedTitle, setSuggestedTitle] = useState('');
+  const [altText, setAltText] = useState('');
+  const [carouselSlides, setCarouselSlides] = useState([]);
+  const [pollQuestion, setPollQuestion] = useState('');
+  const [pollOptions, setPollOptions] = useState([]);
+
+  // Media results
+  const [generatedImages, setGeneratedImages] = useState([]);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [videoJobId, setVideoJobId] = useState(null);
+  const [videoResult, setVideoResult] = useState(null);
+
+  // UI state
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState([]);
+  const [steps, setSteps] = useState([]);
   const [error, setError] = useState('');
   const [profileUrl, setProfileUrl] = useState('');
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(false);
+
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem(LINKEDIN_PROFILE_KEY) : '';
     setProfileUrl(saved || '');
-    if (!saved) {
-      setShowProfileModal(true);
-    }
+    if (!saved) setShowProfileModal(true);
   }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
-    // Check URL params
-    const topic = searchParams.get('topic');
-    if (topic) {
-      setFormData((p) => ({ ...p, topic: decodeURIComponent(topic) }));
-      return;
+    const t = searchParams.get('topic');
+    const type = searchParams.get('type');
+    if (type && CONTENT_TYPES.some(ct => ct.value === type)) {
+      setContentType(type);
+      if (type === 'image') setGenerateImg(true);
+      if (type === 'video') setGenerateVid(true);
     }
-
-    // Check localStorage for prefilled data from suggestions
-    const prefillTopic = localStorage.getItem('prefill_topic');
-    const prefillHook = localStorage.getItem('prefill_hook');
-    if (prefillTopic) {
-      setFormData((p) => ({
-        ...p,
-        topic: prefillTopic,
-        title: prefillHook || '',
-      }));
-      // Clear the prefill data
+    if (t) { setTopic(decodeURIComponent(t)); return; }
+    const prefill = localStorage.getItem('prefill_topic');
+    const hook = localStorage.getItem('prefill_hook');
+    if (prefill) {
+      setTopic(prefill);
+      if (hook) setSuggestedTitle(hook);
       localStorage.removeItem('prefill_topic');
       localStorage.removeItem('prefill_hook');
     }
@@ -166,107 +281,583 @@ export default function CreatePage() {
     setShowProfileModal(false);
   };
 
-  const onChange = (e) => setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
-  const gen = async () => {
-    if (!formData.topic.trim()) {
-      setError('Please enter a topic');
-      return;
-    }
-    setBusy(true);
-    setProgress([]);
+  const updateStep = (idx, patch) => {
+    setSteps(prev => prev.map((s, i) => i === idx ? { ...s, ...patch } : s));
+  };
+
+  const generateAll = async () => {
+    if (!topic.trim()) { setError('Please enter a topic'); return; }
     setError('');
+    setBusy(true);
+    setGeneratedImages([]);
+    setSelectedImage(null);
+    setVideoResult(null);
+    setVideoJobId(null);
+
+    const wantImage = generateImg || contentType === 'image';
+    const wantVideo = generateVid || contentType === 'video';
+
+    const newSteps = [{ label: 'Generating content plan...', status: 'active' }];
+    if (wantImage) newSteps.push({ label: 'Generating image prompt...', status: 'pending' });
+    if (wantImage) newSteps.push({ label: 'Generating image...', status: 'pending' });
+    if (wantVideo) newSteps.push({ label: 'Generating video script...', status: 'pending' });
+    if (wantVideo) newSteps.push({ label: 'Rendering video...', status: 'pending' });
+    setSteps(newSteps);
+
+    let stepIdx = 0;
+
     try {
-      const payload = {
-        topic: formData.topic.trim(),
-        audience: (formData.audience || '').trim() || 'general',
-        tone: formData.tone || 'professional',
-        objective: 'engagement',
-        min_chars: 500,
-        max_chars: 1800,
-      };
-      const res = await fetch(`${API_URL}/api/posts/generate/stream`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
-        body: JSON.stringify(payload),
+      const plan = await generateContentPlan({
+        topic: topic.trim(),
+        audience: audience.trim() || 'LinkedIn professionals',
+        tone,
+        contentType: contentType === 'image' ? 'text' : contentType === 'video' ? 'text' : contentType,
+        brandColors,
+        visualStyle,
+        aspectRatio,
+        generateImage: wantImage,
+        generateVideo: wantVideo,
+        imageProvider,
+        videoProvider,
+        videoDuration: parseInt(videoDuration),
+        videoStyle,
       });
-      if (!res.ok || !res.body) {
-        const errText = await res.text();
-        throw new Error(`HTTP ${res.status}: ${errText}`);
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const events = buffer.split('\n\n');
-        buffer = events.pop() || '';
-        for (const evt of events) {
-          const line = evt.split('\n').find((l) => l.startsWith('data: '));
-          if (!line) continue;
+
+      setPostText(plan.postText || '');
+      setHashtags(plan.hashtags || []);
+      setCta(plan.cta || '');
+      setSuggestedTitle(plan.suggestedTitle || '');
+      setAltText(plan.altText || '');
+      if (plan.imagePrompt) setImagePrompt(plan.imagePrompt);
+      if (plan.videoScript) setVideoScript(plan.videoScript);
+      if (plan.carouselSlides) setCarouselSlides(plan.carouselSlides);
+      if (plan.pollQuestion) setPollQuestion(plan.pollQuestion);
+      if (plan.pollOptions) setPollOptions(plan.pollOptions);
+
+      updateStep(stepIdx, { status: 'done', label: 'Content plan ready', detail: `${(plan.postText || '').length} chars` });
+      stepIdx++;
+
+      if (wantImage) {
+        const imgPrompt = plan.imagePrompt || imagePrompt;
+        if (!imgPrompt) {
+          updateStep(stepIdx, { status: 'done', label: 'Image prompt from plan' });
+          stepIdx++;
+          updateStep(stepIdx, { status: 'error', label: 'No image prompt generated', detail: 'Enter one manually and click Generate Image' });
+          stepIdx++;
+        } else {
+          setImagePrompt(imgPrompt);
+          updateStep(stepIdx, { status: 'done', label: 'Image prompt ready' });
+          stepIdx++;
+          updateStep(stepIdx, { status: 'active', label: 'Generating image...' });
+          setImageLoading(true);
           try {
-            const data = JSON.parse(line.slice(6));
-            setProgress((prev) => [...prev, data]);
-            if (data.stage === 'complete' && data.status === 'success') {
-              setPostData({
-                content: data.data?.content || '',
-                hashtags: data.data?.hashtags || [],
-                cta: data.data?.cta || '',
-              });
-            }
-            if (data.stage === 'error') setError(data.message || 'Generation failed');
-          } catch (parseErr) {
-            console.error('Failed to parse SSE event:', parseErr, line);
+            const imgResult = await generateImage({
+              prompt: imgPrompt,
+              style: visualStyle,
+              aspect_ratio: aspectRatio === '16:9' ? 'landscape' : aspectRatio === '1:1' ? 'square' : 'portrait',
+              provider: imageProvider,
+              brand_colors: brandColors,
+              count: 2,
+            });
+            const images = imgResult.images || [];
+            setGeneratedImages(images);
+            if (images.length > 0) setSelectedImage(images[0]);
+            updateStep(stepIdx, { status: 'done', label: `${images.length} image(s) generated` });
+          } catch (imgErr) {
+            updateStep(stepIdx, { status: 'error', label: 'Image generation failed', detail: imgErr.message });
+          } finally {
+            setImageLoading(false);
           }
+          stepIdx++;
         }
       }
+
+      if (wantVideo) {
+        const script = plan.videoScript || videoScript;
+        if (script) setVideoScript(script);
+        updateStep(stepIdx, { status: 'done', label: 'Video script ready' });
+        stepIdx++;
+        updateStep(stepIdx, { status: 'active', label: 'Rendering video...', detail: 'This may take a few minutes' });
+        setVideoLoading(true);
+        try {
+          const vidResult = await startVideoGeneration({
+            topic: topic.trim(),
+            script: script || '',
+            duration: parseInt(videoDuration),
+            voice: 'none',
+            captions: false,
+            style: videoStyle,
+          });
+          setVideoJobId(vidResult.job_id);
+          const vidStepIdx = stepIdx;
+          startVideoPolling(vidResult.job_id, vidStepIdx);
+        } catch (vidErr) {
+          updateStep(stepIdx, { status: 'error', label: 'Video generation failed', detail: vidErr.message });
+          setVideoLoading(false);
+        }
+      }
+
     } catch (e) {
-      setError(e.message || 'Failed to generate');
+      updateStep(stepIdx, { status: 'error', label: 'Content plan failed', detail: e.message });
+      setError(e.message || 'Failed to generate content');
     } finally {
       setBusy(false);
     }
   };
-  const save = async () => {
-    setBusy(true);
-    await savePost({ ...formData, ...postData, status: 'draft', title: formData.title || formData.topic });
-    window.location.href = '/publish';
+
+  const startVideoPolling = (jobId, stepIdx) => {
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(async () => {
+      try {
+        const status = await getMediaJobStatus(jobId);
+        if (status.status === 'completed') {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+          setVideoLoading(false);
+          setVideoResult(status.result);
+          updateStep(stepIdx, { status: 'done', label: 'Video ready', detail: status.result?.filename });
+        } else if (status.status === 'failed') {
+          clearInterval(pollRef.current);
+          pollRef.current = null;
+          setVideoLoading(false);
+          updateStep(stepIdx, { status: 'error', label: 'Video failed', detail: status.message });
+        } else {
+          updateStep(stepIdx, { detail: status.message });
+        }
+      } catch {}
+    }, 5000);
   };
 
+  const generateImagePromptOnly = async () => {
+    if (!topic.trim()) return;
+    setError('');
+    try {
+      const plan = await generateContentPlan({
+        topic: topic.trim(), audience, tone, contentType: 'text', brandColors, visualStyle, aspectRatio,
+        generateImage: true, generateVideo: false, imageProvider, videoProvider,
+      });
+      if (plan.imagePrompt) setImagePrompt(plan.imagePrompt);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const generateImageOnly = async () => {
+    if (!imagePrompt.trim()) { setError('Enter or generate an image prompt first'); return; }
+    setImageLoading(true);
+    setError('');
+    try {
+      const result = await generateImage({
+        prompt: imagePrompt.trim(),
+        style: visualStyle,
+        aspect_ratio: aspectRatio === '16:9' ? 'landscape' : aspectRatio === '1:1' ? 'square' : 'portrait',
+        provider: imageProvider,
+        brand_colors: brandColors,
+        count: 2,
+      });
+      const images = result.images || [];
+      setGeneratedImages(images);
+      if (images.length > 0) setSelectedImage(images[0]);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setImageLoading(false);
+    }
+  };
+
+  const generateVideoScriptOnly = async () => {
+    if (!topic.trim()) return;
+    setError('');
+    try {
+      const plan = await generateContentPlan({
+        topic: topic.trim(), audience, tone, contentType: 'text', brandColors, visualStyle, aspectRatio,
+        generateImage: false, generateVideo: true, videoProvider, videoDuration: parseInt(videoDuration), videoStyle,
+      });
+      if (plan.videoScript) setVideoScript(plan.videoScript);
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
+  const generateVideoOnly = async () => {
+    setVideoLoading(true);
+    setError('');
+    try {
+      const result = await startVideoGeneration({
+        topic: topic.trim(),
+        script: videoScript || '',
+        duration: parseInt(videoDuration),
+        voice: 'none',
+        captions: false,
+        style: videoStyle,
+      });
+      setVideoJobId(result.job_id);
+      const fakeStepIdx = steps.length;
+      setSteps(prev => [...prev, { label: 'Rendering video...', status: 'active', detail: 'This may take a few minutes' }]);
+      startVideoPolling(result.job_id, fakeStepIdx);
+    } catch (e) {
+      setError(e.message);
+      setVideoLoading(false);
+    }
+  };
+
+  const saveDraft = async () => {
+    setBusy(true);
+    try {
+      const mediaPayload = {};
+      if (selectedImage) {
+        mediaPayload.image = {
+          enabled: true,
+          provider: imageProvider,
+          prompt: imagePrompt,
+          filename: selectedImage.filename,
+          url: selectedImage.url || `/api/media/file/${selectedImage.filename}`,
+          mime_type: 'image/png',
+          alt_text: altText,
+          style: visualStyle,
+          aspect_ratio: aspectRatio,
+          status: 'generated',
+        };
+      }
+      if (videoResult) {
+        mediaPayload.video = {
+          enabled: true,
+          provider: videoProvider,
+          prompt: topic,
+          script: videoScript,
+          filename: videoResult.filename,
+          url: videoResult.url || `/api/media/file/${videoResult.filename}`,
+          mime_type: 'video/mp4',
+          duration: parseInt(videoDuration),
+          style: videoStyle,
+          status: 'generated',
+          job_id: videoJobId || '',
+        };
+      }
+      await savePost({
+        title: suggestedTitle || topic,
+        topic,
+        audience: audience || 'general',
+        tone,
+        content: postText,
+        hashtags,
+        cta,
+        content_type: contentType,
+        media: Object.keys(mediaPayload).length > 0 ? mediaPayload : null,
+      });
+      window.location.href = '/publish';
+    } catch (e) {
+      setError(e.message);
+      setBusy(false);
+    }
+  };
+
+  const handle = profileUrl ? profileUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\/?/i, '').replace(/\/$/, '') : '';
+  const wantImage = generateImg || contentType === 'image';
+  const wantVideo = generateVid || contentType === 'video';
+
   return (
-    <div>
+    <div className="animate-fade-in">
       {showProfileModal && (
-        <ProfileSetupModal
-          existing={profileUrl}
-          onSave={saveProfile}
-          onSkip={() => setShowProfileModal(false)}
-        />
+        <ProfileSetupModal existing={profileUrl} onSave={saveProfile} onSkip={() => setShowProfileModal(false)} />
       )}
-      <div style={{ paddingBottom: '12px', borderBottom: '1px solid #e8ecef', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ margin: 0, fontSize: '22px', fontWeight: 700, color: '#1a1a1a' }}>LinkedIn Post Generator</h1>
-        <LinkedInProfileBadge profileUrl={profileUrl} onEdit={() => setShowProfileModal(true)} />
+
+      {/* Profile badge */}
+      {profileUrl && (
+        <div className="flex justify-end mb-4">
+          <div className="flex items-center gap-2 bg-studio-50 border border-studio-100 rounded-xl px-3 py-1.5 text-sm text-studio-700">
+            <IconLinkedIn size={16} className="text-linkedin-600" />
+            <span>Connected as <strong>in/{handle}</strong></span>
+            <button onClick={() => setShowProfileModal(true)} className="text-studio-600 text-xs underline hover:text-studio-700">Change</button>
+          </div>
+        </div>
+      )}
+
+      {/* Content Type Selector */}
+      <div className="mb-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">What do you want to create?</h2>
+        <p className="text-sm text-gray-500 mb-4">Choose a content type and let AI handle the rest</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+          {CONTENT_TYPES.map((ct) => {
+            const Icon = ct.icon;
+            const isActive = contentType === ct.value;
+            const colors = COLOR_MAP[ct.color];
+            return (
+              <button
+                key={ct.value}
+                onClick={() => {
+                  setContentType(ct.value);
+                  if (ct.value === 'image') setGenerateImg(true);
+                  else if (ct.value === 'video') setGenerateVid(true);
+                }}
+                className={`content-type-card ${
+                  isActive
+                    ? `${colors.activeBorder} ${colors.activeBg} ring-2 ${colors.ring} shadow-sm`
+                    : 'content-type-card-unselected'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-lg ${colors.bg} flex items-center justify-center`}>
+                  <Icon size={18} className={colors.text} />
+                </div>
+                <div className="text-xs font-semibold text-gray-900">{ct.label}</div>
+                <div className="text-[10px] text-gray-500 leading-tight">{ct.desc}</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
-      <a href="https://www.linkedin.com/article/newsletter/new/" target="_blank" rel="noreferrer" style={{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        background: 'linear-gradient(90deg, #0077B5 0%, #00a0dc 100%)',
-        color: '#fff', borderRadius: '10px', padding: '12px 18px',
-        textDecoration: 'none', marginBottom: '24px',
-        boxShadow: '0 2px 10px rgba(0,119,181,0.25)'
-      }}>
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: '14px' }}>Start a LinkedIn Newsletter Article</div>
-          <div style={{ fontSize: '12px', opacity: 0.85 }}>linkedin.com/article/newsletter/new/ →</div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left column: Form (3/5) */}
+        <div className="lg:col-span-3 space-y-4">
+
+          {/* Core fields */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-5 space-y-4">
+            <Textarea label="Topic" value={topic} onChange={e => setTopic(e.target.value)} rows={3}
+              placeholder='e.g., "AI agents for prior authorization on Google Cloud"' />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input label="Target Audience" value={audience} onChange={e => setAudience(e.target.value)}
+                placeholder="e.g., CTOs, cloud architects, healthcare" />
+              <Select label="Tone" value={tone} onChange={e => setTone(e.target.value)} options={TONES} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Select label="Goal" value={goal} onChange={e => setGoal(e.target.value)} options={GOALS} />
+              <Input label="Call-to-Action" value={ctaInput} onChange={e => setCtaInput(e.target.value)}
+                placeholder="e.g., Comment below, DM me, Link in bio" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input label="Keywords" value={keywords} onChange={e => setKeywords(e.target.value)}
+                placeholder="e.g., AI, Cloud, Healthcare" />
+              <Input label="Writing Style" value={writingStyle} onChange={e => setWritingStyle(e.target.value)}
+                placeholder="e.g., Simon Sinek, concise, data-heavy" />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Select label="Visual Style" value={visualStyle} onChange={e => setVisualStyle(e.target.value)} options={VISUAL_STYLES} />
+              <Select label="Aspect Ratio" value={aspectRatio} onChange={e => setAspectRatio(e.target.value)} options={ASPECT_RATIOS} />
+              <Input label="Brand Colors" value={brandColors} onChange={e => setBrandColors(e.target.value)}
+                placeholder="#0A66C2, #FFFFFF" />
+            </div>
+          </div>
+
+          {/* Media enhancements */}
+          <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Media Enhancements</h3>
+            <div className="space-y-3">
+              {/* Image toggle */}
+              <div className={`border rounded-xl p-4 transition-all ${wantImage ? 'border-purple-200 bg-purple-50/50' : 'border-gray-100'}`}>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={wantImage}
+                    onChange={e => {
+                      setGenerateImg(e.target.checked);
+                      if (contentType === 'image' && !e.target.checked) setContentType('text');
+                    }}
+                    className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
+                  <div>
+                    <span className="font-semibold text-sm text-gray-900">Add AI Image</span>
+                    <span className="text-xs text-gray-500 ml-2">Imagen 3/4 visual</span>
+                  </div>
+                </label>
+
+                {wantImage && (
+                  <div className="mt-4 space-y-3 pl-8">
+                    <Select label="Image Provider" value={imageProvider} onChange={e => setImageProvider(e.target.value)} options={IMAGE_PROVIDERS} />
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Image Prompt</label>
+                      <textarea value={imagePrompt} onChange={e => setImagePrompt(e.target.value)} rows={3}
+                        placeholder="Leave blank to auto-generate from topic..."
+                        className="input-field" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={generateImagePromptOnly} variant="outline" size="sm" disabled={!topic.trim() || busy}>
+                        Generate Prompt with Gemini
+                      </Button>
+                      <Button onClick={generateImageOnly} variant="outline" size="sm" disabled={!imagePrompt.trim() || imageLoading} loading={imageLoading}>
+                        Generate Image
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Video toggle */}
+              <div className={`border rounded-xl p-4 transition-all ${wantVideo ? 'border-red-200 bg-red-50/50' : 'border-gray-100'}`}>
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input type="checkbox" checked={wantVideo}
+                    onChange={e => {
+                      setGenerateVid(e.target.checked);
+                      if (contentType === 'video' && !e.target.checked) setContentType('text');
+                    }}
+                    className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
+                  <div>
+                    <span className="font-semibold text-sm text-gray-900">Add AI Video</span>
+                    <span className="text-xs text-gray-500 ml-2">Veo-powered video</span>
+                  </div>
+                </label>
+
+                {wantVideo && (
+                  <div className="mt-4 space-y-3 pl-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <Select label="Video Provider" value={videoProvider} onChange={e => setVideoProvider(e.target.value)} options={VIDEO_PROVIDERS} />
+                      <Select label="Duration" value={videoDuration} onChange={e => setVideoDuration(e.target.value)} options={VIDEO_DURATIONS} />
+                      <Select label="Video Style" value={videoStyle} onChange={e => setVideoStyle(e.target.value)} options={VIDEO_STYLES} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Video Script</label>
+                      <textarea value={videoScript} onChange={e => setVideoScript(e.target.value)} rows={3}
+                        placeholder="Leave blank to auto-generate from topic..."
+                        className="input-field" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button onClick={generateVideoScriptOnly} variant="outline" size="sm" disabled={!topic.trim() || busy}>
+                        Generate Script with Gemini
+                      </Button>
+                      <Button onClick={generateVideoOnly} variant="outline" size="sm" disabled={videoLoading} loading={videoLoading}>
+                        Generate Video
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Main generate button */}
+          <button
+            onClick={generateAll}
+            disabled={busy || !topic.trim()}
+            className="w-full py-3.5 rounded-2xl text-white font-semibold text-base
+              bg-gradient-to-r from-studio-600 via-studio-500 to-linkedin-600
+              hover:from-studio-700 hover:via-studio-600 hover:to-linkedin-700
+              disabled:opacity-50 disabled:cursor-not-allowed
+              shadow-lg hover:shadow-glow-lg transition-all duration-300
+              flex items-center justify-center gap-2"
+          >
+            {busy ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Generating...
+              </>
+            ) : (
+              <>
+                <IconSparkles size={20} />
+                Generate Content
+              </>
+            )}
+          </button>
+
+          {error && <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl p-3">{error}</div>}
+
+          {steps.length > 0 && <GenerationProgress steps={steps} />}
+
+          {/* Generated images gallery */}
+          {generatedImages.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Generated Images</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {generatedImages.map((img, i) => (
+                  <div key={i} onClick={() => setSelectedImage(img)}
+                    className={`relative rounded-xl overflow-hidden border-2 cursor-pointer transition-all ${
+                      selectedImage?.filename === img.filename
+                        ? 'border-studio-600 shadow-glow ring-2 ring-studio-200'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}>
+                    <img src={getMediaFileUrl(img.filename)} alt={`Generated ${i + 1}`} className="w-full h-auto" />
+                    {selectedImage?.filename === img.filename && (
+                      <div className="absolute top-2 right-2 bg-studio-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">✓</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Video result */}
+          {videoResult && (
+            <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-5">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Generated Video</h3>
+              <video controls className="w-full rounded-xl border border-gray-200"
+                src={getMediaFileUrl(videoResult.filename)} />
+            </div>
+          )}
+
+          {/* Editable generated content */}
+          {postText && (
+            <div className="bg-white rounded-2xl shadow-card border border-gray-100 p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <IconSparkles size={18} className="text-studio-600" />
+                <h3 className="text-sm font-semibold text-gray-900">Generated Post</h3>
+                <span className="text-xs text-gray-400">Edit before saving</span>
+              </div>
+              <Input label="Title" value={suggestedTitle} onChange={e => setSuggestedTitle(e.target.value)} />
+              <Textarea label="Content" value={postText} onChange={e => setPostText(e.target.value)} rows={8} />
+              <Input label="Hashtags" value={hashtags.join(' ')} onChange={e => setHashtags(e.target.value.split(' ').filter(Boolean))} />
+              <Input label="CTA" value={cta} onChange={e => setCta(e.target.value)} />
+              {altText && <Input label="Alt Text" value={altText} onChange={e => setAltText(e.target.value)} />}
+
+              {carouselSlides.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Carousel Slides</label>
+                  <div className="space-y-2">
+                    {carouselSlides.map((slide, i) => (
+                      <div key={i} className="p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm">
+                        <div className="font-semibold">Slide {slide.slide_num || i + 1}: {slide.heading}</div>
+                        {slide.body && <div className="text-gray-600 mt-1">{slide.body}</div>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pollQuestion && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Poll</label>
+                  <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm">
+                    <div className="font-semibold mb-2">{pollQuestion}</div>
+                    {pollOptions.map((opt, i) => (
+                      <div key={i} className="bg-studio-50 border border-studio-100 rounded-lg px-3 py-1.5 mb-1 text-xs">{opt}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button onClick={saveDraft} disabled={busy} variant="primary" className="flex-1">Save as Draft</Button>
+                <Button onClick={generateAll} disabled={busy} variant="outline">Regenerate</Button>
+              </div>
+            </div>
+          )}
         </div>
-      </a>
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <Card><Input label="Title" name="title" value={formData.title} onChange={onChange} /><Textarea label="Topic" name="topic" value={formData.topic} onChange={onChange} /><Input label="Audience" name="audience" value={formData.audience} onChange={onChange} /><Select label="Tone" name="tone" value={formData.tone} onChange={onChange} options={TONES} /><Button onClick={gen} disabled={busy || !formData.topic.trim()} variant="primary">{busy ? 'Generating...' : 'Generate'}</Button>{error && <div className="mt-3 text-sm text-red-700">{error}</div>}</Card>
-          {busy && <ProgressStream progress={progress} />}
-          {postData.content && <Card><Textarea label="Content" value={postData.content} onChange={(e)=>setPostData((p)=>({...p,content:e.target.value}))} rows={8} /><Input label="Hashtags" value={postData.hashtags.join(' ')} onChange={(e)=>setPostData((p)=>({...p,hashtags:e.target.value.split(' ').filter(Boolean)}))} /><Input label="CTA" value={postData.cta} onChange={(e)=>setPostData((p)=>({...p,cta:e.target.value}))} /><div style={{ display: 'flex', gap: '10px' }}><Button onClick={save} disabled={busy} variant="primary">Save Draft</Button><a href="https://www.linkedin.com/article/newsletter/new/" target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#0077B5', textDecoration: 'none', fontWeight: 600 }}>📰 Newsletter Article ↗</a></div></Card>}
+
+        {/* Right column: Preview (2/5) */}
+        <div className="lg:col-span-2 hidden lg:block">
+          <div className="sticky top-20">
+            <LinkedInPreview
+              title={suggestedTitle}
+              content={postText || (topic ? `Topic: ${topic}` : '')}
+              hashtags={hashtags}
+              cta={cta}
+              profileUrl={profileUrl}
+              image={selectedImage}
+              video={videoResult}
+              poll={pollQuestion ? { question: pollQuestion, options: pollOptions } : null}
+              imageLoading={imageLoading}
+              videoLoading={videoLoading}
+            />
+          </div>
         </div>
-        <LinkedInPreview title={formData.title} content={postData.content} hashtags={postData.hashtags} cta={postData.cta} profileUrl={profileUrl} />
       </div>
     </div>
+  );
+}
+
+export default function CreatePage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-12"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-studio-600"></div></div>}>
+      <CreatePageContent />
+    </Suspense>
   );
 }

@@ -8,3 +8,90 @@
     font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   }
 }
+
+@layer components {
+  .badge-draft { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700; }
+  .badge-published { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700; }
+  .badge-failed { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700; }
+  .badge-scheduled { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700; }
+  .badge-generating { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700; }
+  .badge-archived { @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600; }
+
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl;
+  }
+
+  .glass-card-hover {
+    @apply glass-card hover:shadow-xl hover:bg-white/90 transition-all duration-200;
+  }
+
+  .gradient-border {
+    @apply relative rounded-2xl;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(10, 102, 194, 0.05));
+  }
+
+  .stat-card {
+    @apply bg-white rounded-2xl shadow-card p-5 border border-gray-100 hover:shadow-card-hover hover:border-gray-200 transition-all duration-200;
+  }
+
+  .content-card {
+    @apply bg-white rounded-2xl shadow-card border border-gray-100 overflow-hidden transition-all duration-200 hover:shadow-card-hover hover:border-gray-200;
+  }
+
+  .section-header {
+    @apply text-lg font-semibold text-gray-900 flex items-center gap-2;
+  }
+
+  .input-field {
+    @apply w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
+      focus:ring-2 focus:ring-studio-500/20 focus:border-studio-500 transition-all duration-150
+      placeholder:text-gray-400;
+  }
+
+  .select-field {
+    @apply w-full px-3.5 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
+      focus:ring-2 focus:ring-studio-500/20 focus:border-studio-500 transition-all duration-150
+      appearance-none cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+      bg-gradient-to-r from-studio-600 to-linkedin-600 text-white rounded-xl
+      text-sm font-semibold shadow-sm
+      hover:from-studio-700 hover:to-linkedin-700 hover:shadow-md
+      disabled:opacity-50 disabled:cursor-not-allowed
+      transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5
+      bg-white text-gray-700 rounded-xl text-sm font-semibold
+      border border-gray-200 shadow-sm
+      hover:bg-gray-50 hover:border-gray-300
+      disabled:opacity-50 disabled:cursor-not-allowed
+      transition-all duration-200;
+  }
+
+  .content-type-card {
+    @apply relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 cursor-pointer
+      transition-all duration-200 text-center;
+  }
+
+  .content-type-card-selected {
+    @apply border-studio-500 bg-studio-50 shadow-glow;
+  }
+
+  .content-type-card-unselected {
+    @apply border-gray-100 bg-white hover:border-gray-200 hover:bg-gray-50;
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-studio-600 to-linkedin-600;
+  }
+
+  .text-gradient-warm {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-pink-500;
+  }
+}

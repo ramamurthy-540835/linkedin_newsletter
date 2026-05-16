@@ -19,6 +19,7 @@ from app.models.schemas import (
 )
 from app.services.linkedin_service import LinkedInService
 from app.services.local_store import POSTS_FILE
+from app.services.media_service import MEDIA_DIR
 from app.services.vertex_service import VertexService
 
 router = APIRouter()
@@ -115,10 +116,13 @@ async def save_post(req: SavePostRequest) -> SavePostResponse:
         "content": req.content,
         "hashtags": req.hashtags,
         "cta": req.cta,
+        "content_type": req.content_type,
         "status": "draft",
         "created_at": now.isoformat(),
         "updated_at": now.isoformat(),
     }
+    if req.media:
+        payload["media"] = req.media.model_dump(exclude_none=True)
     rows = []
     if POSTS_FILE.exists():
         rows = json.loads(POSTS_FILE.read_text(encoding="utf-8"))
@@ -151,17 +155,29 @@ async def publish_post(req: PublishRequest) -> PublishResponse:
         parts.append(hashtag_str)
     full_text = "\n\n".join(parts)
 
+    media_data = post.get("media") or {}
+    image_filename = (media_data.get("image") or {}).get("filename", "")
+
     linkedin_post_id = ""
     linkedin_url = ""
     try:
-        author_urn = settings.linkedin_author_urn
+        author_urn = req.author_urn or settings.linkedin_author_urn
         token = req.access_token or settings.linkedin_access_token
         if author_urn and token:
-            result = await _linkedin.publish_post(
-                access_token=token,
-                author_urn=author_urn,
-                text=full_text,
-            )
+            if image_filename and (MEDIA_DIR / image_filename).exists():
+                result = await _linkedin.publish_post_with_images(
+                    access_token=token,
+                    author_urn=author_urn,
+                    text=full_text,
+                    image_filenames=[image_filename],
+                    media_dir=MEDIA_DIR,
+                )
+            else:
+                result = await _linkedin.publish_post(
+                    access_token=token,
+                    author_urn=author_urn,
+                    text=full_text,
+                )
             linkedin_post_id = result.get("location", "")
             if linkedin_post_id:
                 linkedin_url = f"https://www.linkedin.com/feed/update/{linkedin_post_id}/"
@@ -223,7 +239,6 @@ async def list_posts() -> list[Post]:
     rows.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     normalized: list[Post] = []
     for row in rows:
-        # Skip legacy/non-post rows (older draft schema etc.)
         if "id" not in row and "draft_id" in row:
             continue
         if "id" not in row or "content" not in row:
@@ -238,9 +253,12 @@ async def list_posts() -> list[Post]:
             "hashtags": row.get("hashtags") or [],
             "cta": row.get("cta") or "",
             "status": row.get("status") or "draft",
+            "content_type": row.get("content_type") or "text",
             "created_at": row.get("created_at") or datetime.now(timezone.utc).isoformat(),
             "updated_at": row.get("updated_at") or row.get("created_at") or datetime.now(timezone.utc).isoformat(),
         }
+        if row.get("media"):
+            safe["media"] = row["media"]
         try:
             normalized.append(Post(**safe))
         except Exception:

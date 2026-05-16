@@ -54,17 +54,30 @@ export const savePost = (data) =>
       content: data.content || '',
       hashtags: data.hashtags || [],
       cta: data.cta || '',
+      content_type: data.content_type || 'text',
+      media: data.media || null,
     }),
   });
 
-export const publishPost = (postId) =>
-  req('/api/posts/publish', {
+export const publishPost = (postId) => {
+  let accessToken = '';
+  let authorUrn = '';
+  if (typeof window !== 'undefined') {
+    try {
+      const oauth = JSON.parse(localStorage.getItem('linkedin_oauth') || '{}');
+      accessToken = oauth.access_token || '';
+      authorUrn = oauth.author_urn || '';
+    } catch {}
+  }
+  return req('/api/posts/publish', {
     method: 'POST',
     body: JSON.stringify({
       post_id: postId,
-      access_token: '',
+      access_token: accessToken,
+      author_urn: authorUrn,
     }),
   });
+};
 
 export const deletePost = (postId) =>
   req(`/api/posts/${postId}`, {
@@ -85,9 +98,77 @@ export const testPlatform = (platform) => req(`/api/admin/platforms/${platform}/
 export const searchSerp = (q, key) => req(`/api/serp/search?q=${encodeURIComponent(q)}&key=${key || ''}`);
 export const scrapeProfile = (url, key) => req(`/api/serp/profile/scrape?linkedin_url=${encodeURIComponent(url)}&key=${key || ''}`);
 
-// Claude API helper
+// Discovery Reports
+export const getDiscoveryReports = () => req('/api/discovery-reports');
+export const getDiscoveryReport = (provider) => req(`/api/discovery-reports/${provider}`);
+export const getDiscoveryImageUrl = (provider, filename) => `/api/proxy/api/discovery-reports/${provider}/image/${filename}`;
+export const publishDiscoveryToLinkedIn = (provider, includeImage = true) =>
+  req(`/api/discovery-reports/${provider}/publish/linkedin`, {
+    method: 'POST',
+    body: JSON.stringify({ include_image: includeImage }),
+  });
+export const publishDiscoveryToDevTo = (provider, tags = [], published = true) =>
+  req(`/api/discovery-reports/${provider}/publish/devto`, {
+    method: 'POST',
+    body: JSON.stringify({ tags, published }),
+  });
+
 // JSON parse helper
 export const parseJSON = (text) => {
   const clean = text.replace(/```json|```/g, "").trim();
   return JSON.parse(clean);
 };
+
+// ── Content plan ────────────────────────────────────────────────────────────
+
+export const generateContentPlan = (options) =>
+  req('/api/generate/content-plan', {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+
+export const getProviders = () =>
+  req('/api/generate/providers');
+
+// ── Media generation ────────────────────────────────────────────────────────
+
+export const generateImage = (options) =>
+  req('/api/media/images/generate', {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+
+export const generateVideoScript = (options) =>
+  req('/api/media/video/script', {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+
+export const startVideoGeneration = (options) =>
+  req('/api/media/video/generate', {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+
+export const getMediaJobStatus = (jobId) =>
+  req(`/api/media/job/${jobId}`);
+
+export const getMediaFileUrl = (filename) =>
+  `/api/proxy/api/media/file/${filename}`;
+
+export const getMediaStyles = () =>
+  req('/api/media/styles');
+
+// ── Trend discovery ─────────────────────────────────────────────────────────
+
+export const discoverTrends = (options) =>
+  req('/api/trends/discover', {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });
+
+export const searchWithFreshness = (options) =>
+  req('/api/trends/search', {
+    method: 'POST',
+    body: JSON.stringify(options),
+  });

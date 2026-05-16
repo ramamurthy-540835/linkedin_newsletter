@@ -1,4 +1,6 @@
 from datetime import datetime
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -14,6 +16,38 @@ class GenerateResponse(BaseModel):
     cta: str
 
 
+class MediaAsset(BaseModel):
+    enabled: bool = False
+    provider: str = ""
+    prompt: str = ""
+    filename: str = ""
+    url: str = ""
+    mime_type: str = ""
+    alt_text: str = ""
+    style: str = ""
+    aspect_ratio: str = ""
+    status: str = ""
+
+
+class VideoAsset(BaseModel):
+    enabled: bool = False
+    provider: str = ""
+    prompt: str = ""
+    script: str = ""
+    filename: str = ""
+    url: str = ""
+    mime_type: str = "video/mp4"
+    duration: int = 0
+    style: str = ""
+    status: str = ""
+    job_id: str = ""
+
+
+class PostMedia(BaseModel):
+    image: Optional[MediaAsset] = None
+    video: Optional[VideoAsset] = None
+
+
 class SavePostRequest(BaseModel):
     title: str
     topic: str
@@ -22,6 +56,8 @@ class SavePostRequest(BaseModel):
     content: str
     hashtags: list[str]
     cta: str
+    content_type: str = "text"
+    media: Optional[PostMedia] = None
 
 
 class SavePostResponse(BaseModel):
@@ -31,7 +67,8 @@ class SavePostResponse(BaseModel):
 
 class PublishRequest(BaseModel):
     post_id: str
-    access_token: str
+    access_token: str = ""
+    author_urn: str = ""
 
 
 class PublishResponse(BaseModel):
@@ -50,6 +87,8 @@ class Post(BaseModel):
     hashtags: list[str]
     cta: str
     status: str
+    content_type: str = "text"
+    media: Optional[PostMedia] = None
     created_at: datetime
     updated_at: datetime
 

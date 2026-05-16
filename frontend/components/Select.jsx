@@ -1,1 +1,15 @@
-export default function Select({ label, options=[], ...props }) { return <label className="block"><span className="text-sm font-medium">{label}</span><select {...props} className="mt-1 w-full border rounded px-3 py-2 border-gray-300">{options.map(o=><option key={o.value} value={o.value}>{o.label}</option>)}</select></label>; }
+export default function Select({ label, options = [], ...props }) {
+  return (
+    <label className="block">
+      <span className="text-sm font-semibold text-gray-700">{label}</span>
+      <select
+        {...props}
+        className="select-field mt-1 pr-10"
+      >
+        {options.map(o => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
