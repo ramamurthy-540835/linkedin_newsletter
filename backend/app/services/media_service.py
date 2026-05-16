@@ -65,31 +65,75 @@ VIDEO_STYLES = {
 # ── Prompt builders ───────────────────────────────────────────────────────────
 
 def _image_prompt(title: str, content: str) -> str:
-    excerpt = content[:400].replace("\n", " ")
+    excerpt = _sanitize_prompt(content[:400].replace("\n", " "))
     return (
         f"Photorealistic high-end editorial photograph for a LinkedIn post. "
         f"Subject: '{title}'. "
         f"Context: {excerpt}. "
-        f"Bright white or light neutral background. Natural soft studio lighting. "
+        f"MANDATORY: Bright white or very light neutral background. Natural soft studio lighting. "
         f"Real physical objects, real textures, real materials. "
-        f"Looks like a professional stock photo, NOT computer generated. "
-        f"No text, no watermarks, no logos. No dark backgrounds. "
-        f"Clean, bright, warm, inviting. High quality DSLR photograph."
+        f"Looks like a professional stock photo taken with a DSLR, NOT computer generated. "
+        f"FORBIDDEN: dark background, neon, abstract digital art, illustration. "
+        f"No text, no watermarks, no logos. "
+        f"Clean, bright, warm, inviting."
     )
 
 
+def _sanitize_prompt(prompt: str) -> str:
+    """Strip dark-background and AI-art instructions that Gemini may inject."""
+    import re
+    removals = [
+        r"(?i)dark[\s,]*(?:subtle\s+)?background[^.]*[.]?",
+        r"(?i)against\s+a\s+dark[^.]*[.]?",
+        r"(?i)black\s+background[^.]*[.]?",
+        r"(?i)#0[Ff]172[Aa][^.]*[.]?",
+        r"(?i)neon[^.]*[.]?",
+        r"(?i)holographic[^.]*[.]?",
+        r"(?i)glowing\s+(?:accents|effects|elements|connection\s+points)[^.]*[.]?",
+        r"(?i)gradient\s+mesh[^.]*[.]?",
+        r"(?i)abstract\s+(?:elements|shapes|geometric)[^.]*[.]?",
+        r"(?i)data\s+streams[^.]*[.]?",
+        r"(?i)neural\s+network\s+patterns[^.]*[.]?",
+        r"(?i)digital\s+interface[^.]*[.]?",
+        r"(?i)futuristic[^.]*[.]?",
+    ]
+    cleaned = prompt
+    for pattern in removals:
+        cleaned = re.sub(pattern, "", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    return cleaned
+
+
 def _styled_image_prompt(prompt: str, style: str, brand_colors: str = "") -> str:
+    sanitized = _sanitize_prompt(prompt)
     style_desc = STYLE_PRESETS.get(style, STYLE_PRESETS["corporate"])
     parts = [
-        f"Photorealistic photograph, NOT an illustration or digital art. {prompt}.",
+        f"Photorealistic photograph taken with a professional DSLR camera. {sanitized}.",
         style_desc,
-        "Bright white or light background. Natural lighting. Real objects and textures.",
-        "Looks like a real photograph taken with a professional camera. No AI artifacts.",
-        "No text overlays, no watermarks, no logos. No dark backgrounds.",
+        "MANDATORY: Bright white or very light background. Abundant natural soft lighting.",
+        "Real physical scene with real objects, real textures, real materials.",
+        "Looks indistinguishable from a real professional stock photograph.",
+        "FORBIDDEN: dark background, black background, neon glow, abstract digital art, holographic, gradient, illustration style.",
+        "No text overlays, no watermarks, no logos.",
     ]
     if brand_colors:
-        parts.insert(2, f"Accent colors inspired by: {brand_colors}.")
+        light_colors = [c.strip() for c in brand_colors.split(",") if not _is_dark_color(c.strip())]
+        if light_colors:
+            parts.insert(2, f"Subtle accent colors: {', '.join(light_colors)}.")
     return " ".join(parts)
+
+
+def _is_dark_color(hex_color: str) -> bool:
+    """Return True if a hex color is dark (luminance < 0.3)."""
+    c = hex_color.lstrip("#")
+    if len(c) != 6:
+        return False
+    try:
+        r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+        luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+        return luminance < 0.35
+    except ValueError:
+        return False
 
 
 def _video_prompt(title: str, content: str) -> str:

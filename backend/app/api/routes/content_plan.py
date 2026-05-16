@@ -50,7 +50,7 @@ async def generate_content_plan(req: ContentPlanRequest) -> dict:
     media_sections = []
     if req.generateImage:
         media_sections.append(
-            '"imagePrompt": "a detailed photorealistic image prompt — describe a REAL scene with real objects, real textures, natural lighting, bright white or light background, looks like a professional DSLR photograph NOT digital art, no text in image, no logos, no dark backgrounds, no abstract shapes, no glowing effects",'
+            '"imagePrompt": "a detailed photorealistic image prompt describing a REAL physical scene — real objects on a real desk or in a real office, natural window light, bright white or cream background, warm tones, looks like an editorial stock photo from Unsplash shot with a Canon 5D — NEVER describe digital interfaces, abstract shapes, data streams, glowing elements, neon, dark backgrounds, or anything that looks like computer-generated art",'
             '\n  "imageTitle": "short image title",'
             '\n  "altText": "accessibility alt text for the image",'
         )
@@ -63,13 +63,14 @@ async def generate_content_plan(req: ContentPlanRequest) -> dict:
     media_instructions = ""
     if req.generateImage:
         media_instructions += f"""
-- CRITICAL: Image prompt must describe a PHOTOREALISTIC scene. NOT digital art, NOT illustration, NOT abstract.
-- Describe real physical objects, real environments, real materials, real lighting.
-- ALWAYS specify: bright white or light neutral background, natural soft lighting, warm tones.
-- NEVER use: dark background, neon, glowing, holographic, gradient mesh, abstract shapes, geometric patterns.
-- The generated image should look like a high-end stock photograph taken with a DSLR camera.
-- Brand colors (for accents only, not background): {req.brandColors or 'professional blue/white'}.
-- Visual style: {req.visualStyle}.
+- CRITICAL IMAGE PROMPT RULES (you MUST follow ALL of these):
+  1. Describe a REAL physical scene: a real desk, real office, real coffee cup, real notebook, real laptop, real plants.
+  2. ALWAYS: bright white or cream background, natural window light or soft studio light, warm inviting tones.
+  3. NEVER EVER include: dark background, black background, digital interface, abstract shapes, data streams, neon glow, holographic, gradient mesh, geometric patterns, futuristic elements, glowing accents, connection points.
+  4. The prompt must produce an image that looks like a real photograph from Unsplash or Getty Images, NOT like AI-generated digital art.
+  5. Think: editorial lifestyle photography, product flat-lay, bright office scene, professional workspace.
+  6. Even if the topic is about technology or AI, show REAL physical objects (laptop, whiteboard, team meeting) not digital abstractions.
+- Brand colors (for small accents like a mug or notebook, NOT the background): {req.brandColors or 'professional blue/white'}.
 - Aspect ratio: {req.aspectRatio}."""
     if req.generateVideo:
         media_instructions += f"""
