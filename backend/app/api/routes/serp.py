@@ -174,30 +174,56 @@ async def get_connections(
     key: str = Query(""),
     page: int = Query(1),
     per_page: int = Query(10),
+    profile: str = Query(""),
 ) -> ConnectionsResponse:
     """Fetch real LinkedIn connections via SerpAPI Google search."""
     api_key = _get_serp_key(key)
 
-    profile_url = settings.linkedin_profile_url if hasattr(settings, "linkedin_profile_url") else ""
-    if not profile_url:
-        from app.core.config import settings as cfg
-        try:
-            profile_url = cfg.linkedin_profile_url or ""
-        except AttributeError:
-            profile_url = ""
-
     handle = ""
-    if profile_url:
-        handle = profile_url.rstrip("/").split("/")[-1]
+    if profile:
+        handle = profile.rstrip("/").split("/")[-1].split("?")[0]
+    if not handle:
+        purl = getattr(settings, "linkedin_profile_url", "") or ""
+        if purl:
+            handle = purl.rstrip("/").split("/")[-1]
 
     start = (page - 1) * per_page
+    own_url_fragments = [f"/in/{handle}"] if handle else []
 
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            queries = [
-                f"site:linkedin.com/in connections of {handle}" if handle else "site:linkedin.com/in professional connections",
-                f"linkedin {handle} network connections colleagues" if handle else "linkedin professional network",
-            ]
+            user_name = ""
+            user_company = ""
+            user_title = ""
+            if handle:
+                pr = await client.get("https://serpapi.com/search.json", params={
+                    "engine": "google", "q": f"site:linkedin.com/in/{handle}", "api_key": api_key, "num": 1,
+                })
+                if pr.status_code == 200:
+                    items = pr.json().get("organic_results", [])
+                    if items:
+                        t = items[0].get("title", "")
+                        parts = t.split(" - ")
+                        user_name = parts[0].strip() if parts else handle
+                        if len(parts) > 1:
+                            role_company = parts[1].strip()
+                            cp = role_company.split(" @ ")
+                            if len(cp) > 1:
+                                user_title = cp[0].strip()
+                                user_company = cp[1].strip()
+                            elif " at " in role_company.lower():
+                                cp2 = role_company.split(" at ")
+                                user_company = cp2[-1].strip()
+
+            queries = []
+            if user_company:
+                queries.append(f'site:linkedin.com/in "{user_company}"')
+            if user_name:
+                queries.append(f'site:linkedin.com/in "{user_name}"')
+            if user_title:
+                queries.append(f'site:linkedin.com/in "{user_title}"')
+            if not queries:
+                queries = ["site:linkedin.com/in professional network"]
 
             all_connections = []
             seen_urls = set()
@@ -217,6 +243,8 @@ async def get_connections(
                 for item in data.get("organic_results", []):
                     link = item.get("link", "")
                     if "/in/" not in link or link in seen_urls:
+                        continue
+                    if any(frag in link for frag in own_url_fragments):
                         continue
                     seen_urls.add(link)
 

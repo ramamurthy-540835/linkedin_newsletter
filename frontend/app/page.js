@@ -793,7 +793,8 @@ function MyConnections({ onToast }) {
     setLoading(true);
     try {
       const serpKey = localStorage.getItem('SERP_API_KEY') || '';
-      const data = await getConnections(serpKey, pg, 6);
+      const profileUrl = localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala';
+      const data = await getConnections(serpKey, pg, 6, profileUrl);
       setConnections(data.connections || []);
       setTotal(data.total || 0);
       setPage(pg);
