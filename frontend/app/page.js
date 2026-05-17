@@ -1,7 +1,7 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
 import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
@@ -36,6 +36,14 @@ import {
   IconEdit,
   IconExternalLink,
   IconQueue,
+  IconUpload,
+  IconFilter,
+  IconBell,
+  IconActivity,
+  IconGlobe,
+  IconChevronLeft,
+  IconChevronRight,
+  IconSearch,
 } from '@/components/icons';
 
 function Toast({ message, type = 'success', duration = 3000 }) {
@@ -781,11 +789,54 @@ Return ONLY valid JSON (no markdown):
   );
 }
 
-function ConnectionCard({ conn, replies, onGenerate, onCopy, onMessage, onAddToCart }) {
+function SkeletonCard() {
+  return (
+    <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl animate-pulse">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-gray-200 flex-shrink-0" />
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <div className="h-3 bg-gray-200 rounded w-32" />
+          <div className="h-2.5 bg-gray-200 rounded w-48" />
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100">
+        <div className="h-6 bg-gray-200 rounded w-20" />
+        <div className="h-6 bg-gray-200 rounded w-16" />
+        <div className="h-6 bg-gray-200 rounded w-14" />
+      </div>
+    </div>
+  );
+}
+
+function PaginationBar({ pagination, onPageChange, onPageSizeChange }) {
+  const { page, pageSize, total, hasNext, hasPrev } = pagination;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  return (
+    <div className="flex items-center justify-between px-1 py-2 border-t border-gray-100">
+      <div className="flex items-center gap-1">
+        <button onClick={() => onPageChange(page - 1)} disabled={!hasPrev} className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100">
+          <IconChevronLeft size={12} /> Prev
+        </button>
+        <span className="text-xs text-gray-500 px-2">Page {page} of {totalPages}</span>
+        <button onClick={() => onPageChange(page + 1)} disabled={!hasNext} className="flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-lg transition disabled:opacity-30 disabled:cursor-not-allowed text-gray-600 hover:bg-gray-100">
+          Next <IconChevronRight size={12} />
+        </button>
+      </div>
+      <div className="flex items-center gap-1">
+        {[10, 20, 50].map(s => (
+          <button key={s} onClick={() => onPageSizeChange(s)} className={`px-2 py-1 text-xs rounded-lg transition ${pageSize === s ? 'bg-studio-100 text-studio-700 font-semibold' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'}`}>{s}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ConnectionCard({ conn, replies, onGenerate, onCopy, onMessage, onAddToCart, onViewActivity, onDone, hidden }) {
   const connId = conn.profile_url || conn.name;
   const reply = replies[connId];
-  const eventLabels = { birthday: 'Birthday', work_anniversary: 'Anniversary', new_job: 'New Job', promotion: 'Promotion', connection: 'Connection' };
-  const eventColors = { birthday: 'bg-pink-50 text-pink-600', work_anniversary: 'bg-blue-50 text-blue-600', new_job: 'bg-green-50 text-green-600', promotion: 'bg-amber-50 text-amber-600', connection: 'bg-gray-50 text-gray-600' };
+  const eventLabels = { birthday: 'Birthday', work_anniversary: 'Anniversary', new_job: 'New Job', promotion: 'Promotion', connection: 'Connection', recent_activity: 'Active', mention: 'Mention', comment: 'Comment', reaction: 'Reaction' };
+  const eventColors = { birthday: 'bg-pink-50 text-pink-600', work_anniversary: 'bg-blue-50 text-blue-600', new_job: 'bg-green-50 text-green-600', promotion: 'bg-amber-50 text-amber-600', connection: 'bg-gray-50 text-gray-600', recent_activity: 'bg-purple-50 text-purple-600', mention: 'bg-indigo-50 text-indigo-600', comment: 'bg-teal-50 text-teal-600', reaction: 'bg-orange-50 text-orange-600' };
+  if (hidden) return null;
   return (
     <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl">
       <div className="flex items-center gap-3">
@@ -797,29 +848,39 @@ function ConnectionCard({ conn, replies, onGenerate, onCopy, onMessage, onAddToC
         {conn.event && conn.event !== 'connection' && (
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${eventColors[conn.event] || eventColors.connection}`}>{eventLabels[conn.event] || conn.event}</span>
         )}
-        {conn.profile_url && (
-          <a href={conn.profile_url} target="_blank" rel="noreferrer" className="flex-shrink-0 p-1 hover:bg-linkedin-50 rounded-lg transition" title="View Profile">
-            <IconExternalLink size={13} className="text-linkedin-600" />
-          </a>
-        )}
       </div>
-      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100 flex-wrap">
+      <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100 flex-wrap">
         <button onClick={() => onGenerate(conn)} disabled={reply?.loading} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-studio-600 hover:bg-studio-50 rounded-lg transition">
           <IconSparkles size={12} /> {reply?.loading ? '...' : 'Generate'}
         </button>
         {reply?.text && !reply.loading && (
           <>
-            <button onClick={() => onMessage(conn)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-linkedin-600 hover:bg-linkedin-50 rounded-lg transition" title="Open LinkedIn messaging">
-              <IconLinkedIn size={12} /> Message
-            </button>
             <button onClick={() => onCopy(connId)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition">
               {reply.copied ? <><IconCheck size={12} /> Copied!</> : <><IconCopy size={12} /> Copy</>}
             </button>
-            <button onClick={() => onAddToCart(conn, reply.text)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition" title="Add to Draft Cart">
-              <IconQueue size={12} />
-            </button>
           </>
         )}
+        {conn.profile_url && (
+          <a href={conn.profile_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-linkedin-600 hover:bg-linkedin-50 rounded-lg transition">
+            <IconLinkedIn size={12} /> Open
+          </a>
+        )}
+        {conn.profile_url && (
+          <button onClick={() => onViewActivity(conn)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition" title="View Activity">
+            <IconActivity size={12} />
+          </button>
+        )}
+        <button onClick={() => onAddToCart(conn, reply?.text || '')} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition" title="Add to Draft Cart">
+          <IconQueue size={12} />
+        </button>
+        {reply?.text && !reply.loading && (
+          <button onClick={() => onMessage(conn)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-600 hover:bg-green-50 rounded-lg transition" title="Send DM — copies message and opens LinkedIn messaging">
+            <IconMessageCircle size={12} /> DM
+          </button>
+        )}
+        <button onClick={() => onDone(conn)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-300 hover:text-green-600 hover:bg-green-50 rounded-lg transition ml-auto" title="Done">
+          <IconCheckCircle size={12} />
+        </button>
       </div>
       {reply && (
         <div className="mt-2 p-2.5 bg-white border border-studio-100 rounded-xl">
@@ -835,6 +896,7 @@ function ConnectionCard({ conn, replies, onGenerate, onCopy, onMessage, onAddToC
 }
 
 const CONN_TABS = [
+  { id: 'network', label: 'My Network' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'search', label: 'People Search' },
   { id: 'company', label: 'Company' },
@@ -847,16 +909,48 @@ const EVENT_TYPES = [
   { value: 'work_anniversary', label: 'Work Anniversary' },
   { value: 'new_job', label: 'New Job' },
   { value: 'promotion', label: 'Promotion' },
+  { value: 'recent_activity', label: 'Recent Activity' },
+];
+
+const NOTIF_CATEGORIES = [
+  { value: 'birthday', label: 'Birthday' },
+  { value: 'work_anniversary', label: 'Work Anniversary' },
+  { value: 'new_job', label: 'New Job' },
+  { value: 'promotion', label: 'Promotion' },
+  { value: 'mention', label: 'Mention' },
+  { value: 'comment', label: 'Comment' },
+  { value: 'reaction', label: 'Reaction' },
+];
+
+const INDUSTRIES = [
+  { value: '', label: 'Any Industry' },
+  { value: 'Technology', label: 'Technology' },
+  { value: 'Healthcare', label: 'Healthcare' },
+  { value: 'Finance', label: 'Finance' },
+  { value: 'Retail', label: 'Retail' },
+  { value: 'AI', label: 'AI' },
+];
+
+const DEGREES = [
+  { value: '', label: 'Any Degree' },
+  { value: '1st', label: '1st' },
+  { value: '2nd', label: '2nd' },
 ];
 
 function MyConnections({ onToast }) {
   const { addToCart } = useDraftCart() || {};
-  const [activeTab, setActiveTab] = useState('notifications');
+  const [activeTab, setActiveTab] = useState('network');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [replies, setReplies] = useState({});
+  const [hiddenCards, setHiddenCards] = useState({});
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 10, total: 0, hasNext: false, hasPrev: false });
+  const debounceRef = useRef(null);
+  const csvInputRef = useRef(null);
+  const [csvConnections, setCsvConnections] = useState([]);
+  const [csvPagination, setCsvPagination] = useState({ page: 1, pageSize: 10, total: 0, hasNext: false, hasPrev: false });
 
-  const [searchForm, setSearchForm] = useState({ name: '', handle: '', company: '', title: '', event_type: '' });
+  const [searchForm, setSearchForm] = useState({ name: '', handle: '', company: '', title: '', location: '', industry: '', degree: '', event_type: '' });
   const [companyInput, setCompanyInput] = useState('');
   const [manualInput, setManualInput] = useState('');
   const [notifForm, setNotifForm] = useState({ name: '', handle: '', event: 'birthday' });
@@ -868,6 +962,7 @@ function MyConnections({ onToast }) {
   });
 
   const serpKey = () => (typeof window !== 'undefined' ? localStorage.getItem('SERP_API_KEY') || '' : '');
+  const profileUrl = () => (typeof window !== 'undefined' ? localStorage.getItem('linkedin_profile_url') || '' : '');
 
   const generateReply = async (conn) => {
     const connId = conn.profile_url || conn.name;
@@ -888,10 +983,27 @@ function MyConnections({ onToast }) {
     }
   };
 
+  const safeClipboardWrite = (text) => {
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+      return true;
+    }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      return true;
+    } catch { return false; }
+  };
+
   const copyReply = (connId) => {
     const reply = replies[connId];
-    if (reply?.text) {
-      navigator.clipboard.writeText(reply.text);
+    if (reply?.text && safeClipboardWrite(reply.text)) {
       setReplies(prev => ({ ...prev, [connId]: { ...prev[connId], copied: true } }));
       setTimeout(() => setReplies(prev => ({ ...prev, [connId]: { ...prev[connId], copied: false } })), 2000);
       onToast('Copied to clipboard');
@@ -900,35 +1012,76 @@ function MyConnections({ onToast }) {
 
   const openMessage = (conn) => {
     const reply = replies[conn.profile_url || conn.name];
-    if (reply?.text) navigator.clipboard.writeText(reply.text);
+    if (reply?.text) safeClipboardWrite(reply.text);
     const handle = conn.profile_url ? conn.profile_url.split('/in/')[1]?.replace(/\/$/, '') : '';
     const msgUrl = handle ? `https://www.linkedin.com/messaging/compose/?recipient=${handle}` : conn.profile_url || 'https://www.linkedin.com/messaging/';
     window.open(msgUrl, '_blank');
-    if (reply?.text) onToast('Message copied — paste it in LinkedIn');
+    if (reply?.text) onToast('Message copied — paste it in LinkedIn DM');
+  };
+
+  const viewActivity = (conn) => {
+    const handle = conn.profile_url ? conn.profile_url.split('/in/')[1]?.replace(/\/$/, '') : '';
+    if (handle) {
+      window.open(`https://www.linkedin.com/in/${handle}/recent-activity/`, '_blank');
+    } else if (conn.profile_url) {
+      window.open(conn.profile_url, '_blank');
+    }
+  };
+
+  const markDone = (conn) => {
+    const connId = conn.profile_url || conn.name;
+    setHiddenCards(prev => ({ ...prev, [connId]: true }));
+    onToast(`${conn.name} marked done`);
   };
 
   const addToCartHandler = (conn, text) => {
-    if (addToCart) addToCart({ type: 'message', title: conn.name, source: 'Connections', content: text });
+    if (addToCart) addToCart({ type: 'message', title: conn.name, source: 'Connections', content: text || `Message for ${conn.name}` });
     onToast('Added to Draft Cart');
   };
 
-  const doSearch = async () => {
+  const updatePaginationFromResponse = (data) => {
+    setPagination({
+      page: data.page || 1,
+      pageSize: data.pageSize || 10,
+      total: data.total || 0,
+      hasNext: data.hasNext || false,
+      hasPrev: data.hasPrev || false,
+    });
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = JSON.parse(localStorage.getItem('linkedin_csv_connections') || '[]');
+        if (stored.length) {
+          setCsvConnections(stored);
+          const ps = pagination.pageSize;
+          setCsvPagination({ page: 1, pageSize: ps, total: stored.length, hasNext: stored.length > ps, hasPrev: false });
+        }
+      } catch {}
+    }
+  }, []);
+
+  const doSearch = async (page = 1, pageSize = pagination.pageSize) => {
     setLoading(true);
     setResults([]);
     try {
-      const data = await searchPeople({ ...searchForm, key: serpKey() });
+      const params = { ...searchForm, key: serpKey(), page, per_page: pageSize };
+      const data = await searchPeople(params);
       setResults(data.connections || []);
+      updatePaginationFromResponse(data);
     } catch (e) { onToast(`Search error: ${e.message}`); }
     finally { setLoading(false); }
   };
 
-  const doCompanySearch = async () => {
+  const doCompanySearch = async (page = 1, pageSize = pagination.pageSize) => {
     if (!companyInput.trim()) return;
     setLoading(true);
     setResults([]);
     try {
-      const data = await searchPeople({ company: companyInput.trim(), key: serpKey() });
+      const data = await searchPeople({ company: companyInput.trim(), key: serpKey(), page, per_page: pageSize });
       setResults(data.connections || []);
+      updatePaginationFromResponse(data);
     } catch (e) { onToast(`Search error: ${e.message}`); }
     finally { setLoading(false); }
   };
@@ -947,8 +1100,47 @@ function MyConnections({ onToast }) {
         all.push(...(data.connections || []));
       }
       setResults(all);
+      setPagination({ page: 1, pageSize: all.length || 10, total: all.length, hasNext: false, hasPrev: false });
     } catch (e) { onToast(`Load error: ${e.message}`); }
     finally { setLoading(false); }
+  };
+
+  const handleCsvUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      const data = await uploadConnectionsCsv(file, 1, 9999);
+      const allConns = data.connections || [];
+      localStorage.setItem('linkedin_csv_connections', JSON.stringify(allConns));
+      const ps = pagination.pageSize;
+      const paged = allConns.slice(0, ps);
+      setCsvConnections(paged);
+      setCsvPagination({ page: 1, pageSize: ps, total: allConns.length, hasNext: allConns.length > ps, hasPrev: false });
+      onToast(`Imported ${allConns.length} connections from CSV`);
+    } catch (err) { onToast(`CSV import error: ${err.message}`); }
+    finally { setLoading(false); if (csvInputRef.current) csvInputRef.current.value = ''; }
+  };
+
+  const handleCsvPageChange = (newPage) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('linkedin_csv_connections') || '[]');
+      const ps = csvPagination.pageSize;
+      const totalPages = Math.max(1, Math.ceil(all.length / ps));
+      const page = Math.max(1, Math.min(newPage, totalPages));
+      const start = (page - 1) * ps;
+      setCsvConnections(all.slice(start, start + ps));
+      setCsvPagination({ page, pageSize: ps, total: all.length, hasNext: page < totalPages, hasPrev: page > 1 });
+    } catch {}
+  };
+
+  const handleCsvPageSizeChange = (newSize) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('linkedin_csv_connections') || '[]');
+      const totalPages = Math.max(1, Math.ceil(all.length / newSize));
+      setCsvConnections(all.slice(0, newSize));
+      setCsvPagination({ page: 1, pageSize: newSize, total: all.length, hasNext: 1 < totalPages, hasPrev: false });
+    } catch {}
   };
 
   const addNotifEntry = async () => {
@@ -980,24 +1172,89 @@ function MyConnections({ onToast }) {
     finally { setLoading(false); }
   };
 
-  const cardProps = { replies, onGenerate: generateReply, onCopy: copyReply, onMessage: openMessage, onAddToCart: addToCartHandler };
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setResults([]);
+    setPagination({ page: 1, pageSize: pagination.pageSize, total: 0, hasNext: false, hasPrev: false });
+  };
+
+  const handlePageChange = (newPage) => {
+    if (activeTab === 'network') handleCsvPageChange(newPage);
+    else if (activeTab === 'search') doSearch(newPage, pagination.pageSize);
+    else if (activeTab === 'company') doCompanySearch(newPage, pagination.pageSize);
+  };
+
+  const handlePageSizeChange = (newSize) => {
+    setPagination(prev => ({ ...prev, pageSize: newSize, page: 1 }));
+    if (activeTab === 'network') handleCsvPageSizeChange(newSize);
+    else if (activeTab === 'search') doSearch(1, newSize);
+    else if (activeTab === 'company') doCompanySearch(1, newSize);
+  };
+
+  const profileHandle = profileUrl().split('/in/')[1]?.replace(/\/$/, '') || 'ramavala';
+
+  const cardProps = { replies, onGenerate: generateReply, onCopy: copyReply, onMessage: openMessage, onAddToCart: addToCartHandler, onViewActivity: viewActivity, onDone: markDone };
+
+  const renderResults = (items) => {
+    if (loading) return <div className="space-y-2">{[1,2,3].map(i => <SkeletonCard key={i} />)}</div>;
+    if (!items.length) return null;
+    return <div className="space-y-2">{items.map((conn, i) => <ConnectionCard key={conn.profile_url || i} conn={conn} hidden={hiddenCards[conn.profile_url || conn.name]} {...cardProps} />)}</div>;
+  };
 
   return (
     <div className="content-card h-full flex flex-col overflow-hidden">
       <div className="bg-gradient-to-r from-pink-50 to-rose-50 border-b border-pink-100 p-4 flex items-center gap-2">
         <IconUsers className="text-pink-600" size={20} />
         <h2 className="font-bold text-gray-900">My Connections</h2>
+        <span className="ml-auto text-xs text-gray-400">Connected as <span className="font-semibold text-studio-600">{profileHandle}</span></span>
       </div>
-      <div className="flex border-b border-gray-100">
+      <div className="flex border-b border-gray-100 overflow-x-auto">
         {CONN_TABS.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-1 px-2 py-2 text-xs font-medium transition ${activeTab === t.id ? 'text-studio-600 border-b-2 border-studio-600' : 'text-gray-500 hover:text-gray-700'}`}>{t.label}</button>
+          <button key={t.id} onClick={() => handleTabChange(t.id)} className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition whitespace-nowrap ${activeTab === t.id ? 'text-studio-600 border-b-2 border-studio-600' : 'text-gray-500 hover:text-gray-700'}`}>{t.label}</button>
         ))}
       </div>
       <div className="flex-1 overflow-y-auto flex flex-col">
+
+        {activeTab === 'network' && (
+          <div className="p-4 space-y-3 flex-1 flex flex-col">
+            <div className="flex gap-2">
+              <button onClick={() => window.open('https://www.linkedin.com/mynetwork/', '_blank')} className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-linkedin-600 text-white rounded-xl text-xs font-semibold hover:bg-linkedin-700 transition">
+                <IconGlobe size={14} /> Open My Network
+              </button>
+              <button onClick={() => window.open(`https://www.linkedin.com/in/${profileHandle}/`, '_blank')} className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-studio-600 text-white rounded-xl text-xs font-semibold hover:bg-studio-700 transition">
+                <IconUsers size={14} /> My Profile
+              </button>
+            </div>
+            <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl">
+              <div className="text-xs text-blue-700">
+                <span className="font-semibold">How to import your network:</span> Go to LinkedIn &rarr; Settings &rarr; Get a copy of your data &rarr; Connections &rarr; Download CSV. Then import below.
+              </div>
+            </div>
+            <input ref={csvInputRef} type="file" accept=".csv" onChange={handleCsvUpload} className="hidden" />
+            <button onClick={() => csvInputRef.current?.click()} disabled={loading} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-200 transition border border-gray-200">
+              <IconUpload size={14} /> {csvConnections.length > 0 ? 'Re-import CSV' : 'Import LinkedIn Connections CSV'}
+            </button>
+            {csvConnections.length > 0 && (
+              <>
+                <div className="text-xs font-medium text-gray-600">{csvPagination.total} connections loaded</div>
+                <div className="space-y-2">
+                  {csvConnections.map((conn, i) => <ConnectionCard key={conn.profile_url || i} conn={conn} hidden={hiddenCards[conn.profile_url || conn.name]} {...cardProps} />)}
+                </div>
+                <div className="mt-auto">
+                  <PaginationBar pagination={csvPagination} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+                </div>
+              </>
+            )}
+            {csvConnections.length === 0 && !loading && (
+              <div className="text-center py-4 text-xs text-gray-400">No connections imported yet. Use the button above to load your LinkedIn CSV export.</div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'notifications' && (
           <div className="p-4 space-y-3">
             <button onClick={() => window.open('https://www.linkedin.com/notifications/?filter=all', '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-linkedin-600 text-white rounded-xl text-xs font-semibold hover:bg-linkedin-700 transition">
-              <IconLinkedIn size={14} /> Open LinkedIn Notifications
+              <IconBell size={14} /> Open LinkedIn Notifications
             </button>
             <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
               <div className="text-xs font-medium text-gray-600">Saw a notification? Add it here:</div>
@@ -1007,52 +1264,66 @@ function MyConnections({ onToast }) {
               </div>
               <div className="flex gap-2">
                 <select value={notifForm.event} onChange={e => setNotifForm(p => ({ ...p, event: e.target.value }))} className="input-field !py-1.5 !text-xs flex-1">
-                  {EVENT_TYPES.filter(e => e.value).map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                  {NOTIF_CATEGORIES.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
                 </select>
                 <button onClick={addNotifEntry} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4">{loading ? '...' : 'Add & Generate'}</button>
               </div>
             </div>
             {notifEntries.length > 0 && (
               <div className="space-y-2">
-                {notifEntries.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}
+                {notifEntries.map((conn, i) => <ConnectionCard key={i} conn={conn} hidden={hiddenCards[conn.profile_url || conn.name]} {...cardProps} />)}
               </div>
             )}
           </div>
         )}
 
         {activeTab === 'search' && (
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-3 flex-1 flex flex-col">
             <div className="grid grid-cols-2 gap-2">
               <input value={searchForm.name} onChange={e => setSearchForm(p => ({ ...p, name: e.target.value }))} placeholder="Name" className="input-field !py-1.5 !text-xs" />
-              <input value={searchForm.handle} onChange={e => setSearchForm(p => ({ ...p, handle: e.target.value }))} placeholder="Handle" className="input-field !py-1.5 !text-xs" />
+              <input value={searchForm.handle} onChange={e => setSearchForm(p => ({ ...p, handle: e.target.value }))} placeholder="LinkedIn Handle" className="input-field !py-1.5 !text-xs" />
               <input value={searchForm.company} onChange={e => setSearchForm(p => ({ ...p, company: e.target.value }))} placeholder="Company" className="input-field !py-1.5 !text-xs" />
               <input value={searchForm.title} onChange={e => setSearchForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="input-field !py-1.5 !text-xs" />
+              <input value={searchForm.location} onChange={e => setSearchForm(p => ({ ...p, location: e.target.value }))} placeholder="Location" className="input-field !py-1.5 !text-xs" />
+              <select value={searchForm.industry} onChange={e => setSearchForm(p => ({ ...p, industry: e.target.value }))} className="input-field !py-1.5 !text-xs">
+                {INDUSTRIES.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+              </select>
             </div>
             <div className="flex gap-2">
+              <select value={searchForm.degree} onChange={e => setSearchForm(p => ({ ...p, degree: e.target.value }))} className="input-field !py-1.5 !text-xs flex-1">
+                {DEGREES.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+              </select>
               <select value={searchForm.event_type} onChange={e => setSearchForm(p => ({ ...p, event_type: e.target.value }))} className="input-field !py-1.5 !text-xs flex-1">
                 {EVENT_TYPES.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
               </select>
-              <button onClick={doSearch} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4">{loading ? 'Searching...' : 'Search'}</button>
+              <button onClick={() => doSearch(1)} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4 flex-shrink-0">{loading ? 'Searching...' : 'Search'}</button>
             </div>
-            {loading && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-studio-600"></div></div>}
-            {!loading && results.length > 0 && (
-              <div className="space-y-2">{results.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}</div>
+            {renderResults(results)}
+            {!loading && results.length === 0 && pagination.total === 0 && (
+              <div className="text-center text-xs text-gray-400 py-4">Enter search criteria above and click Search.</div>
+            )}
+            {results.length > 0 && !loading && (
+              <div className="mt-auto">
+                <PaginationBar pagination={pagination} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+              </div>
             )}
           </div>
         )}
 
         {activeTab === 'company' && (
-          <div className="p-4 space-y-3">
+          <div className="p-4 space-y-3 flex-1 flex flex-col">
             <div className="flex gap-2">
-              <input value={companyInput} onChange={e => setCompanyInput(e.target.value)} placeholder="Company name (e.g., Google, Stripe)" className="input-field !py-1.5 !text-xs flex-1" onKeyDown={e => e.key === 'Enter' && doCompanySearch()} />
-              <button onClick={doCompanySearch} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4">{loading ? '...' : 'Search'}</button>
+              <input value={companyInput} onChange={e => setCompanyInput(e.target.value)} placeholder="Company name (e.g., Google, Stripe, Microsoft)" className="input-field !py-1.5 !text-xs flex-1" onKeyDown={e => e.key === 'Enter' && doCompanySearch(1)} />
+              <button onClick={() => doCompanySearch(1)} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4">{loading ? '...' : 'Search'}</button>
             </div>
-            {loading && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-studio-600"></div></div>}
-            {!loading && results.length > 0 && (
-              <div className="space-y-2">{results.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}</div>
-            )}
-            {!loading && activeTab === 'company' && results.length === 0 && companyInput && (
+            {renderResults(results)}
+            {!loading && results.length === 0 && companyInput && (
               <div className="text-center text-xs text-gray-400 py-4">No results. Try a different company name.</div>
+            )}
+            {results.length > 0 && !loading && (
+              <div className="mt-auto">
+                <PaginationBar pagination={pagination} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+              </div>
             )}
           </div>
         )}
@@ -1061,10 +1332,7 @@ function MyConnections({ onToast }) {
           <div className="p-4 space-y-3">
             <textarea value={manualInput} onChange={e => setManualInput(e.target.value)} rows={4} placeholder={"Paste LinkedIn handles or URLs, one per line\nramavala\nhttps://www.linkedin.com/in/someone"} className="input-field !py-2 !text-xs resize-none font-mono" />
             <button onClick={doManualLoad} disabled={loading || !manualInput.trim()} className="w-full btn-primary !py-2 !text-xs">{loading ? 'Loading profiles...' : 'Load Profiles'}</button>
-            {loading && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-studio-600"></div></div>}
-            {!loading && results.length > 0 && (
-              <div className="space-y-2">{results.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}</div>
-            )}
+            {renderResults(results)}
           </div>
         )}
       </div>
