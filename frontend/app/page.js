@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
 import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
