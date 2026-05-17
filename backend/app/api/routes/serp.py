@@ -287,6 +287,11 @@ async def get_connections(
             if not queries:
                 queries = ["site:linkedin.com/in professional network"]
 
+            if mode == "followers":
+                queries = [f'site:linkedin.com/in "{user_name}" followers'] if user_name else ["site:linkedin.com/in followers network"]
+            elif mode == "notifications":
+                queries = ["site:linkedin.com/in birthday OR anniversary OR promotion OR job change"]
+
             all_connections = []
             seen_urls = set()
 
@@ -334,7 +339,7 @@ async def get_connections(
             )
             # Attach simulated context for UI
             if not resp.connections:
-                resp = ConnectionsResponse(**{**resp.dict(), **_simulated_mode_response()})
+                resp = ConnectionsResponse(**{**resp.dict(), **_simulated_mode_response("Followers mode active. Real LinkedIn followers require login. Using public search simulation.")})
             return resp
 
     except HTTPException:
