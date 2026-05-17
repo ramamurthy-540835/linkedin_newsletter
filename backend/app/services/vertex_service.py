@@ -31,23 +31,24 @@ class VertexService:
         return self._parse_json(raw)
 
     def _parse_json(self, raw: str) -> dict[str, Any]:
-        def _loads(s: str) -> dict[str, Any]:
-            return json.loads(s)
-
         try:
-            return _loads(raw)
+            return json.loads(raw)
         except json.JSONDecodeError:
             pass
 
         start = raw.find("{")
         end = raw.rfind("}")
         if start != -1 and end != -1 and end > start:
-            candidate = raw[start : end + 1]
-            try:
-                return _loads(candidate)
-            except json.JSONDecodeError:
-                # Remove non-printable control chars that often break model JSON output.
-                cleaned = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", " ", candidate)
-                return _loads(cleaned)
+            raw = raw[start : end + 1]
 
-        raise json.JSONDecodeError("Invalid JSON from model", raw, 0)
+        # Replace unescaped newlines/tabs inside JSON string values with \\n/\\t,
+        # and strip other control characters.
+        cleaned = re.sub(r'(?<=": ")(.*?)(?=")', lambda m: m.group(0).replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"), raw, flags=re.DOTALL)
+        cleaned = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F]", " ", cleaned)
+
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Last resort: replace ALL literal newlines with \\n
+            fallback = re.sub(r"[\x00-\x1F]", lambda m: {"\n": "\\n", "\r": "\\r", "\t": "\\t"}.get(m.group(), " "), raw)
+            return json.loads(fallback)

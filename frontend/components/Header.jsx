@@ -8,6 +8,7 @@ import {
   IconLinkedIn,
   IconSettings,
   IconSparkles,
+  IconQueue,
 } from '@/components/icons';
 
 const TITLES = {
@@ -21,7 +22,7 @@ const TITLES = {
   '/admin/settings': 'Settings',
 };
 
-export default function Header({ onMobileMenuToggle }) {
+export default function Header({ onMobileMenuToggle, cartCount = 0, onCartToggle }) {
   const pathname = usePathname();
   const [showDropdown, setShowDropdown] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -83,6 +84,19 @@ export default function Header({ onMobileMenuToggle }) {
           <IconSparkles size={15} />
           New Content
         </Link>
+
+        <button
+          onClick={onCartToggle}
+          className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Draft Cart"
+        >
+          <IconQueue size={18} className="text-gray-600" />
+          {cartCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
+        </button>
 
         <div
           className={`w-2.5 h-2.5 rounded-full ${

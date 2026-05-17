@@ -95,8 +95,9 @@ export const configurePlatform = (platform, data) => req(`/api/admin/platforms/$
 export const testPlatform = (platform) => req(`/api/admin/platforms/${platform}/validate`, { method: 'POST', body: JSON.stringify({}) });
 
 // SerpAPI endpoints
-export const searchSerp = (q, key) => req(`/api/serp/search?q=${encodeURIComponent(q)}&key=${key || ''}`);
+export const searchSerp = (q, key, freshness = '7d') => req(`/api/serp/search?q=${encodeURIComponent(q)}&key=${key || ''}&freshness=${freshness}`);
 export const scrapeProfile = (url, key) => req(`/api/serp/profile/scrape?linkedin_url=${encodeURIComponent(url)}&key=${key || ''}`);
+export const getConnections = (key = '', page = 1, perPage = 10) => req(`/api/serp/connections?key=${key || ''}&page=${page}&per_page=${perPage}`);
 
 // Discovery Reports
 export const getDiscoveryReports = () => req('/api/discovery-reports');

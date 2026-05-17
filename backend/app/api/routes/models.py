@@ -10,7 +10,7 @@ from app.core.config import settings
 router = APIRouter()
 
 DATASET = os.getenv("GCP_DATASET", "linkedin_studio")
-TABLE = "ai_models"
+TABLE = "ai_models_registry"
 
 SEED_ROWS = [
     # Google / Gemini
@@ -69,35 +69,35 @@ def ensure_models_table() -> None:
         ]
         client.create_table(bigquery.Table(table_id, schema=schema), exists_ok=True)
 
-        # Clear existing rows to ensure fresh seed
+        # Clear + DML INSERT (works on free tier, unlike streaming inserts)
         try:
             client.query(f"DELETE FROM `{table_id}` WHERE TRUE").result()
-            print(f"[models] Cleared existing rows from {TABLE}")
         except Exception:
             pass
 
-        # Insert all seed rows
-        rows_to_insert = []
-        for row in SEED_ROWS:
-            rows_to_insert.append({
-                "model_id": row[0],
-                "provider": row[1],
-                "display_name": row[2],
-                "use_case": row[3],
-                "speed_score": row[4],
-                "cost_tier": row[5],
-                "is_default": row[6],
-                "is_active": row[7],
-                "notes": row[8],
-            })
+        value_rows = []
+        for r in SEED_ROWS:
+            mid, prov, dname, uc, spd, cost, default, active, notes = r
+            value_rows.append(
+                f"('{mid}', '{prov}', '{_sql_esc(dname)}', '{uc}', {spd}, {cost}, {str(default).upper()}, {str(active).upper()}, '{_sql_esc(notes)}')"
+            )
 
-        errors = client.insert_rows_json(table_id, rows_to_insert)
-        if errors:
-            print(f"[models] Insert errors: {errors}")
-        else:
-            print(f"[models] Seeded {len(rows_to_insert)} models: {len([r for r in SEED_ROWS if r[1]=='google'])} Google, {len([r for r in SEED_ROWS if r[1]=='anthropic'])} Anthropic, {len([r for r in SEED_ROWS if r[1]=='openai'])} OpenAI")
+        insert_sql = f"""
+        INSERT INTO `{table_id}`
+            (model_id, provider, display_name, `use_case`, speed_score, cost_tier, is_default, is_active, notes)
+        VALUES {', '.join(value_rows)}
+        """
+        client.query(insert_sql).result()
+        google_ct = len([r for r in SEED_ROWS if r[1] == "google"])
+        anthropic_ct = len([r for r in SEED_ROWS if r[1] == "anthropic"])
+        openai_ct = len([r for r in SEED_ROWS if r[1] == "openai"])
+        print(f"[models] Seeded {len(SEED_ROWS)} models: {google_ct} Google, {anthropic_ct} Anthropic, {openai_ct} OpenAI")
     except Exception as exc:
         print(f"[models] ensure table error: {exc}")
+
+
+def _sql_esc(s: str) -> str:
+    return s.replace("'", "\\'").replace("—", "-")
 
 
 @router.get("")

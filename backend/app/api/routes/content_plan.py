@@ -4,6 +4,7 @@ video script, hashtags, alt text, and title from a single topic.
 """
 
 import json
+from datetime import date
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -112,7 +113,7 @@ Rules:
 - Do not include markdown outside JSON.
 - Keep LinkedIn post professional and human.
 - Avoid generic AI buzzwords like "revolutionize", "game-changer", "unlock".
-- Avoid stale year references. Current year is 2026.
+- Avoid stale year references. Current year is {date.today().year}. Today is {date.today().strftime("%B %d, %Y")}.
 - Post should tell a story, share an insight, or provoke thought.
 - 3-7 hashtags, relevant to the topic.
 - CTA should drive comments.{media_instructions}"""

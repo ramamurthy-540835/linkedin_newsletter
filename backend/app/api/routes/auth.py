@@ -22,14 +22,13 @@ async def linkedin_oauth() -> RedirectResponse:
     client_id = os.getenv("LINKEDIN_CLIENT_ID", settings.linkedin_client_id).strip()
     if not client_id:
         raise HTTPException(400, "Missing LINKEDIN_CLIENT_ID")
-    backend_base = os.getenv("BACKEND_URL", f"http://10.100.15.44:{settings.port}")
-    redirect_uri = f"{backend_base}/api/auth/linkedin/callback"
+    redirect_uri = settings.linkedin_redirect_uri or f"http://10.100.15.44:{settings.port}/api/auth/linkedin/callback"
     state = str(uuid.uuid4())
     params = urlencode({
         "response_type": "code",
         "client_id": client_id,
         "redirect_uri": redirect_uri,
-        "scope": "openid profile email w_member_social",
+        "scope": "openid profile email w_member_social r_1st_connections",
         "state": state,
     })
     url = f"https://www.linkedin.com/oauth/v2/authorization?{params}"
@@ -44,12 +43,12 @@ async def linkedin_authorize() -> RedirectResponse:
 
 @router.get("/linkedin/callback")
 async def linkedin_callback(code: str, state: str = "") -> RedirectResponse:
-    """Handles LinkedIn OAuth callback and redirects to settings with oauth params."""
+    """Handles LinkedIn OAuth callback, stores credentials, and redirects to dashboard."""
+    frontend_url = os.getenv("FRONTEND_URL", "http://10.100.15.44:3007")
     try:
         client_id = os.getenv("LINKEDIN_CLIENT_ID", settings.linkedin_client_id).strip()
         client_secret = os.getenv("LINKEDIN_CLIENT_SECRET", settings.linkedin_client_secret).strip()
-        backend_base = os.getenv("BACKEND_URL", f"http://10.100.15.44:{settings.port}")
-        redirect_uri = f"{backend_base}/api/auth/linkedin/callback"
+        redirect_uri = settings.linkedin_redirect_uri or f"http://10.100.15.44:{settings.port}/api/auth/linkedin/callback"
         async with httpx.AsyncClient(timeout=15) as client:
             token_resp = await client.post("https://www.linkedin.com/oauth/v2/accessToken", data={
                 "grant_type": "authorization_code",
@@ -62,18 +61,32 @@ async def linkedin_callback(code: str, state: str = "") -> RedirectResponse:
             token = token_resp.json().get("access_token", "")
             name = "LinkedIn User"
             headline = "LinkedIn Member"
-            profile_url = "https://www.linkedin.com/in/ramavala"
+            profile_url = ""
+            author_urn = ""
             if token:
                 user_resp = await client.get("https://api.linkedin.com/v2/userinfo", headers={"Authorization": f"Bearer {token}"})
                 if user_resp.status_code == 200:
                     u = user_resp.json()
+                    sub = u.get("sub", "")
+                    if sub:
+                        author_urn = f"urn:li:person:{sub}"
                     name = u.get("name") or f"{u.get('given_name','')} {u.get('family_name','')}".strip() or name
                     headline = u.get("headline") or headline
                     profile_url = u.get("profile") or profile_url
-        frontend_url = os.getenv("FRONTEND_URL", "http://10.100.15.44:3007")
-        q = urlencode({"oauth": "success", "name": name, "headline": headline, "profile_url": profile_url})
-        redirect_url = f"{frontend_url}/admin/settings?{q}"
-        return RedirectResponse(redirect_url)
+
+            # Persist credentials on the backend so publish works without frontend passing them
+            if token and author_urn:
+                settings.linkedin_access_token = token
+                settings.linkedin_author_urn = author_urn
+                print(f"[OAuth] Stored LinkedIn credentials for {name} ({author_urn})")
+
+        q = urlencode({
+            "name": name,
+            "headline": headline,
+            "profile_url": profile_url,
+            "access_token": token,
+            "author_urn": author_urn,
+        })
+        return RedirectResponse(f"{frontend_url}/?{q}")
     except Exception as e:
-        frontend_url = os.getenv("FRONTEND_URL", "http://10.100.15.44:3007")
-        return RedirectResponse(f"{frontend_url}/admin/settings?oauth=error&message={str(e)}")
+        return RedirectResponse(f"{frontend_url}/?oauth_error={str(e)}")

@@ -288,3 +288,65 @@ async def delete_post(post_id: str):
         raise HTTPException(status_code=404, detail="Post not found")
     POSTS_FILE.write_text(json.dumps(rows, indent=2), encoding="utf-8")
     return {"success": True, "message": "Post deleted"}
+
+
+from pydantic import BaseModel as _BaseModel
+
+
+class DirectPublishRequest(_BaseModel):
+    text: str
+    source: str = ""
+
+
+@router.post("/publish/direct")
+async def publish_direct(req: DirectPublishRequest) -> dict:
+    """Publish raw text directly to LinkedIn without requiring a saved draft."""
+    if not req.text.strip():
+        raise HTTPException(status_code=400, detail="Post text cannot be empty")
+
+    token = settings.linkedin_access_token
+    urn = settings.linkedin_author_urn
+    if not token or not urn:
+        raise HTTPException(status_code=400, detail="LinkedIn not connected. Please connect your LinkedIn account in Settings.")
+
+    try:
+        linkedin_resp = await _linkedin.publish_post(
+            access_token=token,
+            author_urn=urn,
+            text=req.text.strip(),
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"LinkedIn API error: {str(exc)}") from exc
+
+    linkedin_post_id = linkedin_resp.get("location", "")
+    linkedin_url = f"https://www.linkedin.com/feed/update/{linkedin_post_id}/" if linkedin_post_id else ""
+
+    now = datetime.now(timezone.utc)
+    record = {
+        "id": str(uuid.uuid4()),
+        "draft_id": f"direct-{now.strftime('%Y%m%d%H%M%S')}",
+        "status": "published",
+        "content": req.text.strip(),
+        "source": req.source,
+        "linkedin_post_id": linkedin_post_id,
+        "linkedin_url": linkedin_url,
+        "has_images": False,
+        "image_count": 0,
+        "published_at": now.isoformat(),
+        "created_at": now.isoformat(),
+    }
+
+    pub_rows = []
+    if PUB_POSTS_FILE.exists():
+        try:
+            pub_rows = json.loads(PUB_POSTS_FILE.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            pub_rows = []
+    pub_rows.insert(0, record)
+    PUB_POSTS_FILE.write_text(json.dumps(pub_rows, indent=2), encoding="utf-8")
+
+    return {
+        "success": True,
+        "linkedin_post_id": linkedin_post_id,
+        "linkedin_url": linkedin_url,
+    }

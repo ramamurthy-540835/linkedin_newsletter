@@ -17,7 +17,7 @@ class LinkedInService:
             "response_type": "code",
             "client_id": settings.linkedin_client_id,
             "redirect_uri": settings.linkedin_redirect_uri,
-            "scope": "openid profile w_member_social",
+            "scope": "openid profile w_member_social r_1st_connections",
             "state": state,
         }
         return f"{self.AUTH_URL}?{urlencode(params)}"

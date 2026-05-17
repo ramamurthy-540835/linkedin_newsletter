@@ -1,9 +1,12 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
+import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
+import { useDraftCart } from '@/lib/DraftCartContext';
+import PublishComposerModal from '@/components/PublishComposerModal';
 import {
   IconFile,
   IconCheckCircle,
@@ -25,6 +28,14 @@ import {
   IconZap,
   IconTarget,
   IconRefresh,
+  IconUsers,
+  IconMessageCircle,
+  IconShare,
+  IconCopy,
+  IconCheck,
+  IconEdit,
+  IconExternalLink,
+  IconQueue,
 } from '@/components/icons';
 
 function Toast({ message, type = 'success', duration = 3000 }) {
@@ -117,6 +128,7 @@ function StatCards({ draftCount, publishedCount, linkedinConnected, linkedinName
 }
 
 function MyFeed() {
+  const { addToCart } = useDraftCart() || {};
   const [topics, setTopics] = useState([]);
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -125,6 +137,8 @@ function MyFeed() {
   const [newTopic, setNewTopic] = useState('');
   const [serpKey, setSerpKey] = useState('');
   const [toast, setToast] = useState('');
+  const [feedActions, setFeedActions] = useState({});
+  const [composer, setComposer] = useState({ open: false, content: '', title: '', source: '' });
 
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -223,9 +237,10 @@ function MyFeed() {
     if (topicsToLoad.length === 0 || !serpKey) return;
     setLoading(true);
     setResults([]);
+    setFeedActions({});
     try {
       const settled = await Promise.allSettled(
-        topicsToLoad.map((topic) => searchSerp(`${topic} LinkedIn posts news today`, serpKey))
+        topicsToLoad.map((topic) => searchSerp(`${topic} LinkedIn trending ${currentYear()}`, serpKey, '7d'))
       );
       const allResults = settled.flatMap((r) => r.status === 'fulfilled' ? r.value.results || [] : []);
       setResults(allResults);
@@ -241,13 +256,64 @@ function MyFeed() {
     setDigestLoading(true);
     try {
       const headlines = results.map((r) => `${r.title}: ${r.snippet}`).join('\n\n');
-      const userMsg = `Here are today's LinkedIn trending topics and news:\n\n${headlines}\n\nGenerate a 3-bullet morning briefing summarizing the key insights and trends.`;
-      const response = await callAI('digest', userMsg, 'You are a LinkedIn content strategist providing morning briefings.');
+      const userMsg = `Today is ${currentDateLabel()}. Here are today's LinkedIn trending topics and news:\n\n${headlines}\n\nGenerate a 3-bullet morning briefing summarizing the key insights and trends for ${currentMonthYear()}.`;
+      const response = await callAI('digest', userMsg, `You are a LinkedIn content strategist providing morning briefings. Today is ${currentDateLabel()}.`);
       setDigest(response);
+      if (addToCart) addToCart({ type: 'post', title: 'Daily Digest', source: 'Digest', content: response });
     } catch (e) {
       setDigest(`Error: ${e.message}`);
     } finally {
       setDigestLoading(false);
+    }
+  };
+
+  const generateFeedAction = async (index, actionType) => {
+    const item = results[index];
+    if (!item) return;
+    setFeedActions(prev => ({ ...prev, [index]: { type: actionType, text: '', loading: true, copied: false } }));
+    try {
+      const systemMsg = `You are a LinkedIn thought leader. Today is ${currentDateLabel()}. Write professional, engaging LinkedIn content. Be concise and authentic.`;
+      let userMsg = '';
+      if (actionType === 'comment') {
+        userMsg = `Write a thoughtful 2-3 sentence LinkedIn comment on this article:\nTitle: ${item.title}\nSummary: ${item.snippet}\n\nAdd value with a perspective or insightful question. Under 200 characters. No hashtags.`;
+      } else if (actionType === 'repost') {
+        userMsg = `Write a short "repost with thoughts" for LinkedIn about this article:\nTitle: ${item.title}\nSummary: ${item.snippet}\n\n2-3 sentences of your perspective, then reference the article. 1-2 hashtags at the end.`;
+      } else if (actionType === 'post') {
+        userMsg = `Create an original LinkedIn post inspired by this article (do NOT just summarize it):\nTitle: ${item.title}\nSummary: ${item.snippet}\n\nHook line, 3-4 short paragraphs, a call-to-action question, and 3-5 hashtags. 150-200 words.`;
+      }
+      const response = await callAI('suggestions', userMsg, systemMsg);
+      setFeedActions(prev => ({ ...prev, [index]: { type: actionType, text: response, loading: false, copied: false } }));
+      if (addToCart) addToCart({ type: actionType, title: item.title, source: 'Feed', content: response });
+    } catch (e) {
+      setFeedActions(prev => ({ ...prev, [index]: { type: actionType, text: `Error: ${e.message}`, loading: false, copied: false } }));
+    }
+  };
+
+  const copyFeedAction = (index) => {
+    const action = feedActions[index];
+    if (action?.text) {
+      navigator.clipboard.writeText(action.text);
+      setFeedActions(prev => ({ ...prev, [index]: { ...prev[index], copied: true } }));
+      setTimeout(() => setFeedActions(prev => ({ ...prev, [index]: { ...prev[index], copied: false } })), 2000);
+    }
+  };
+
+  const closeFeedAction = (index) => {
+    setFeedActions(prev => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
+  const addTopicFromFeed = (title) => {
+    const words = title.replace(/[^a-zA-Z\s]/g, '').split(/\s+/).filter(w => w.length > 3);
+    const keyword = words.slice(0, 3).join(' ');
+    if (keyword && !topics.includes(keyword)) {
+      const updated = [...topics, keyword];
+      setTopics(updated);
+      localStorage.setItem('linkedin_topics', JSON.stringify(updated));
+      setToast(`Added "${keyword}" as a topic`);
     }
   };
 
@@ -379,11 +445,50 @@ function MyFeed() {
             <div className="flex-1 flex flex-col overflow-y-auto">
               <div className="p-4 space-y-2 overflow-y-auto">
                 {results.slice(0, 10).map((r, i) => (
-                  <a key={i} href={r.link} target="_blank" rel="noreferrer" className="block p-3 bg-gray-50 border border-gray-100 rounded-xl hover:bg-studio-50 hover:border-studio-100 transition group">
-                    <div className="font-semibold text-xs text-gray-900 line-clamp-2 group-hover:text-studio-700">{r.title}</div>
-                    <div className="text-xs text-gray-600 line-clamp-1 mt-1">{r.snippet}</div>
-                    <div className="text-xs text-gray-400 mt-1">{r.source || 'Read'}</div>
-                  </a>
+                  <div key={i} className="p-3 bg-gray-50 border border-gray-100 rounded-xl hover:bg-studio-50 hover:border-studio-100 transition group">
+                    <a href={r.link} target="_blank" rel="noreferrer" className="block">
+                      <div className="font-semibold text-xs text-gray-900 line-clamp-2 group-hover:text-studio-700">{r.title}</div>
+                      <div className="text-xs text-gray-600 line-clamp-1 mt-1">{r.snippet}</div>
+                      <div className="text-xs text-gray-400 mt-1">{r.source || 'Read'}</div>
+                    </a>
+                    <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
+                      <button onClick={() => generateFeedAction(i, 'comment')} disabled={feedActions[i]?.loading} className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition" title="Generate Comment">
+                        <IconMessageCircle size={12} /> Comment
+                      </button>
+                      <button onClick={() => generateFeedAction(i, 'repost')} disabled={feedActions[i]?.loading} className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition" title="Generate Repost">
+                        <IconShare size={12} /> Repost
+                      </button>
+                      <button onClick={() => { generateFeedAction(i, 'post'); addTopicFromFeed(r.title); }} disabled={feedActions[i]?.loading} className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition" title="Generate Post from This">
+                        <IconEdit size={12} /> Post
+                      </button>
+                      <a href={r.link} target="_blank" rel="noreferrer" className="ml-auto flex items-center px-2 py-1 text-xs text-gray-400 hover:text-studio-600 rounded-lg transition" title="Open Article">
+                        <IconExternalLink size={12} />
+                      </a>
+                    </div>
+                    {feedActions[i] && (
+                      <div className="mt-2 p-2.5 bg-white border border-studio-100 rounded-xl">
+                        {feedActions[i].loading ? (
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b border-studio-600"></div>
+                            Generating {feedActions[i].type}...
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-xs text-gray-800 whitespace-pre-wrap">{feedActions[i].text}</div>
+                            <div className="flex items-center gap-2 mt-2 flex-wrap">
+                              <button onClick={() => setComposer({ open: true, content: feedActions[i].text, title: r.title, source: 'Feed' })} className="flex items-center gap-1 text-xs text-linkedin-600 hover:text-linkedin-700 font-semibold">
+                                <IconLinkedIn size={12} /> Post to LinkedIn
+                              </button>
+                              <button onClick={() => copyFeedAction(i)} className="flex items-center gap-1 text-xs text-studio-600 hover:text-studio-800 font-semibold">
+                                {feedActions[i].copied ? <><IconCheck size={12} /> Copied!</> : <><IconCopy size={12} /> Copy</>}
+                              </button>
+                              <button onClick={() => closeFeedAction(i)} className="text-xs text-gray-400 hover:text-gray-600">Dismiss</button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
               <div className="p-4 border-t border-gray-100 space-y-2">
@@ -409,15 +514,26 @@ function MyFeed() {
         </div>
       </div>
       {toast && <Toast message={toast} />}
+      <PublishComposerModal
+        open={composer.open}
+        onClose={() => setComposer({ open: false, content: '', title: '', source: '' })}
+        initialContent={composer.content}
+        title={composer.title}
+        source={composer.source}
+        onPublished={() => setToast('Published to LinkedIn!')}
+      />
     </>
   );
 }
 
-function TopicSuggestions({ onToast }) {
+function TopicSuggestions({ onToast, onAddTopic }) {
   const router = useRouter();
+  const { addToCart } = useDraftCart() || {};
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [profileUrl, setProfileUrl] = useState('');
+  const [composer, setComposer] = useState({ open: false, content: '', title: '', source: '' });
+  const [generating, setGenerating] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -444,19 +560,20 @@ function TopicSuggestions({ onToast }) {
     try {
       const profile = await scrapeProfile(url, serpKey);
       localStorage.setItem('linkedin_profile_data', JSON.stringify(profile));
-      const systemMsg = 'You are a LinkedIn content strategist. Analyze the profile and suggest trending post topics for this week.';
-      const userMsg = `Based on this LinkedIn profile:
+      const storedTopics = JSON.parse(localStorage.getItem('linkedin_topics') || '[]');
+      const topicContext = storedTopics.length > 0 ? `\nUser's selected interest topics: ${storedTopics.join(', ')}` : '';
+      const systemMsg = `You are a LinkedIn content strategist. Today is ${currentDateLabel()}. Suggest trending post topics for this week. All suggestions MUST reference current events, technologies, and trends from ${currentYear()}. Never mention years before ${currentYear()}. Never suggest generic evergreen topics like "future of document management" or "essential tech stack".`;
+      const userMsg = `Based on this LinkedIn profile (use for personalization only — do NOT overfit to the job title):
 Name: ${profile.name}
 Headline: ${profile.headline}
-Bio: ${profile.bio}
-Skills: ${profile.skills.join(', ')}
-Summary: ${profile.summary}
+Skills: ${profile.skills.join(', ')}${topicContext}
 
-Suggest 8 high-performing LinkedIn post topics for THIS week. Return ONLY valid JSON array (no markdown), no explanation:
-[{"topic": "title", "hook": "engaging first line", "why_trending": "reason", "estimated_engagement": "high|medium"}]`;
+Today is ${currentDateLabel()}. Suggest 8 high-performing LinkedIn post topics for THIS week (${currentMonthYear()}). Blend the person's expertise with their selected interest topics above. Every topic must be timely and reference current ${currentYear()} trends, news, or developments. Do NOT suggest generic evergreen topics or anything dated. Return ONLY valid JSON array (no markdown), no explanation:
+[{"topic": "title", "hook": "engaging first line", "why_trending": "reason this is trending NOW in ${currentMonthYear()}", "estimated_engagement": "high|medium"}]`;
       const response = await callAI('suggestions', userMsg, systemMsg);
       const parsed = parseJSON(response);
-      setSuggestions(Array.isArray(parsed) ? parsed : []);
+      const fresh = filterStaleSuggestions(Array.isArray(parsed) ? parsed : []);
+      setSuggestions(fresh);
     } catch (e) {
       onToast(`Error: ${e.message}`);
     } finally {
@@ -465,9 +582,25 @@ Suggest 8 high-performing LinkedIn post topics for THIS week. Return ONLY valid 
   };
 
   const useThisTopic = (topic, hook) => {
+    if (onAddTopic) onAddTopic(topic);
     localStorage.setItem('prefill_topic', topic);
     localStorage.setItem('prefill_hook', hook);
     router.push('/create');
+  };
+
+  const generateAndPost = async (s, index) => {
+    setGenerating(index);
+    try {
+      const systemMsg = `You are a LinkedIn thought leader. Today is ${currentDateLabel()}. Write an engaging LinkedIn post. Be concise and authentic.`;
+      const userMsg = `Write a LinkedIn post about: ${s.topic}\nHook: ${s.hook}\nWhy trending: ${s.why_trending}\n\nHook line, 3-4 short paragraphs, a call-to-action, 3-5 hashtags. 150-200 words.`;
+      const response = await callAI('suggestions', userMsg, systemMsg);
+      if (addToCart) addToCart({ type: 'post', title: s.topic, source: 'Suggestions', content: response });
+      setComposer({ open: true, content: response, title: s.topic, source: 'Suggestions' });
+    } catch (e) {
+      onToast(`Error: ${e.message}`);
+    } finally {
+      setGenerating(null);
+    }
   };
 
   return (
@@ -500,7 +633,12 @@ Suggest 8 high-performing LinkedIn post topics for THIS week. Return ONLY valid 
                     {s.estimated_engagement === 'medium' && <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Medium</span>}
                     {s.why_trending && <span className="text-xs text-green-600 font-medium">Trending</span>}
                   </div>
-                  <button onClick={() => useThisTopic(s.topic, s.hook)} className="text-xs px-3 py-1 bg-studio-600 text-white rounded-lg hover:bg-studio-700 font-medium transition">Use</button>
+                  <div className="flex gap-1">
+                    <button onClick={() => generateAndPost(s, i)} disabled={generating === i} className="text-xs px-2.5 py-1 bg-linkedin-600 text-white rounded-lg hover:bg-linkedin-700 font-medium transition disabled:opacity-50 flex items-center gap-1">
+                      <IconLinkedIn size={11} /> {generating === i ? '...' : 'Post'}
+                    </button>
+                    <button onClick={() => useThisTopic(s.topic, s.hook)} className="text-xs px-2.5 py-1 bg-studio-600 text-white rounded-lg hover:bg-studio-700 font-medium transition">Use</button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -514,11 +652,20 @@ Suggest 8 high-performing LinkedIn post topics for THIS week. Return ONLY valid 
           </div>
         )}
       </div>
+      <PublishComposerModal
+        open={composer.open}
+        onClose={() => setComposer({ open: false, content: '', title: '', source: '' })}
+        initialContent={composer.content}
+        title={composer.title}
+        source={composer.source}
+        onPublished={() => onToast('Published to LinkedIn!')}
+      />
     </div>
   );
 }
 
 function IdeasGenerator({ onToast }) {
+  const { addToCart } = useDraftCart() || {};
   const [topic, setTopic] = useState('');
   const [audience, setAudience] = useState('general');
   const [ideas, setIdeas] = useState(null);
@@ -529,8 +676,8 @@ function IdeasGenerator({ onToast }) {
     if (!topic.trim()) return;
     setLoading(true);
     try {
-      const systemMsg = 'You are a creative LinkedIn content director creating visual and video content ideas.';
-      const userMsg = `For a LinkedIn post about "${topic}" targeting "${audience}", generate content ideas.
+      const systemMsg = `You are a creative LinkedIn content director creating visual and video content ideas. Today is ${currentDateLabel()}. All content must feel current for ${currentMonthYear()}.`;
+      const userMsg = `For a LinkedIn post about "${topic}" targeting "${audience}" in ${currentMonthYear()}, generate content ideas.
 
 Return ONLY valid JSON (no markdown):
 {
@@ -541,6 +688,7 @@ Return ONLY valid JSON (no markdown):
       const response = await callAI('suggestions', userMsg, systemMsg);
       const parsed = parseJSON(response);
       setIdeas(parsed);
+      if (addToCart) addToCart({ type: 'carousel', title: topic, source: 'Ideas Generator', content: JSON.stringify(parsed, null, 2) });
     } catch (e) {
       onToast(`Error: ${e.message}`);
     } finally {
@@ -633,6 +781,154 @@ Return ONLY valid JSON (no markdown):
   );
 }
 
+function MyConnections({ onToast }) {
+  const { addToCart } = useDraftCart() || {};
+  const [connections, setConnections] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [replies, setReplies] = useState({});
+
+  const loadConnections = async (pg = 1) => {
+    setLoading(true);
+    try {
+      const serpKey = localStorage.getItem('SERP_API_KEY') || '';
+      const data = await getConnections(serpKey, pg, 6);
+      setConnections(data.connections || []);
+      setTotal(data.total || 0);
+      setPage(pg);
+    } catch (e) {
+      onToast(`Error loading connections: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadConnections(); }, []);
+
+  const generateReply = async (conn) => {
+    const connId = conn.profile_url || conn.name;
+    setReplies(prev => ({ ...prev, [connId]: { text: '', loading: true, copied: false } }));
+    try {
+      const systemMsg = `You are helping write brief, warm LinkedIn messages. Keep it 1-3 sentences. Be genuine, not generic. Today is ${currentDateLabel()}.`;
+      const userMsg = `Write a friendly LinkedIn message for ${conn.name} (${conn.headline}). Something brief and professional, like reaching out or engaging with their profile. 2-3 sentences.`;
+      const response = await callAI('suggestions', userMsg, systemMsg);
+      setReplies(prev => ({ ...prev, [connId]: { text: response, loading: false, copied: false } }));
+      if (addToCart) addToCart({ type: 'message', title: conn.name, source: 'Connections', content: response });
+    } catch (e) {
+      setReplies(prev => ({ ...prev, [connId]: { text: `Error: ${e.message}`, loading: false, copied: false } }));
+    }
+  };
+
+  const copyReply = (connId) => {
+    const reply = replies[connId];
+    if (reply?.text) {
+      navigator.clipboard.writeText(reply.text);
+      setReplies(prev => ({ ...prev, [connId]: { ...prev[connId], copied: true } }));
+      setTimeout(() => setReplies(prev => ({ ...prev, [connId]: { ...prev[connId], copied: false } })), 2000);
+      onToast('Copied to clipboard');
+    }
+  };
+
+  const openMessage = (conn) => {
+    const reply = replies[conn.profile_url || conn.name];
+    if (reply?.text) navigator.clipboard.writeText(reply.text);
+    const handle = conn.profile_url ? conn.profile_url.split('/in/')[1]?.replace(/\/$/, '') : '';
+    const msgUrl = handle ? `https://www.linkedin.com/messaging/compose/?recipient=${handle}` : conn.profile_url || 'https://www.linkedin.com/messaging/';
+    window.open(msgUrl, '_blank');
+    if (reply?.text) onToast('Message copied — paste it in LinkedIn');
+  };
+
+  return (
+    <div className="content-card h-full flex flex-col overflow-hidden">
+      <div className="bg-gradient-to-r from-pink-50 to-rose-50 border-b border-pink-100 p-4 flex items-center gap-2">
+        <IconUsers className="text-pink-600" size={20} />
+        <h2 className="font-bold text-gray-900">My Connections</h2>
+        {total > 0 && <span className="ml-auto text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-medium">{total}</span>}
+        <button onClick={() => loadConnections(1)} disabled={loading} className="p-1 hover:bg-pink-100 rounded-lg transition" title="Refresh">
+          <IconRefresh size={14} className="text-pink-600" />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        {loading && (
+          <div className="flex justify-center py-6">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-600"></div>
+          </div>
+        )}
+        {!loading && connections.length > 0 && (
+          <div className="p-4 space-y-3">
+            {connections.map((conn, idx) => {
+              const connId = conn.profile_url || conn.name;
+              const reply = replies[connId];
+              return (
+                <div key={connId + idx} className="p-3 bg-gray-50 border border-gray-100 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-studio-100 flex items-center justify-center text-xs font-bold text-studio-700 flex-shrink-0">{conn.avatar || '?'}</div>
+                    <div className="flex-1 min-w-0">
+                      <a href={conn.profile_url} target="_blank" rel="noreferrer" className="font-semibold text-sm text-gray-900 hover:text-linkedin-600 transition" title={conn.profile_url}>
+                        {conn.name}
+                      </a>
+                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{conn.headline || conn.details}</div>
+                    </div>
+                    {conn.profile_url && (
+                      <a href={conn.profile_url} target="_blank" rel="noreferrer" className="flex-shrink-0 p-1 hover:bg-linkedin-50 rounded-lg transition" title="View Profile">
+                        <IconExternalLink size={13} className="text-linkedin-600" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100 flex-wrap">
+                    <button onClick={() => generateReply(conn)} disabled={reply?.loading} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-studio-600 hover:bg-studio-50 rounded-lg transition">
+                      <IconSparkles size={12} />
+                      {reply?.loading ? 'Generating...' : 'Generate'}
+                    </button>
+                    {reply?.text && !reply.loading && (
+                      <>
+                        <button onClick={() => openMessage(conn)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-linkedin-600 hover:bg-linkedin-50 rounded-lg transition" title="Opens LinkedIn messaging with text copied">
+                          <IconLinkedIn size={12} /> Message
+                        </button>
+                        <button onClick={() => copyReply(connId)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition">
+                          {reply.copied ? <><IconCheck size={12} /> Copied!</> : <><IconCopy size={12} /> Copy</>}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                  {reply && (
+                    <div className="mt-2 p-2.5 bg-white border border-studio-100 rounded-xl">
+                      {reply.loading ? (
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <div className="animate-spin rounded-full h-3 w-3 border-b border-studio-600"></div>
+                          Generating message...
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-800 whitespace-pre-wrap">{reply.text}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {!loading && connections.length === 0 && (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-gray-400">
+            <IconUsers size={36} className="text-gray-200 mb-3" />
+            <p className="text-sm font-medium text-gray-500">No connections found</p>
+            <p className="text-xs text-gray-400 mt-1">Set SerpAPI key in Settings to load connections</p>
+            <button onClick={() => loadConnections(1)} className="mt-3 btn-primary !py-2 !text-xs">Retry</button>
+          </div>
+        )}
+        {!loading && total > 6 && (
+          <div className="flex items-center justify-center gap-2 p-3 border-t border-gray-100">
+            <button onClick={() => loadConnections(page - 1)} disabled={page <= 1} className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition">Prev</button>
+            <span className="text-xs text-gray-500">Page {page}</span>
+            <button onClick={() => loadConnections(page + 1)} disabled={connections.length < 6} className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition">Next</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SetupCard() {
   const router = useRouter();
   return (
@@ -665,6 +961,19 @@ export default function Dashboard() {
   const [draftCount, setDraftCount] = useState(0);
   const [publishedCount, setPublishedCount] = useState(0);
   const [topicCount, setTopicCount] = useState(0);
+
+  const addTopicToFeed = (topicText) => {
+    const keyword = topicText.split(/[:\-|]/).map(s => s.trim()).filter(s => s.length > 2)[0] || topicText;
+    const cleanKeyword = keyword.length > 40 ? keyword.slice(0, 40).trim() : keyword;
+    const stored = localStorage.getItem('linkedin_topics');
+    const existing = stored ? JSON.parse(stored) : [];
+    if (!existing.includes(cleanKeyword)) {
+      const updated = [...existing, cleanKeyword];
+      localStorage.setItem('linkedin_topics', JSON.stringify(updated));
+      setTopicCount(updated.length);
+      setToast(`Added "${cleanKeyword}" to feed topics`);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -747,10 +1056,13 @@ export default function Dashboard() {
         topicCount={topicCount}
       />
 
-      {/* 3-Panel Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" style={{ minHeight: '480px' }}>
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ minHeight: '480px' }}>
         <MyFeed />
-        <TopicSuggestions onToast={setToast} />
+        <TopicSuggestions onToast={setToast} onAddTopic={addTopicToFeed} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ minHeight: '420px' }}>
+        <MyConnections onToast={setToast} />
         <IdeasGenerator onToast={setToast} />
       </div>
 

@@ -1,11 +1,13 @@
 'use client';
 
+import { IconSearch, IconEdit, IconSparkles, IconSend, IconCheckCircle } from './icons';
+
 const STAGES = [
-  { key: 'research', icon: '🔍', label: 'Research' },
-  { key: 'writer', icon: '✍️', label: 'Write' },
-  { key: 'hashtags', icon: '#️⃣', label: 'Hashtags' },
-  { key: 'cta', icon: '🎯', label: 'CTA' },
-  { key: 'complete', icon: '🎉', label: 'Done' }
+  { key: 'research', Icon: IconSearch, label: 'Research' },
+  { key: 'writer', Icon: IconEdit, label: 'Write' },
+  { key: 'hashtags', Icon: IconSparkles, label: 'Hashtags' },
+  { key: 'cta', Icon: IconSend, label: 'CTA' },
+  { key: 'complete', Icon: IconCheckCircle, label: 'Done' }
 ];
 
 export default function ProgressStream({ progress }) {
@@ -28,8 +30,8 @@ export default function ProgressStream({ progress }) {
   const activeStage = progress.find(p => p.status === 'starting');
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6">
-      <div className="font-bold text-lg mb-6 text-blue-900">Generation Progress</div>
+    <div className="bg-gradient-to-br from-linkedin-50 to-blue-50 border border-linkedin-200 rounded-lg p-6">
+      <div className="font-bold text-lg mb-6 text-linkedin-700">Generation Progress</div>
 
       <div className="flex items-center justify-between gap-2 mb-8 relative">
         {STAGES.map((stage, idx) => {
@@ -46,7 +48,9 @@ export default function ProgressStream({ progress }) {
                 isFailed ? 'bg-red-100 text-red-700 ring-2 ring-red-300' :
                 'bg-gray-200 text-gray-500'
               }`}>
-                {isCompleted ? '✅' : isActive ? '⟳' : isFailed ? '❌' : stage.icon}
+                {isCompleted ? <IconCheckCircle size={28} className="text-green-600" /> :
+                 isFailed ? <span>X</span> :
+                 <stage.Icon size={24} />}
               </div>
 
               <div className="text-sm font-bold text-center text-gray-900">{stage.label}</div>
@@ -59,8 +63,8 @@ export default function ProgressStream({ progress }) {
         })}
       </div>
 
-      <div className="border-t border-blue-200 pt-6">
-        <div className="font-bold text-sm text-blue-900 mb-4">Stage Details</div>
+      <div className="border-t border-linkedin-200 pt-6">
+        <div className="font-bold text-sm text-linkedin-700 mb-4">Stage Details</div>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {STAGES.map((stage) => {
@@ -93,7 +97,7 @@ export default function ProgressStream({ progress }) {
                 )}
 
                 {timing && (
-                  <div className="font-mono text-gray-600">⏱️ {timing}</div>
+                  <div className="font-mono text-gray-600">{timing}</div>
                 )}
 
                 {status === 'pending' && (
@@ -105,14 +109,14 @@ export default function ProgressStream({ progress }) {
         </div>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-blue-200">
+      <div className="mt-6 pt-4 border-t border-linkedin-200">
         <div className="flex justify-between items-center mb-2">
           <span className="text-sm font-bold text-gray-700">Overall Progress</span>
           <span className="text-sm font-bold text-gray-700">{completedCount}/{STAGES.length}</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
           <div
-            className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-300"
+            className="bg-linkedin-600 h-3 rounded-full transition-all duration-300"
             style={{
               width: `${(completedCount / STAGES.length) * 100}%`
             }}
@@ -122,13 +126,13 @@ export default function ProgressStream({ progress }) {
 
       {getStageStatus('complete') === 'success' && (
         <div className="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
-          <div className="text-sm font-bold text-green-700">✅ Post generated successfully!</div>
+          <div className="text-sm font-bold text-green-700">Post generated successfully!</div>
         </div>
       )}
 
       {progress.some(p => p.status === 'failed') && (
         <div className="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
-          <div className="text-sm font-bold text-red-700">❌ Generation failed</div>
+          <div className="text-sm font-bold text-red-700">Generation failed</div>
           {progress.find(p => p.status === 'failed')?.message && (
             <div className="text-xs text-red-600 mt-1">
               {progress.find(p => p.status === 'failed')?.message}
@@ -138,9 +142,9 @@ export default function ProgressStream({ progress }) {
       )}
 
       {activeStage && (
-        <div className="mt-4 p-3 bg-blue-100 border border-blue-300 rounded-lg">
-          <div className="text-sm font-bold text-blue-700">⏳ Currently processing...</div>
-          <div className="text-xs text-blue-600 mt-1">{activeStage.message}</div>
+        <div className="mt-4 p-3 bg-linkedin-50 border border-linkedin-200 rounded-lg">
+          <div className="text-sm font-bold text-linkedin-700">Currently processing...</div>
+          <div className="text-xs text-linkedin-600 mt-1">{activeStage.message}</div>
         </div>
       )}
     </div>

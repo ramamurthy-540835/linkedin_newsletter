@@ -30,9 +30,11 @@ class ProfileData(BaseModel):
 
 
 def _get_serp_key(key_param: str = "") -> str:
-    """Resolve SerpAPI key: query param > env var > error"""
+    """Resolve SerpAPI key: query param > settings (.env) > os env > error"""
     if key_param and key_param.strip():
         return key_param.strip()
+    if settings.serp_api_key:
+        return settings.serp_api_key
     env_key = os.getenv("SERP_API_KEY", "").strip()
     if env_key:
         return env_key
@@ -40,18 +42,23 @@ def _get_serp_key(key_param: str = "") -> str:
 
 
 @router.get("/search", response_model=SearchResponse)
-async def search_serp(q: str = Query(...), key: str = Query("")) -> SearchResponse:
-    """Proxy SerpAPI search request"""
+async def search_serp(q: str = Query(...), key: str = Query(""), freshness: str = Query("")) -> SearchResponse:
+    """Proxy SerpAPI search request. freshness: 24h, 7d, 30d or empty."""
     api_key = _get_serp_key(key)
+
+    freshness_map = {"24h": "qdr:d", "7d": "qdr:w", "30d": "qdr:m"}
+    params = {
+        "q": q,
+        "api_key": api_key,
+        "engine": "google",
+        "num": 5,
+    }
+    if freshness and freshness in freshness_map:
+        params["tbs"] = freshness_map[freshness]
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get("https://serpapi.com/search", params={
-                "q": q,
-                "api_key": api_key,
-                "engine": "google",
-                "num": 5,
-            })
+            resp = await client.get("https://serpapi.com/search", params=params)
             if resp.status_code != 200:
                 raise HTTPException(502, f"SerpAPI error: {resp.text}")
 
@@ -145,3 +152,98 @@ async def scrape_profile(linkedin_url: str = Query(...), key: str = Query("")) -
         raise
     except Exception as e:
         return fallback
+
+
+class ConnectionItem(BaseModel):
+    name: str
+    headline: str = ""
+    profile_url: str = ""
+    avatar: str = ""
+    event: str = ""
+    details: str = ""
+
+
+class ConnectionsResponse(BaseModel):
+    connections: list[ConnectionItem]
+    total: int = 0
+    page: int = 1
+
+
+@router.get("/connections", response_model=ConnectionsResponse)
+async def get_connections(
+    key: str = Query(""),
+    page: int = Query(1),
+    per_page: int = Query(10),
+) -> ConnectionsResponse:
+    """Fetch real LinkedIn connections via SerpAPI Google search."""
+    api_key = _get_serp_key(key)
+
+    profile_url = settings.linkedin_profile_url if hasattr(settings, "linkedin_profile_url") else ""
+    if not profile_url:
+        from app.core.config import settings as cfg
+        try:
+            profile_url = cfg.linkedin_profile_url or ""
+        except AttributeError:
+            profile_url = ""
+
+    handle = ""
+    if profile_url:
+        handle = profile_url.rstrip("/").split("/")[-1]
+
+    start = (page - 1) * per_page
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            queries = [
+                f"site:linkedin.com/in connections of {handle}" if handle else "site:linkedin.com/in professional connections",
+                f"linkedin {handle} network connections colleagues" if handle else "linkedin professional network",
+            ]
+
+            all_connections = []
+            seen_urls = set()
+
+            for q in queries:
+                resp = await client.get("https://serpapi.com/search.json", params={
+                    "engine": "google",
+                    "q": q,
+                    "api_key": api_key,
+                    "num": per_page * 2,
+                    "start": start,
+                })
+                if resp.status_code != 200:
+                    continue
+
+                data = resp.json()
+                for item in data.get("organic_results", []):
+                    link = item.get("link", "")
+                    if "/in/" not in link or link in seen_urls:
+                        continue
+                    seen_urls.add(link)
+
+                    title = item.get("title", "")
+                    snippet = item.get("snippet", "")
+
+                    name_part = title.split(" - ")[0].split(" | ")[0].strip() if " - " in title or " | " in title else title
+                    headline_part = title.split(" - ")[1].strip() if " - " in title and len(title.split(" - ")) > 1 else snippet.split(".")[0] if snippet else ""
+
+                    initials = "".join(w[0].upper() for w in name_part.split()[:2] if w) if name_part else "?"
+
+                    all_connections.append(ConnectionItem(
+                        name=name_part[:60],
+                        headline=headline_part[:120],
+                        profile_url=link,
+                        avatar=initials,
+                        event="connection",
+                        details=headline_part[:80],
+                    ))
+
+            return ConnectionsResponse(
+                connections=all_connections[:per_page],
+                total=len(all_connections),
+                page=page,
+            )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return ConnectionsResponse(connections=[], total=0, page=page)

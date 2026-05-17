@@ -458,15 +458,15 @@ def generate_charts(stats):
     categorized = stats["categorized_models"]
     best = stats["latest_per_usecase"]
     BG, CARD, BORDER, TEXT, SUB, BLUE = "#ffffff", "#f4f4f4", "#d9d9d9", "#161616", "#525252", "#0f62fe"
-    fig = plt.figure(figsize=(19.2, 10.8), facecolor=BG, constrained_layout=True)
-    gs = GridSpec(20, 24, figure=fig)
+    fig = plt.figure(figsize=(22, 14), facecolor=BG, constrained_layout=True)
+    gs = GridSpec(24, 24, figure=fig)
     h = fig.add_subplot(gs[0:2, :]); h.axis("off")
     h.add_patch(mpatches.FancyBboxPatch((0, 0.08), 1, 0.84, boxstyle="round,pad=0.01,rounding_size=0.02", transform=h.transAxes, facecolor=BLUE, edgecolor=BLUE))
     h.text(0.5, 0.6, f"{stats['provider']} AI Model Discovery Intelligence", ha="center", va="center", fontsize=22, fontweight="bold", color="#fff", transform=h.transAxes)
-    h.text(0.5, 0.2, f"Automated Discovery · {stats['run_date']} · Source: Official API", ha="center", va="center", fontsize=11, color="#d0e2ff", transform=h.transAxes)
+    h.text(0.5, 0.2, f"Official API-first discovery | Workload classification | BigQuery registry", ha="center", va="center", fontsize=11, color="#d0e2ff", transform=h.transAxes)
     cat_best = {v.get("model_id") for v in best.values() if v}
-    rec = sum(1 for m in stats["all_models"] if m.get("recommendation") in ["[RECOMMENDED]", "[GOOD]"] or (m.get("model_id") in cat_best and _score_model(m) >= 50))
-    kpis = [(stats["total"], "Total Models"), (stats["family_count"], "Families"), (rec, "Recommended"), (len(stats["conf_buckets"]["high"]), "Strongly Classified")]
+    rec = len([k for k, v in best.items() if v])
+    kpis = [(stats["total"], "Total Models"), (stats["family_count"], "Model Families"), (len([k for k,v in categorized.items() if len(v)>0]), "Workload Categories"), (rec, "Recommended Defaults")]
     for i, (v, lab) in enumerate(kpis):
         a = fig.add_subplot(gs[2:5, i * 6:(i + 1) * 6]); a.axis("off")
         a.add_patch(mpatches.FancyBboxPatch((0.02, 0.08), 0.96, 0.84, boxstyle="round,pad=0.02,rounding_size=0.03", transform=a.transAxes, facecolor=CARD, edgecolor=BORDER))
@@ -481,37 +481,47 @@ def generate_charts(stats):
     ab.barh(names, vals, color=BLUE, alpha=0.85); ab.set_title("Top Family Distribution", loc="left", fontsize=12, color=TEXT, pad=10)
     ab.grid(axis="x", linestyle="--", alpha=0.25); ab.tick_params(axis="both", labelsize=9)
     ad = fig.add_subplot(gs[5:11, 12:24]); ad.set_facecolor(CARD)
-    conf = [len(stats["conf_buckets"]["high"]), len(stats["conf_buckets"]["medium"]), len(stats["conf_buckets"]["low"])]
-    labels = ["Strongly Classified", "Partially Classified", "Needs Review"]; colors = ["#198038", "#ff832b", "#8d8d8d"]
-    wedges, _ = ad.pie(conf, colors=colors, startangle=90, wedgeprops=dict(width=0.38, edgecolor=BG))
-    ad.set_title("Metadata Classification Coverage", fontsize=12, color=TEXT, pad=10)
-    ad.legend(wedges, [f"{l}: {v}" for l, v in zip(labels, conf)], loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=9)
+    donut_keys = ["complex_reasoning","realtime_audio","multimodal_vision","image_generation","speech_to_text","text_to_speech","embeddings","video_generation","fast_chat"]
+    donut_vals = [len(categorized.get(k, [])) for k in donut_keys]
+    donut_labels = [USE_CASE_MAP_DICT[k]["title"] for k in donut_keys]
+    donut_colors = ["#3d70b2","#ee538b","#fa4d56","#8a3ffc","#198038","#24a148","#007d79","#a56eff","#1192e8"]
+    wedges, _ = ad.pie(donut_vals, colors=donut_colors, startangle=90, wedgeprops=dict(width=0.36, edgecolor=BG))
+    ad.set_title("Model Workload Classification", fontsize=12, color=TEXT, pad=10)
+    ad.legend(wedges, [f"{l}: {v}" for l, v in zip(donut_labels, donut_vals)], loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=8)
+    legacy_review = len(categorized.get("legacy", [])) + len(categorized.get("unassigned_review", []))
+    ad.text(0.0, -1.2, f"Legacy / Review: {legacy_review} models", ha="center", va="center", fontsize=9, color=SUB)
     top = ["complex_reasoning", "realtime_audio", "multimodal_vision", "image_generation", "video_generation", "embeddings", "speech_to_text", "text_to_speech"]
     axes = [fig.add_subplot(gs[11:14, 0:6]), fig.add_subplot(gs[11:14, 6:12]), fig.add_subplot(gs[11:14, 12:18]), fig.add_subplot(gs[11:14, 18:24]), fig.add_subplot(gs[14:17, 0:6]), fig.add_subplot(gs[14:17, 6:12]), fig.add_subplot(gs[14:17, 12:18]), fig.add_subplot(gs[14:17, 18:24])]
     lookup = {u["key"]: u for u in USE_CASE_MAP}
     for ax, k in zip(axes, top):
         uc = lookup.get(k, {"title": k, "color": BLUE}); cnt = len(categorized.get(k, [])); bm = best.get(k, {}) or {}
-        ax.axis("off"); ax.add_patch(mpatches.FancyBboxPatch((0.02, 0.08), 0.96, 0.84, boxstyle="round,pad=0.02,rounding_size=0.03", transform=ax.transAxes, facecolor=CARD, edgecolor=BORDER))
-        ax.text(0.05, 0.72, uc["title"], fontsize=10, fontweight="bold", color=uc["color"], transform=ax.transAxes)
-        ax.text(0.05, 0.46, f"Count: {cnt}", fontsize=10, color=TEXT, transform=ax.transAxes)
-        ax.text(0.05, 0.2, fill(f"Best: {bm.get('model_id','N/A')}", width=28), fontsize=8.5, color=SUB, family="monospace", transform=ax.transAxes)
-    at = fig.add_subplot(gs[17:20, :]); at.axis("off"); at.set_facecolor(CARD)
+        ax.axis("off")
+        ax.add_patch(mpatches.FancyBboxPatch((0.02, 0.12), 0.96, 0.78, boxstyle="round,pad=0.02,rounding_size=0.02", transform=ax.transAxes, facecolor=CARD, edgecolor=BORDER))
+        ax.add_patch(mpatches.Rectangle((0.02, 0.12), 0.02, 0.78, transform=ax.transAxes, facecolor=uc["color"], edgecolor="none"))
+        status = (bm.get("recommendation", "N/A").strip("[]") if bm else "N/A")
+        ax.text(0.06, 0.73, uc["title"], fontsize=9.8, fontweight="bold", color=TEXT, transform=ax.transAxes)
+        ax.text(0.06, 0.53, f"Count: {cnt}", fontsize=9, color=TEXT, transform=ax.transAxes)
+        ax.text(0.06, 0.35, f"Family: {bm.get('family','N/A')}", fontsize=8.5, color=SUB, transform=ax.transAxes)
+        ax.text(0.06, 0.18, f"Best: {fill(bm.get('model_id','N/A'), width=24)}", fontsize=8, color=BLUE, family="monospace", transform=ax.transAxes)
+        ax.text(0.76, 0.73, status, fontsize=7.5, color=SUB, transform=ax.transAxes)
+    at = fig.add_subplot(gs[17:22, :]); at.axis("off"); at.set_facecolor(CARD)
     rows = []
     for uc in USE_CASE_MAP:
         bm = best.get(uc["key"])
         if not bm: continue
-        rows.append([uc["title"], fill(bm.get("model_id", "N/A"), width=20), len(categorized.get(uc["key"], [])), bm.get("family", "N/A")])
+        rows.append([uc["title"], __import__("textwrap").shorten(bm.get("model_id", "N/A"), width=28, placeholder="..."), len(categorized.get(uc["key"], [])), bm.get("family", "N/A")])
         if len(rows) >= 8: break
     t = at.table(cellText=rows, colLabels=["Category", "Best Model", "Count", "Family"], loc="center", cellLoc="left")
-    t.auto_set_font_size(False); t.set_fontsize(9); t.scale(1, 1.2)
+    t.auto_set_font_size(False); t.set_fontsize(8.5); t.scale(1, 1.15)
     for (r, c), cell in t.get_celld().items():
         cell.set_edgecolor(BORDER)
         if r == 0: cell.set_facecolor(BLUE); cell.get_text().set_color("#fff"); cell.get_text().set_weight("bold")
         else: cell.set_facecolor("#fff")
     provider_slug = _normalize_provider(stats.get("provider", "unknown"))
     chart_path = f"{OUTPUT_DIR}/dashboard_provider_{provider_slug}_{ts}.png"
-    fig.text(0.5, 0.01, f"Source: {stats['provider']} Official API  |  Method: LangGraph + Gemini  |  Storage: BigQuery  |  Generated: {stats['run_date']}", ha="center", fontsize=9, color="#6f6f6f")
-    fig.savefig(chart_path, dpi=220, bbox_inches="tight", facecolor=BG, edgecolor="none")
+    fig.text(0.5, 0.02, f"Semantic enrichment coverage: {stats['enriched_coverage_count']}/{stats['total']} models | Generated: {stats['run_date']}", ha="center", fontsize=9, color="#6f6f6f")
+    fig.subplots_adjust(bottom=0.08)
+    fig.savefig(chart_path, dpi=180, bbox_inches="tight", facecolor=BG, edgecolor="none")
     plt.close(); print(f"Chart PNG: {chart_path}"); return chart_path
 
 
@@ -2037,10 +2047,6 @@ Examples:
     design_pipeline_notes = {}
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-
-    # Default to dynamic visual prompts when design agents are enabled unless explicitly disabled.
-    if enable_design_agents and not dynamic_visual_prompts and "--no-dynamic-visual-prompts" not in sys.argv:
-        dynamic_visual_prompts = True
 
     # Generate image prompts using dynamic planner, orchestrator, or simple generation
     if dynamic_visual_prompts and _HAS_VISUAL_PROMPT_PLANNER:

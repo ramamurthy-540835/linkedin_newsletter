@@ -19,12 +19,27 @@ async function forward(request, params) {
 
   try {
     const res = await fetch(url.toString(), init);
-    const text = await res.text();
-    return new NextResponse(text, {
+    const contentType = res.headers.get('content-type') || 'application/json';
+    const isSSE = contentType.includes('text/event-stream');
+    const isBinary = contentType.startsWith('image/') || contentType.startsWith('audio/') || contentType.startsWith('video/') || contentType === 'application/octet-stream';
+
+    if (isSSE && res.body) {
+      return new NextResponse(res.body, {
+        status: res.status,
+        headers: {
+          'content-type': 'text/event-stream',
+          'cache-control': 'no-cache',
+          'connection': 'keep-alive',
+        },
+      });
+    }
+
+    const body = isBinary ? await res.arrayBuffer() : await res.text();
+    return new NextResponse(body, {
       status: res.status,
       headers: {
-        'content-type': res.headers.get('content-type') || 'application/json',
-        'cache-control': 'no-store',
+        'content-type': contentType,
+        'cache-control': isBinary ? 'public, max-age=3600' : 'no-store',
       },
     });
   } catch (error) {

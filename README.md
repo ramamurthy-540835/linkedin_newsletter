@@ -191,14 +191,14 @@ Use this prompt to continue frontend work:
 
 | Field | Value |
 |-------|-------|
-| Provider | OPENAI |
-| Run Date | 20260512T1 |
-| Total Models | 119 |
-| Families | 13 |
-| High Confidence | N/A |
-| Needs Review | N/A |
+| Provider | ANTHROPIC |
+| Run Date | 20260514T1 |
+| Total Models | 7 |
+| Families | 1 |
+| Strongly Classified | 0 |
+| Metadata Needs Review | 7 |
 | LinkedIn Post | N/A |
-| Medium Article | N/A |
-| Dashboard Visual | N/A |
-| Mindmap Visual | N/A |
+| Medium Article | reports/anthropic/medium_draft_20260515_012700.md |
+| Dashboard Visual | reports/anthropic/dashboard_provider_anthropic_20260515_012642.png |
+| Mindmap Visual | reports/anthropic/architecture_renderer_xai_provider_anthropic_20260515_012615.png |
 

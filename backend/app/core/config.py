@@ -5,7 +5,7 @@ class Settings(BaseSettings):
     app_name: str = "LinkedIn Post Generator"
     env: str = "dev"
     host: str = "0.0.0.0"
-    port: int = 8001
+    port: int = 8007
 
     gcp_project_id: str = ""
     gcp_region: str = "us-central1"
@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     facebook_app_secret: str = ""
 
     medium_api_key: str = ""
+    devto_api_key: str = ""
 
     serp_api_key: str = ""
+    openai_api_key: str = ""
 
     # 44-char URL-safe base64 Fernet key; if empty a deterministic dev key is used
     credentials_encryption_key: str = ""

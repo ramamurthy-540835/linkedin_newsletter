@@ -20,11 +20,37 @@ class GenerateImagesRequest(BaseModel):
     count: int = Field(default=2, ge=1, le=4)
 
 
+class EnhancedImageRequest(BaseModel):
+    prompt: str
+    style: str = "corporate"
+    aspect_ratio: str = "landscape"
+    provider: str = "imagen"
+    brand_colors: str = ""
+    count: int = Field(default=2, ge=1, le=4)
+
+
 class GenerateVideoRequest(BaseModel):
     title: str
     content: str
     duration: int = Field(default=8, ge=5, le=30)
 
+
+class EnhancedVideoRequest(BaseModel):
+    topic: str
+    script: str = ""
+    duration: int = Field(default=30, ge=8, le=60)
+    voice: str = "none"
+    captions: bool = False
+    style: str = "corporate"
+
+
+class VideoScriptRequest(BaseModel):
+    topic: str
+    style: str = "corporate"
+    duration: int = Field(default=30, ge=15, le=60)
+
+
+# ── Original endpoints (backward compat) ─────────────────────────────────────
 
 @router.post("/images")
 async def generate_images(req: GenerateImagesRequest) -> list:
@@ -43,6 +69,70 @@ async def start_video(req: GenerateVideoRequest) -> dict:
     job_id = media_service.start_video_job(req.title, req.content, req.duration)
     return {"job_id": job_id, "status": "queued"}
 
+
+# ── Enhanced endpoints ────────────────────────────────────────────────────────
+
+@router.post("/images/generate")
+async def generate_images_enhanced(req: EnhancedImageRequest) -> dict:
+    if not req.prompt.strip():
+        raise HTTPException(status_code=400, detail="prompt is required")
+    try:
+        images = await media_service.generate_images_with_options(
+            prompt=req.prompt,
+            style=req.style,
+            aspect_ratio=req.aspect_ratio,
+            provider=req.provider,
+            brand_colors=req.brand_colors,
+            count=req.count,
+        )
+        return {
+            "images": images,
+            "style": req.style,
+            "aspect_ratio": req.aspect_ratio,
+            "provider": req.provider,
+        }
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/video/script")
+async def generate_video_script(req: VideoScriptRequest) -> dict:
+    if not req.topic.strip():
+        raise HTTPException(status_code=400, detail="topic is required")
+    try:
+        script = await media_service.generate_video_script(req.topic, req.style, req.duration)
+        return script
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.post("/video/generate")
+async def start_enhanced_video(req: EnhancedVideoRequest) -> dict:
+    if not req.topic.strip():
+        raise HTTPException(status_code=400, detail="topic is required")
+    job_id = media_service.start_enhanced_video_job(
+        topic=req.topic,
+        script=req.script,
+        duration=req.duration,
+        voice=req.voice,
+        captions=req.captions,
+        style=req.style,
+    )
+    return {"job_id": job_id, "status": "queued"}
+
+
+@router.get("/styles")
+async def get_styles() -> dict:
+    return {
+        "image_styles": list(media_service.STYLE_PRESETS.keys()),
+        "video_styles": list(media_service.VIDEO_STYLES.keys()),
+        "aspect_ratios": list(media_service.ASPECT_RATIOS.keys()),
+    }
+
+
+# ── Shared endpoints ─────────────────────────────────────────────────────────
 
 @router.get("/job/{job_id}")
 async def get_job_status(job_id: str) -> dict:
