@@ -43,6 +43,15 @@ class VideoAsset(BaseModel):
     job_id: str = ""
 
 
+class CarouselSlide(BaseModel):
+    slide_num: int = 0
+    heading: str = ""
+    body: str = ""
+    bullets: list[str] = []
+    visual_prompt: str = ""
+    image_url: str = ""
+
+
 class PostMedia(BaseModel):
     image: Optional[MediaAsset] = None
     video: Optional[VideoAsset] = None
@@ -58,6 +67,7 @@ class SavePostRequest(BaseModel):
     cta: str
     content_type: str = "text"
     media: Optional[PostMedia] = None
+    carousel_slides: Optional[list[CarouselSlide]] = None
 
 
 class SavePostResponse(BaseModel):
@@ -89,6 +99,7 @@ class Post(BaseModel):
     status: str
     content_type: str = "text"
     media: Optional[PostMedia] = None
+    carousel_slides: Optional[list[dict]] = None
     created_at: datetime
     updated_at: datetime
 

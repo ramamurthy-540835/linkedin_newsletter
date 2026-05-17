@@ -534,7 +534,7 @@ function CreatePageContent() {
           job_id: videoJobId || '',
         };
       }
-      await savePost({
+      const savePayload = {
         title: suggestedTitle || topic,
         topic,
         audience: audience || 'general',
@@ -544,7 +544,18 @@ function CreatePageContent() {
         cta,
         content_type: contentType,
         media: Object.keys(mediaPayload).length > 0 ? mediaPayload : null,
-      });
+      };
+      if (contentType === 'carousel' && carouselSlides.length > 0) {
+        savePayload.carousel_slides = carouselSlides.map((s, i) => ({
+          slide_num: s.slide_num || i + 1,
+          heading: s.heading || '',
+          body: s.body || '',
+          bullets: s.bullets || [],
+          visual_prompt: s.visual_prompt || s.visualPrompt || '',
+          image_url: s.image_url || s.imageUrl || '',
+        }));
+      }
+      await savePost(savePayload);
       window.location.href = '/publish';
     } catch (e) {
       setError(e.message);

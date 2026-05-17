@@ -56,6 +56,7 @@ export const savePost = (data) =>
       cta: data.cta || '',
       content_type: data.content_type || 'text',
       media: data.media || null,
+      carousel_slides: data.carousel_slides || null,
     }),
   });
 

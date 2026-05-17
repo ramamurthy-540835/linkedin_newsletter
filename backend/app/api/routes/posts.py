@@ -123,6 +123,8 @@ async def save_post(req: SavePostRequest) -> SavePostResponse:
     }
     if req.media:
         payload["media"] = req.media.model_dump(exclude_none=True)
+    if req.carousel_slides:
+        payload["carousel_slides"] = [s.model_dump() for s in req.carousel_slides]
     rows = []
     if POSTS_FILE.exists():
         rows = json.loads(POSTS_FILE.read_text(encoding="utf-8"))

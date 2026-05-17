@@ -17,6 +17,12 @@ import {
   IconSparkles,
   IconImage,
   IconVideo,
+  IconLayers,
+  IconChevronLeft,
+  IconChevronRight,
+  IconCreate,
+  IconPoll,
+  IconNewspaper,
 } from '@/components/icons';
 
 export default function PublishQueuePage() {
@@ -28,6 +34,7 @@ export default function PublishQueuePage() {
   const [success, setSuccess] = useState(null);
   const [publishResult, setPublishResult] = useState(null);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
 
   useEffect(() => {
     fetchDrafts();
@@ -146,7 +153,7 @@ export default function PublishQueuePage() {
                         ? 'bg-studio-50 border-l-3 border-l-studio-600'
                         : 'hover:bg-gray-50'
                     }`}
-                    onClick={() => { setSelectedDraft(draft); setPublishResult(null); }}
+                    onClick={() => { setSelectedDraft(draft); setPublishResult(null); setCarouselIdx(0); }}
                   >
                     <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-1.5 ${
                       selectedDraft?.id === draft.id ? 'bg-studio-600' : 'bg-gray-200'
@@ -157,11 +164,18 @@ export default function PublishQueuePage() {
                       <div className="text-xs text-gray-400 mt-1.5 flex items-center gap-2">
                         <IconCalendar size={12} />
                         {draft.created_at ? new Date(draft.created_at).toLocaleDateString() : 'N/A'}
-                        {draft.media?.image?.filename && (
-                          <span className="inline-flex items-center gap-0.5 text-purple-600"><IconImage size={11} /> img</span>
-                        )}
-                        {draft.media?.video?.filename && (
-                          <span className="inline-flex items-center gap-0.5 text-red-600"><IconVideo size={11} /> vid</span>
+                        {draft.content_type === 'carousel' ? (
+                          <span className="inline-flex items-center gap-0.5 text-teal-600"><IconLayers size={11} /> Carousel{draft.carousel_slides ? ` · ${draft.carousel_slides.length} slides` : ''}</span>
+                        ) : draft.content_type === 'poll' ? (
+                          <span className="inline-flex items-center gap-0.5 text-green-600"><IconPoll size={11} /> Poll</span>
+                        ) : draft.content_type === 'newsletter' ? (
+                          <span className="inline-flex items-center gap-0.5 text-indigo-600"><IconNewspaper size={11} /> Newsletter</span>
+                        ) : draft.content_type === 'video' || draft.media?.video?.filename ? (
+                          <span className="inline-flex items-center gap-0.5 text-red-600"><IconVideo size={11} /> Video</span>
+                        ) : draft.content_type === 'image' || draft.media?.image?.filename ? (
+                          <span className="inline-flex items-center gap-0.5 text-purple-600"><IconImage size={11} /> Image</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-blue-600"><IconCreate size={11} /> Text</span>
                         )}
                         {draft.status === 'published' && (
                           <span className="badge-published ml-1">Published</span>
@@ -262,6 +276,50 @@ export default function PublishQueuePage() {
                         )}
                       </div>
                     )}
+
+                    {selectedDraft.carousel_slides?.length > 0 && (
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Carousel Slides ({selectedDraft.carousel_slides.length})</div>
+                        <div className="border border-teal-200 rounded-xl overflow-hidden">
+                          <div className="bg-teal-50 p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <button onClick={() => setCarouselIdx(Math.max(0, carouselIdx - 1))} disabled={carouselIdx === 0} className="p-1 hover:bg-teal-100 rounded-lg disabled:opacity-30 transition">
+                                <IconChevronLeft size={16} className="text-teal-600" />
+                              </button>
+                              <span className="text-xs font-semibold text-teal-700">{carouselIdx + 1} / {selectedDraft.carousel_slides.length}</span>
+                              <button onClick={() => setCarouselIdx(Math.min(selectedDraft.carousel_slides.length - 1, carouselIdx + 1))} disabled={carouselIdx >= selectedDraft.carousel_slides.length - 1} className="p-1 hover:bg-teal-100 rounded-lg disabled:opacity-30 transition">
+                                <IconChevronRight size={16} className="text-teal-600" />
+                              </button>
+                            </div>
+                            {(() => {
+                              const slide = selectedDraft.carousel_slides[carouselIdx];
+                              return (
+                                <div className="bg-white rounded-xl p-4 border border-teal-100">
+                                  <div className="font-semibold text-sm text-gray-900 mb-1">Slide {slide.slide_num || carouselIdx + 1}: {slide.heading}</div>
+                                  {slide.body && <div className="text-xs text-gray-700 mb-2">{slide.body}</div>}
+                                  {slide.bullets?.length > 0 && (
+                                    <ul className="text-xs text-gray-600 space-y-0.5 list-disc pl-4">
+                                      {slide.bullets.map((b, j) => <li key={j}>{b}</li>)}
+                                    </ul>
+                                  )}
+                                  {slide.image_url && <img src={slide.image_url} alt={slide.heading} className="mt-2 rounded-lg w-full border border-gray-200" />}
+                                  {!slide.image_url && slide.visual_prompt && (
+                                    <div className="mt-2 p-2 bg-gray-50 rounded-lg text-xs text-gray-500 italic">Prompt: {slide.visual_prompt}</div>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          <div className="flex gap-1 p-2 bg-gray-50 overflow-x-auto">
+                            {selectedDraft.carousel_slides.map((s, i) => (
+                              <button key={i} onClick={() => setCarouselIdx(i)} className={`flex-shrink-0 px-2 py-1 text-xs rounded-lg font-medium transition ${i === carouselIdx ? 'bg-teal-600 text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-teal-50'}`}>
+                                {i + 1}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="hidden lg:block">
@@ -273,6 +331,20 @@ export default function PublishQueuePage() {
                       image={selectedDraft.media?.image?.filename ? { filename: selectedDraft.media.image.filename } : null}
                       video={selectedDraft.media?.video?.filename ? { filename: selectedDraft.media.video.filename } : null}
                     />
+                    {selectedDraft.carousel_slides?.length > 0 && (
+                      <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                        <div className="text-xs font-semibold text-gray-500 mb-2">Carousel Preview</div>
+                        <div className="flex gap-2 overflow-x-auto pb-1">
+                          {selectedDraft.carousel_slides.map((s, i) => (
+                            <div key={i} className="flex-shrink-0 w-32 p-2 bg-white border border-gray-200 rounded-lg">
+                              <div className="text-xs font-semibold text-gray-900 line-clamp-1">{s.heading}</div>
+                              <div className="text-xs text-gray-500 mt-0.5 line-clamp-2">{s.body}</div>
+                              <div className="text-xs text-gray-400 mt-1">Slide {s.slide_num || i + 1}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
