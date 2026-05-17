@@ -897,6 +897,7 @@ function ConnectionCard({ conn, replies, onGenerate, onCopy, onMessage, onAddToC
 
 const CONN_TABS = [
   { id: 'network', label: 'My Network' },
+  { id: 'followers', label: 'Followers' },
   { id: 'notifications', label: 'Notifications' },
   { id: 'search', label: 'People Search' },
   { id: 'company', label: 'Company' },
@@ -1086,6 +1087,17 @@ function MyConnections({ onToast }) {
     finally { setLoading(false); }
   };
 
+  const loadFollowers = async (page = 1, pageSize = pagination.pageSize) => {
+    setLoading(true);
+    setResults([]);
+    try {
+      const data = await getMyConnections({ mode: 'followers', page, per_page: pageSize, key: serpKey() });
+      setResults(data.connections || []);
+      updatePaginationFromResponse(data);
+    } catch (e) { onToast(`Followers error: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
   const doManualLoad = async () => {
     const lines = manualInput.split('\n').map(l => l.trim()).filter(Boolean);
     if (!lines.length) return;
@@ -1176,10 +1188,14 @@ function MyConnections({ onToast }) {
     setActiveTab(tabId);
     setResults([]);
     setPagination({ page: 1, pageSize: pagination.pageSize, total: 0, hasNext: false, hasPrev: false });
+    if (tabId === 'followers') {
+      loadFollowers(1);
+    }
   };
 
   const handlePageChange = (newPage) => {
     if (activeTab === 'network') handleCsvPageChange(newPage);
+    else if (activeTab === 'followers') loadFollowers(newPage, pagination.pageSize);
     else if (activeTab === 'search') doSearch(newPage, pagination.pageSize);
     else if (activeTab === 'company') doCompanySearch(newPage, pagination.pageSize);
   };
@@ -1187,6 +1203,7 @@ function MyConnections({ onToast }) {
   const handlePageSizeChange = (newSize) => {
     setPagination(prev => ({ ...prev, pageSize: newSize, page: 1 }));
     if (activeTab === 'network') handleCsvPageSizeChange(newSize);
+    else if (activeTab === 'followers') loadFollowers(1, newSize);
     else if (activeTab === 'search') doSearch(1, newSize);
     else if (activeTab === 'company') doCompanySearch(1, newSize);
   };
@@ -1247,6 +1264,30 @@ function MyConnections({ onToast }) {
             )}
             {csvConnections.length === 0 && !loading && (
               <div className="text-center py-4 text-xs text-gray-400">No connections imported yet. Use the button above to load your LinkedIn CSV export.</div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'followers' && (
+          <div className="p-4 space-y-3 flex-1 flex flex-col">
+            <div className="flex gap-2">
+              <button onClick={() => window.open('https://www.linkedin.com/feed/followers/', '_blank')} className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-linkedin-600 text-white rounded-xl text-xs font-semibold hover:bg-linkedin-700 transition">
+                <IconGlobe size={14} /> Open LinkedIn Followers
+              </button>
+            </div>
+            <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl">
+              <div className="text-xs text-yellow-700">
+                Followers mode uses public search simulation unless LinkedIn OAuth/session import is configured.
+              </div>
+            </div>
+            {renderResults(results)}
+            {!loading && results.length === 0 && (
+              <div className="text-center py-4 text-xs text-gray-400">No followers found from public search. Open LinkedIn Followers or import/export network data if available.</div>
+            )}
+            {results.length > 0 && !loading && (
+              <div className="mt-auto">
+                <PaginationBar pagination={pagination} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+              </div>
             )}
           </div>
         )}
