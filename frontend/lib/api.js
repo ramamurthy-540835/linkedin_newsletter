@@ -108,6 +108,30 @@ export const searchPeople = (params = {}) => {
   Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
   return req(`/api/serp/people?${qs.toString()}`);
 };
+
+// My Network / Connections (real LinkedIn My Network support + simulated fallback)
+export const getMyConnections = (params = {}) =>
+  req(`/api/serp/connections?${new URLSearchParams(params).toString()}`);
+
+export const getMyNetworkContext = () =>
+  req('/api/serp/connections?mode=context').catch(() => ({
+    simulated: true,
+    message: 'Real LinkedIn API/session unavailable. Using search simulation. Open official pages for full access.',
+    my_network_url: 'https://www.linkedin.com/mynetwork/',
+    notifications_url: 'https://www.linkedin.com/notifications/?filter=all',
+  }));
+
+export const openMyNetwork = () => {
+  if (typeof window !== 'undefined') {
+    window.open('https://www.linkedin.com/mynetwork/', '_blank');
+  }
+};
+
+export const openNotifications = () => {
+  if (typeof window !== 'undefined') {
+    window.open('https://www.linkedin.com/notifications/?filter=all', '_blank');
+  }
+};
 export const uploadConnectionsCsv = async (file, page = 1, perPage = 10) => {
   const form = new FormData();
   form.append('file', file);

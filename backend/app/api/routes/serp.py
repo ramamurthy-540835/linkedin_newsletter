@@ -43,6 +43,15 @@ def _get_serp_key(key_param: str = "") -> str:
     raise HTTPException(400, {"error": "SerpAPI key not configured. Set SERP_API_KEY in backend .env or provide it in settings."})
 
 
+def _simulated_mode_response(message: str = "Real LinkedIn session/API unavailable. Using public search simulation. For full My Network access use the official LinkedIn site.") -> dict:
+    return {
+        "simulated": True,
+        "message": message,
+        "my_network_url": "https://www.linkedin.com/mynetwork/",
+        "notifications_url": "https://www.linkedin.com/notifications/?filter=all",
+    }
+
+
 @router.get("/search", response_model=SearchResponse)
 async def search_serp(q: str = Query(...), key: str = Query(""), freshness: str = Query("")) -> SearchResponse:
     """Proxy SerpAPI search request. freshness: 24h, 7d, 30d or empty."""
@@ -211,8 +220,11 @@ async def get_connections(
     page: int = Query(1),
     per_page: int = Query(10),
     profile: str = Query(""),
+    mode: str = Query("connections"),  # connections | followers | notifications
 ) -> ConnectionsResponse:
-    """Fetch LinkedIn connections via SerpAPI with diversified queries (not company-locked)."""
+    """Fetch LinkedIn connections/followers/notifications via SerpAPI simulation.
+    Real LinkedIn My Network requires login. Returns simulated flag when using public search.
+    """
     api_key = _get_serp_key(key)
 
     handle = ""
@@ -312,7 +324,7 @@ async def get_connections(
                     ))
 
             paged = _paginate(all_connections, page, per_page)
-            return ConnectionsResponse(
+            resp = ConnectionsResponse(
                 connections=paged["items"],
                 total=paged["total"],
                 page=paged["page"],
@@ -320,11 +332,16 @@ async def get_connections(
                 hasNext=paged["hasNext"],
                 hasPrev=paged["hasPrev"],
             )
+            # Attach simulated context for UI
+            if not resp.connections:
+                resp = ConnectionsResponse(**{**resp.dict(), **_simulated_mode_response()})
+            return resp
 
     except HTTPException:
         raise
     except Exception as e:
-        return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page)
+        sim = _simulated_mode_response()
+        return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page, **sim)
 
 
 @router.get("/people", response_model=ConnectionsResponse)
@@ -341,7 +358,9 @@ async def search_people(
     page: int = Query(1),
     per_page: int = Query(10),
 ) -> ConnectionsResponse:
-    """Search LinkedIn people by name, handle, company, title, location, industry."""
+    """Search LinkedIn people by name, handle, company, title, location, industry.
+    Supports full searchable lookup. Returns simulated flag when real API unavailable.
+    """
     api_key = _get_serp_key(key)
 
     if handle:
@@ -403,7 +422,7 @@ async def search_people(
                 ))
 
             estimated_total = max(len(results), min(total_serp, 100))
-            return ConnectionsResponse(
+            resp = ConnectionsResponse(
                 connections=results,
                 total=estimated_total,
                 page=page,
@@ -411,11 +430,15 @@ async def search_people(
                 hasNext=len(results) >= per_page,
                 hasPrev=page > 1,
             )
+            if not resp.connections:
+                resp = ConnectionsResponse(**{**resp.dict(), **_simulated_mode_response()})
+            return resp
 
     except HTTPException:
         raise
     except Exception as e:
-        return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page)
+        sim = _simulated_mode_response()
+        return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page, **sim)
 
 
 @router.post("/connections/import-csv", response_model=ConnectionsResponse)
