@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections, getLinkedinStatus, connectLinkedinSession } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
 import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
@@ -961,9 +961,19 @@ function MyConnections({ onToast }) {
     }
     return [];
   });
+  const [connStatus, setConnStatus] = useState(null);
+  const [followersMeta, setFollowersMeta] = useState({ selectedSource: 'none', selectedMode: 'followers', debugMessage: '' });
+  const [liAtInput, setLiAtInput] = useState('');
 
   const serpKey = () => (typeof window !== 'undefined' ? localStorage.getItem('SERP_API_KEY') || '' : '');
   const profileUrl = () => (typeof window !== 'undefined' ? localStorage.getItem('linkedin_profile_url') || '' : '');
+
+  const loadConnStatus = async () => {
+    try {
+      const s = await getLinkedinStatus();
+      setConnStatus(s);
+    } catch {}
+  };
 
   const generateReply = async (conn) => {
     const connId = conn.profile_url || conn.name;
@@ -1060,6 +1070,7 @@ function MyConnections({ onToast }) {
           setCsvPagination({ page: 1, pageSize: ps, total: stored.length, hasNext: stored.length > ps, hasPrev: false });
         }
       } catch {}
+      loadConnStatus();
     }
   }, []);
 
@@ -1093,6 +1104,11 @@ function MyConnections({ onToast }) {
     try {
       const data = await getMyConnections({ mode: 'followers', page, per_page: pageSize, key: serpKey() });
       setResults(data.connections || []);
+      setFollowersMeta({
+        selectedSource: data.selectedSource || (hasReal ? 'oauth' : hasSerp ? 'serp' : 'none'),
+        selectedMode: data.selectedMode || 'followers',
+        debugMessage: data.debugMessage || '',
+      });
       updatePaginationFromResponse(data);
     } catch (e) { onToast(`Followers error: ${e.message}`); }
     finally { setLoading(false); }
@@ -1189,6 +1205,7 @@ function MyConnections({ onToast }) {
     setResults([]);
     setPagination({ page: 1, pageSize: pagination.pageSize, total: 0, hasNext: false, hasPrev: false });
     if (tabId === 'followers') {
+      setFollowersMeta({ selectedSource: 'none', selectedMode: 'followers', debugMessage: '' });
       loadFollowers(1);
     }
   };
@@ -1209,6 +1226,13 @@ function MyConnections({ onToast }) {
   };
 
   const profileHandle = profileUrl().split('/in/')[1]?.replace(/\/$/, '') || 'ramavala';
+  const sourceLabelMap = {
+    oauth: 'LinkedIn OAuth',
+    session: 'LinkedIn Session',
+    serp: 'SERP public search',
+    csv: 'CSV import',
+    none: 'None',
+  };
 
   const cardProps = { replies, onGenerate: generateReply, onCopy: copyReply, onMessage: openMessage, onAddToCart: addToCartHandler, onViewActivity: viewActivity, onDone: markDone };
 
@@ -1230,6 +1254,11 @@ function MyConnections({ onToast }) {
           <button key={t.id} onClick={() => handleTabChange(t.id)} className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition whitespace-nowrap ${activeTab === t.id ? 'text-studio-600 border-b-2 border-studio-600' : 'text-gray-500 hover:text-gray-700'}`}>{t.label}</button>
         ))}
       </div>
+      {activeTab === 'followers' && (
+        <div className="px-4 py-1.5 text-[11px] text-gray-500 border-b border-gray-100">
+          Using: {sourceLabelMap[followersMeta.selectedSource] || followersMeta.selectedSource} · Mode: {followersMeta.selectedMode || 'followers'}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto flex flex-col">
 
         {activeTab === 'network' && (
@@ -1276,13 +1305,31 @@ function MyConnections({ onToast }) {
               </button>
             </div>
             <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl">
-              <div className="text-xs text-yellow-700">
-                Followers mode uses public search simulation unless LinkedIn OAuth/session import is configured.
+              <div className="text-xs text-yellow-700">Followers and notifications require authenticated LinkedIn data. Public SERP fallback is disabled.</div>
+            </div>
+            {connStatus && (
+              <div className="flex flex-wrap gap-1 text-[10px]">
+                <span className={`px-1.5 py-0.5 rounded ${connStatus.linkedinOAuthConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>LinkedIn OAuth: {connStatus.linkedinOAuthConfigured ? 'Connected' : 'Missing'}</span>
+                <span className={`px-1.5 py-0.5 rounded ${connStatus.linkedinSessionConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>LinkedIn Session: {connStatus.linkedinSessionConfigured ? 'Connected' : 'Missing'}</span>
+                <span className={`px-1.5 py-0.5 rounded ${connStatus.serpConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>SERP: {connStatus.serpConfigured ? 'Connected' : 'Missing'}</span>
+                <span className={`px-1.5 py-0.5 rounded ${connStatus.csvImported ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>CSV: {connStatus.csvImported ? 'Imported' : 'Not imported'}</span>
               </div>
+            )}
+            <div className="text-[11px] text-gray-500">
+              Source: {sourceLabelMap[followersMeta.selectedSource] || followersMeta.selectedSource} <span className="mx-1">|</span> Mode: {followersMeta.selectedMode || 'followers'} <span className="mx-1">|</span> Status: {results.length === 0 ? (connStatus && (connStatus.linkedinOAuthConfigured || connStatus.linkedinSessionConfigured || connStatus.csvImported) ? 'Configured but 0 results' : 'Not configured') : `${results.length} results found`}
             </div>
             {renderResults(results)}
-            {!loading && results.length === 0 && (
-              <div className="text-center py-4 text-xs text-gray-400">No followers found from public search. Open LinkedIn Followers or import/export network data if available.</div>
+            {!loading && results.length === 0 && connStatus && (connStatus.linkedinOAuthConfigured || connStatus.linkedinSessionConfigured || connStatus.csvImported) && (
+              <div className="text-center py-4 text-xs text-gray-400">Configured, but no followers were returned. Check backend logs.</div>
+            )}
+            {!loading && results.length === 0 && (!connStatus || (!connStatus.linkedinOAuthConfigured && !connStatus.linkedinSessionConfigured && !connStatus.csvImported)) && (
+              <div className="space-y-2 text-center py-4 text-xs text-gray-500">
+                <div>LinkedIn authentication required for real followers.</div>
+                <div className="flex gap-2 justify-center">
+                  <input value={liAtInput} onChange={(e) => setLiAtInput(e.target.value)} placeholder="Paste li_at cookie" className="input-field !py-1.5 !text-xs w-64" />
+                  <button onClick={async () => { try { await connectLinkedinSession(liAtInput); const st = await getLinkedinStatus(); setConnStatus(st); onToast('LinkedIn Session connected'); loadFollowers(1); } catch (e) { onToast(`Session connect failed: ${e.message}`); } }} className="px-3 py-1.5 bg-linkedin-600 text-white rounded-lg text-xs font-semibold hover:bg-linkedin-700 transition">Connect LinkedIn Session</button>
+                </div>
+              </div>
             )}
             {results.length > 0 && !loading && (
               <div className="mt-auto">

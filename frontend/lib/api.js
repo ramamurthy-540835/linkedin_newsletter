@@ -113,6 +113,20 @@ export const searchPeople = (params = {}) => {
 export const getMyConnections = (params = {}) =>
   req(`/api/serp/connections?${new URLSearchParams(params).toString()}`);
 
+export const getLinkedinStatus = () => req('/api/serp/linkedin/status').catch(() => ({
+  linkedinOAuthConfigured: false,
+  linkedinSessionConfigured: false,
+  serpConfigured: false,
+  csvImported: false,
+  activeSource: 'none',
+  profileHandle: ''
+}));
+export const connectLinkedinSession = (liAt) =>
+  req('/api/serp/linkedin/session', {
+    method: 'POST',
+    body: JSON.stringify({ li_at: liAt || '' }),
+  });
+
 export const getMyNetworkContext = () =>
   req('/api/serp/connections?mode=context').catch(() => ({
     simulated: true,

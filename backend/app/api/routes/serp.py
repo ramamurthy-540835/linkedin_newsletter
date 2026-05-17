@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 import httpx
 from app.core.config import settings
+from app.services.linkedin_session_service import LinkedInSessionService
 
 router = APIRouter()
 
@@ -183,6 +184,14 @@ class ConnectionsResponse(BaseModel):
     pageSize: int = 10
     hasNext: bool = False
     hasPrev: bool = False
+    selectedSource: str = "none"
+    selectedMode: str = "connections"
+    debugMessage: str = ""
+    error: str = ""
+
+
+class LinkedInSessionRequest(BaseModel):
+    li_at: str
 
 
 def _parse_linkedin_title(title: str, snippet: str = ""):
@@ -195,6 +204,21 @@ def _parse_linkedin_title(title: str, snippet: str = ""):
         headline_part = snippet.split(".")[0]
     initials = "".join(w[0].upper() for w in name_part.split()[:2] if w) if name_part else "?"
     return name_part[:60], headline_part[:120], initials
+
+def _followers_relevance_ok(link: str, title: str, snippet: str, handle: str, user_name: str) -> bool:
+    """Reduce false positives for followers mode by enforcing target relevance."""
+    blob = f"{link} {title} {snippet}".lower()
+    h = (handle or "").strip().lower()
+    n = (user_name or "").strip().lower()
+    if h and h in blob:
+        return True
+    if n:
+        parts = [p for p in n.split() if len(p) > 2]
+        if len(parts) >= 2 and all(p in blob for p in parts[:2]):
+            return True
+        if any(p in blob for p in parts):
+            return True
+    return False
 
 
 def _paginate(items: list, page: int, page_size: int) -> dict:
@@ -214,6 +238,42 @@ def _paginate(items: list, page: int, page_size: int) -> dict:
     }
 
 
+@router.get("/linkedin/status")
+async def linkedin_status():
+    """Return configuration status for LinkedIn sources."""
+    oauth = bool(getattr(settings, 'linkedin_access_token', None) or os.getenv('LINKEDIN_ACCESS_TOKEN'))
+    session = bool(getattr(settings, 'linkedin_session_cookie', None) or os.getenv('LINKEDIN_SESSION_COOKIE'))
+    serp = bool(_get_serp_key('') if True else False)  # will raise but we catch
+    try:
+        _get_serp_key('')
+        serp = True
+    except:
+        serp = False
+    csv_imported = False
+    try:
+        # simplistic check
+        csv_imported = bool(os.path.exists('/tmp/linkedin_csv_imported'))
+    except:
+        pass
+    active = 'oauth' if oauth else 'session' if session else 'serp' if serp else 'csv' if csv_imported else 'none'
+    return {
+        "linkedinOAuthConfigured": oauth,
+        "linkedinSessionConfigured": session,
+        "serpConfigured": serp,
+        "csvImported": csv_imported,
+        "activeSource": active,
+        "profileHandle": getattr(settings, 'linkedin_profile_url', '').split('/')[-1] or 'ramavala'
+    }
+
+
+@router.post("/linkedin/session")
+async def set_linkedin_session(body: LinkedInSessionRequest):
+    li_at = (body.li_at or "").strip()
+    if not li_at:
+        raise HTTPException(status_code=400, detail="li_at cookie is required")
+    setattr(settings, "linkedin_session_cookie", li_at)
+    return {"ok": True, "linkedinSessionConfigured": True}
+
 @router.get("/connections", response_model=ConnectionsResponse)
 async def get_connections(
     key: str = Query(""),
@@ -225,6 +285,54 @@ async def get_connections(
     """Fetch LinkedIn connections/followers/notifications via SerpAPI simulation.
     Real LinkedIn My Network requires login. Returns simulated flag when using public search.
     """
+    oauth_configured = bool(getattr(settings, "linkedin_access_token", None) or os.getenv("LINKEDIN_ACCESS_TOKEN"))
+    session_configured = bool(getattr(settings, "linkedin_session_cookie", None) or os.getenv("LINKEDIN_SESSION_COOKIE"))
+    selected_source = "oauth" if oauth_configured else "session" if session_configured else "none"
+    api_key = ""
+    if mode in ("followers", "notifications"):
+        if selected_source == "none":
+            return ConnectionsResponse(
+                connections=[],
+                total=0,
+                page=page,
+                pageSize=per_page,
+                hasNext=False,
+                hasPrev=False,
+                selectedSource="none",
+                selectedMode=mode,
+                debugMessage=f"Auth required for {mode}.",
+                error="LinkedIn authentication required for real followers",
+            )
+        if selected_source == "session":
+            svc = LinkedInSessionService(getattr(settings, "linkedin_session_cookie", "") or os.getenv("LINKEDIN_SESSION_COOKIE", ""))
+            raw = await (svc.fetch_followers() if mode == "followers" else svc.fetch_notifications())
+            paged = _paginate(raw, page, per_page)
+            return ConnectionsResponse(
+                connections=[ConnectionItem(**x) for x in paged["items"]],
+                total=paged["total"],
+                page=paged["page"],
+                pageSize=paged["pageSize"],
+                hasNext=paged["hasNext"],
+                hasPrev=paged["hasPrev"],
+                selectedSource="session",
+                selectedMode=mode,
+                debugMessage=f"Using source=session mode={mode}.",
+            )
+        # OAuth exists but follower extraction is not implemented yet.
+        return ConnectionsResponse(
+            connections=[],
+            total=0,
+            page=page,
+            pageSize=per_page,
+            hasNext=False,
+            hasPrev=False,
+            selectedSource="oauth",
+            selectedMode=mode,
+            debugMessage=f"OAuth configured, but {mode} fetcher is not implemented yet.",
+            error="LinkedIn authentication required for real followers",
+        )
+
+    # SERP remains enabled for public discovery/search modes only.
     api_key = _get_serp_key(key)
 
     handle = ""
@@ -288,7 +396,14 @@ async def get_connections(
                 queries = ["site:linkedin.com/in professional network"]
 
             if mode == "followers":
-                queries = [f'site:linkedin.com/in "{user_name}" followers'] if user_name else ["site:linkedin.com/in followers network"]
+                queries = [
+                    f'site:linkedin.com/in "{handle}" "followers"',
+                    f'site:linkedin.com/in "{user_name}" "LinkedIn"',
+                    f'site:linkedin.com/in "{user_name}" "follower"',
+                    f'site:linkedin.com/feed/followers/ "{handle}"'
+                ] if handle or user_name else ["site:linkedin.com/in followers network"]
+                print(f"[FOLLOWERS] mode=followers selected_source={selected_source} profile_handle={handle or 'unknown'}")
+                print(f"[FOLLOWERS] mode=followers queries={queries}")
             elif mode == "notifications":
                 queries = ["site:linkedin.com/in birthday OR anniversary OR promotion OR job change"]
 
@@ -313,10 +428,11 @@ async def get_connections(
                         continue
                     if any(frag in link for frag in own_url_fragments):
                         continue
-                    seen_urls.add(link)
-
                     title = item.get("title", "")
                     snippet = item.get("snippet", "")
+                    if mode == "followers" and not _followers_relevance_ok(link, title, snippet, handle, user_name):
+                        continue
+                    seen_urls.add(link)
                     name_part, headline_part, initials = _parse_linkedin_title(title, snippet)
 
                     all_connections.append(ConnectionItem(
@@ -336,17 +452,46 @@ async def get_connections(
                 pageSize=paged["pageSize"],
                 hasNext=paged["hasNext"],
                 hasPrev=paged["hasPrev"],
+                selectedSource=selected_source,
+                selectedMode=mode,
+                debugMessage=f"Using source={selected_source} mode={mode}.",
             )
-            # Attach simulated context for UI
+            print(f"[FOLLOWERS] mode={mode} selected_source={selected_source} page_results={len(paged['items'])} total_results={paged['total']}")
             if not resp.connections:
-                resp = ConnectionsResponse(**{**resp.dict(), **_simulated_mode_response("Followers mode active. Real LinkedIn followers require login. Using public search simulation.")})
+                empty_reason = "configured-but-no-public-results" if selected_source in ("oauth", "session") else "serp-no-results"
+                print(f"[FOLLOWERS] empty reason={empty_reason}")
+                if mode == "followers":
+                    resp = ConnectionsResponse(
+                        **{
+                            **resp.dict(),
+                            **_simulated_mode_response("Configured, but no followers were returned. Check backend logs."),
+                            "debugMessage": f"Using source={selected_source} mode={mode}. Empty reason={empty_reason}.",
+                        }
+                    )
+                else:
+                    resp = ConnectionsResponse(
+                        **{
+                            **resp.dict(),
+                            **_simulated_mode_response("Followers mode active. Real LinkedIn followers require login. Using public search simulation."),
+                            "debugMessage": f"Using source={selected_source} mode={mode}. Empty reason={empty_reason}.",
+                        }
+                    )
             return resp
 
     except HTTPException:
         raise
     except Exception as e:
         sim = _simulated_mode_response()
-        return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page, **sim)
+        return ConnectionsResponse(
+            connections=[],
+            total=0,
+            page=page,
+            pageSize=per_page,
+            selectedSource=selected_source if selected_source else "none",
+            selectedMode=mode,
+            debugMessage=f"Exception while loading connections: {str(e)}",
+            **sim,
+        )
 
 
 @router.get("/people", response_model=ConnectionsResponse)
