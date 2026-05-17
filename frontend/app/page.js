@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
 import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
@@ -781,41 +781,108 @@ Return ONLY valid JSON (no markdown):
   );
 }
 
+function ConnectionCard({ conn, replies, onGenerate, onCopy, onMessage, onAddToCart }) {
+  const connId = conn.profile_url || conn.name;
+  const reply = replies[connId];
+  const eventLabels = { birthday: 'Birthday', work_anniversary: 'Anniversary', new_job: 'New Job', promotion: 'Promotion', connection: 'Connection' };
+  const eventColors = { birthday: 'bg-pink-50 text-pink-600', work_anniversary: 'bg-blue-50 text-blue-600', new_job: 'bg-green-50 text-green-600', promotion: 'bg-amber-50 text-amber-600', connection: 'bg-gray-50 text-gray-600' };
+  return (
+    <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-full bg-studio-100 flex items-center justify-center text-xs font-bold text-studio-700 flex-shrink-0">{conn.avatar || '?'}</div>
+        <div className="flex-1 min-w-0">
+          <a href={conn.profile_url} target="_blank" rel="noreferrer" className="font-semibold text-sm text-gray-900 hover:text-linkedin-600 transition" title={conn.profile_url}>{conn.name}</a>
+          <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{conn.headline || conn.details}</div>
+        </div>
+        {conn.event && conn.event !== 'connection' && (
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${eventColors[conn.event] || eventColors.connection}`}>{eventLabels[conn.event] || conn.event}</span>
+        )}
+        {conn.profile_url && (
+          <a href={conn.profile_url} target="_blank" rel="noreferrer" className="flex-shrink-0 p-1 hover:bg-linkedin-50 rounded-lg transition" title="View Profile">
+            <IconExternalLink size={13} className="text-linkedin-600" />
+          </a>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100 flex-wrap">
+        <button onClick={() => onGenerate(conn)} disabled={reply?.loading} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-studio-600 hover:bg-studio-50 rounded-lg transition">
+          <IconSparkles size={12} /> {reply?.loading ? '...' : 'Generate'}
+        </button>
+        {reply?.text && !reply.loading && (
+          <>
+            <button onClick={() => onMessage(conn)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-linkedin-600 hover:bg-linkedin-50 rounded-lg transition" title="Open LinkedIn messaging">
+              <IconLinkedIn size={12} /> Message
+            </button>
+            <button onClick={() => onCopy(connId)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition">
+              {reply.copied ? <><IconCheck size={12} /> Copied!</> : <><IconCopy size={12} /> Copy</>}
+            </button>
+            <button onClick={() => onAddToCart(conn, reply.text)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-400 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition" title="Add to Draft Cart">
+              <IconQueue size={12} />
+            </button>
+          </>
+        )}
+      </div>
+      {reply && (
+        <div className="mt-2 p-2.5 bg-white border border-studio-100 rounded-xl">
+          {reply.loading ? (
+            <div className="flex items-center gap-2 text-xs text-gray-500"><div className="animate-spin rounded-full h-3 w-3 border-b border-studio-600"></div> Generating...</div>
+          ) : (
+            <div className="text-xs text-gray-800 whitespace-pre-wrap">{reply.text}</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const CONN_TABS = [
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'search', label: 'People Search' },
+  { id: 'company', label: 'Company' },
+  { id: 'manual', label: 'Manual' },
+];
+
+const EVENT_TYPES = [
+  { value: '', label: 'Any' },
+  { value: 'birthday', label: 'Birthday' },
+  { value: 'work_anniversary', label: 'Work Anniversary' },
+  { value: 'new_job', label: 'New Job' },
+  { value: 'promotion', label: 'Promotion' },
+];
+
 function MyConnections({ onToast }) {
   const { addToCart } = useDraftCart() || {};
-  const [connections, setConnections] = useState([]);
+  const [activeTab, setActiveTab] = useState('notifications');
+  const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
   const [replies, setReplies] = useState({});
 
-  const loadConnections = async (pg = 1) => {
-    setLoading(true);
-    try {
-      const serpKey = localStorage.getItem('SERP_API_KEY') || '';
-      const profileUrl = localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala';
-      const data = await getConnections(serpKey, pg, 6, profileUrl);
-      setConnections(data.connections || []);
-      setTotal(data.total || 0);
-      setPage(pg);
-    } catch (e) {
-      onToast(`Error loading connections: ${e.message}`);
-    } finally {
-      setLoading(false);
+  const [searchForm, setSearchForm] = useState({ name: '', handle: '', company: '', title: '', event_type: '' });
+  const [companyInput, setCompanyInput] = useState('');
+  const [manualInput, setManualInput] = useState('');
+  const [notifForm, setNotifForm] = useState({ name: '', handle: '', event: 'birthday' });
+  const [notifEntries, setNotifEntries] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try { return JSON.parse(localStorage.getItem('linkedin_notification_entries') || '[]'); } catch { return []; }
     }
-  };
+    return [];
+  });
 
-  useEffect(() => { loadConnections(); }, []);
+  const serpKey = () => (typeof window !== 'undefined' ? localStorage.getItem('SERP_API_KEY') || '' : '');
 
   const generateReply = async (conn) => {
     const connId = conn.profile_url || conn.name;
     setReplies(prev => ({ ...prev, [connId]: { text: '', loading: true, copied: false } }));
     try {
       const systemMsg = `You are helping write brief, warm LinkedIn messages. Keep it 1-3 sentences. Be genuine, not generic. Today is ${currentDateLabel()}.`;
-      const userMsg = `Write a friendly LinkedIn message for ${conn.name} (${conn.headline}). Something brief and professional, like reaching out or engaging with their profile. 2-3 sentences.`;
+      const eventPrompts = {
+        birthday: `Write a warm LinkedIn birthday message for ${conn.name}. Personal and brief (1-2 sentences).`,
+        work_anniversary: `Write a congratulatory LinkedIn message for ${conn.name} on their work anniversary${conn.details ? ': ' + conn.details : ''}. Brief (2-3 sentences).`,
+        new_job: `Write a congratulatory LinkedIn message for ${conn.name} who started a new role${conn.details ? ': ' + conn.details : ''}. Brief (2-3 sentences).`,
+        promotion: `Write a congratulatory LinkedIn message for ${conn.name} who was promoted${conn.details ? ': ' + conn.details : ''}. Brief (2-3 sentences).`,
+      };
+      const userMsg = eventPrompts[conn.event] || `Write a friendly LinkedIn message for ${conn.name} (${conn.headline || ''}). Brief and professional. 2-3 sentences.`;
       const response = await callAI('suggestions', userMsg, systemMsg);
       setReplies(prev => ({ ...prev, [connId]: { text: response, loading: false, copied: false } }));
-      if (addToCart) addToCart({ type: 'message', title: conn.name, source: 'Connections', content: response });
     } catch (e) {
       setReplies(prev => ({ ...prev, [connId]: { text: `Error: ${e.message}`, loading: false, copied: false } }));
     }
@@ -840,89 +907,164 @@ function MyConnections({ onToast }) {
     if (reply?.text) onToast('Message copied — paste it in LinkedIn');
   };
 
+  const addToCartHandler = (conn, text) => {
+    if (addToCart) addToCart({ type: 'message', title: conn.name, source: 'Connections', content: text });
+    onToast('Added to Draft Cart');
+  };
+
+  const doSearch = async () => {
+    setLoading(true);
+    setResults([]);
+    try {
+      const data = await searchPeople({ ...searchForm, key: serpKey() });
+      setResults(data.connections || []);
+    } catch (e) { onToast(`Search error: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  const doCompanySearch = async () => {
+    if (!companyInput.trim()) return;
+    setLoading(true);
+    setResults([]);
+    try {
+      const data = await searchPeople({ company: companyInput.trim(), key: serpKey() });
+      setResults(data.connections || []);
+    } catch (e) { onToast(`Search error: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  const doManualLoad = async () => {
+    const lines = manualInput.split('\n').map(l => l.trim()).filter(Boolean);
+    if (!lines.length) return;
+    setLoading(true);
+    setResults([]);
+    try {
+      const all = [];
+      for (const line of lines) {
+        const handle = line.includes('/in/') ? line.split('/in/')[1]?.replace(/\/$/, '') : line;
+        if (!handle) continue;
+        const data = await searchPeople({ handle, key: serpKey() });
+        all.push(...(data.connections || []));
+      }
+      setResults(all);
+    } catch (e) { onToast(`Load error: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  const addNotifEntry = async () => {
+    if (!notifForm.name.trim() && !notifForm.handle.trim()) return;
+    setLoading(true);
+    try {
+      let conn = null;
+      if (notifForm.handle.trim()) {
+        const data = await searchPeople({ handle: notifForm.handle.trim(), key: serpKey() });
+        if (data.connections?.length > 0) {
+          conn = { ...data.connections[0], event: notifForm.event };
+        }
+      }
+      if (!conn && notifForm.name.trim()) {
+        const data = await searchPeople({ name: notifForm.name.trim(), key: serpKey() });
+        if (data.connections?.length > 0) {
+          conn = { ...data.connections[0], event: notifForm.event };
+        }
+      }
+      if (!conn) {
+        conn = { name: notifForm.name || notifForm.handle, headline: '', profile_url: notifForm.handle.includes('linkedin.com') ? notifForm.handle : `https://www.linkedin.com/in/${notifForm.handle}`, avatar: (notifForm.name || notifForm.handle).slice(0, 2).toUpperCase(), event: notifForm.event, details: '' };
+      }
+      const updated = [conn, ...notifEntries];
+      setNotifEntries(updated);
+      localStorage.setItem('linkedin_notification_entries', JSON.stringify(updated));
+      setNotifForm({ name: '', handle: '', event: 'birthday' });
+      await generateReply(conn);
+    } catch (e) { onToast(`Error: ${e.message}`); }
+    finally { setLoading(false); }
+  };
+
+  const cardProps = { replies, onGenerate: generateReply, onCopy: copyReply, onMessage: openMessage, onAddToCart: addToCartHandler };
+
   return (
     <div className="content-card h-full flex flex-col overflow-hidden">
       <div className="bg-gradient-to-r from-pink-50 to-rose-50 border-b border-pink-100 p-4 flex items-center gap-2">
         <IconUsers className="text-pink-600" size={20} />
         <h2 className="font-bold text-gray-900">My Connections</h2>
-        {total > 0 && <span className="ml-auto text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full font-medium">{total}</span>}
-        <button onClick={() => loadConnections(1)} disabled={loading} className="p-1 hover:bg-pink-100 rounded-lg transition" title="Refresh">
-          <IconRefresh size={14} className="text-pink-600" />
-        </button>
+      </div>
+      <div className="flex border-b border-gray-100">
+        {CONN_TABS.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-1 px-2 py-2 text-xs font-medium transition ${activeTab === t.id ? 'text-studio-600 border-b-2 border-studio-600' : 'text-gray-500 hover:text-gray-700'}`}>{t.label}</button>
+        ))}
       </div>
       <div className="flex-1 overflow-y-auto flex flex-col">
-        {loading && (
-          <div className="flex justify-center py-6">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-600"></div>
-          </div>
-        )}
-        {!loading && connections.length > 0 && (
+        {activeTab === 'notifications' && (
           <div className="p-4 space-y-3">
-            {connections.map((conn, idx) => {
-              const connId = conn.profile_url || conn.name;
-              const reply = replies[connId];
-              return (
-                <div key={connId + idx} className="p-3 bg-gray-50 border border-gray-100 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-studio-100 flex items-center justify-center text-xs font-bold text-studio-700 flex-shrink-0">{conn.avatar || '?'}</div>
-                    <div className="flex-1 min-w-0">
-                      <a href={conn.profile_url} target="_blank" rel="noreferrer" className="font-semibold text-sm text-gray-900 hover:text-linkedin-600 transition" title={conn.profile_url}>
-                        {conn.name}
-                      </a>
-                      <div className="text-xs text-gray-500 mt-0.5 line-clamp-1">{conn.headline || conn.details}</div>
-                    </div>
-                    {conn.profile_url && (
-                      <a href={conn.profile_url} target="_blank" rel="noreferrer" className="flex-shrink-0 p-1 hover:bg-linkedin-50 rounded-lg transition" title="View Profile">
-                        <IconExternalLink size={13} className="text-linkedin-600" />
-                      </a>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100 flex-wrap">
-                    <button onClick={() => generateReply(conn)} disabled={reply?.loading} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-studio-600 hover:bg-studio-50 rounded-lg transition">
-                      <IconSparkles size={12} />
-                      {reply?.loading ? 'Generating...' : 'Generate'}
-                    </button>
-                    {reply?.text && !reply.loading && (
-                      <>
-                        <button onClick={() => openMessage(conn)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-linkedin-600 hover:bg-linkedin-50 rounded-lg transition" title="Opens LinkedIn messaging with text copied">
-                          <IconLinkedIn size={12} /> Message
-                        </button>
-                        <button onClick={() => copyReply(connId)} className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-500 hover:text-studio-600 hover:bg-studio-50 rounded-lg transition">
-                          {reply.copied ? <><IconCheck size={12} /> Copied!</> : <><IconCopy size={12} /> Copy</>}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                  {reply && (
-                    <div className="mt-2 p-2.5 bg-white border border-studio-100 rounded-xl">
-                      {reply.loading ? (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <div className="animate-spin rounded-full h-3 w-3 border-b border-studio-600"></div>
-                          Generating message...
-                        </div>
-                      ) : (
-                        <div className="text-xs text-gray-800 whitespace-pre-wrap">{reply.text}</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            <button onClick={() => window.open('https://www.linkedin.com/notifications/?filter=all', '_blank')} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-linkedin-600 text-white rounded-xl text-xs font-semibold hover:bg-linkedin-700 transition">
+              <IconLinkedIn size={14} /> Open LinkedIn Notifications
+            </button>
+            <div className="p-3 bg-gray-50 border border-gray-100 rounded-xl space-y-2">
+              <div className="text-xs font-medium text-gray-600">Saw a notification? Add it here:</div>
+              <div className="grid grid-cols-2 gap-2">
+                <input value={notifForm.name} onChange={e => setNotifForm(p => ({ ...p, name: e.target.value }))} placeholder="Name" className="input-field !py-1.5 !text-xs" />
+                <input value={notifForm.handle} onChange={e => setNotifForm(p => ({ ...p, handle: e.target.value }))} placeholder="Handle or URL" className="input-field !py-1.5 !text-xs" />
+              </div>
+              <div className="flex gap-2">
+                <select value={notifForm.event} onChange={e => setNotifForm(p => ({ ...p, event: e.target.value }))} className="input-field !py-1.5 !text-xs flex-1">
+                  {EVENT_TYPES.filter(e => e.value).map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+                </select>
+                <button onClick={addNotifEntry} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4">{loading ? '...' : 'Add & Generate'}</button>
+              </div>
+            </div>
+            {notifEntries.length > 0 && (
+              <div className="space-y-2">
+                {notifEntries.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}
+              </div>
+            )}
           </div>
         )}
-        {!loading && connections.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-gray-400">
-            <IconUsers size={36} className="text-gray-200 mb-3" />
-            <p className="text-sm font-medium text-gray-500">No connections found</p>
-            <p className="text-xs text-gray-400 mt-1">Set SerpAPI key in Settings to load connections</p>
-            <button onClick={() => loadConnections(1)} className="mt-3 btn-primary !py-2 !text-xs">Retry</button>
+
+        {activeTab === 'search' && (
+          <div className="p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <input value={searchForm.name} onChange={e => setSearchForm(p => ({ ...p, name: e.target.value }))} placeholder="Name" className="input-field !py-1.5 !text-xs" />
+              <input value={searchForm.handle} onChange={e => setSearchForm(p => ({ ...p, handle: e.target.value }))} placeholder="Handle" className="input-field !py-1.5 !text-xs" />
+              <input value={searchForm.company} onChange={e => setSearchForm(p => ({ ...p, company: e.target.value }))} placeholder="Company" className="input-field !py-1.5 !text-xs" />
+              <input value={searchForm.title} onChange={e => setSearchForm(p => ({ ...p, title: e.target.value }))} placeholder="Title" className="input-field !py-1.5 !text-xs" />
+            </div>
+            <div className="flex gap-2">
+              <select value={searchForm.event_type} onChange={e => setSearchForm(p => ({ ...p, event_type: e.target.value }))} className="input-field !py-1.5 !text-xs flex-1">
+                {EVENT_TYPES.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}
+              </select>
+              <button onClick={doSearch} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4">{loading ? 'Searching...' : 'Search'}</button>
+            </div>
+            {loading && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-studio-600"></div></div>}
+            {!loading && results.length > 0 && (
+              <div className="space-y-2">{results.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}</div>
+            )}
           </div>
         )}
-        {!loading && total > 6 && (
-          <div className="flex items-center justify-center gap-2 p-3 border-t border-gray-100">
-            <button onClick={() => loadConnections(page - 1)} disabled={page <= 1} className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition">Prev</button>
-            <span className="text-xs text-gray-500">Page {page}</span>
-            <button onClick={() => loadConnections(page + 1)} disabled={connections.length < 6} className="px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-30 transition">Next</button>
+
+        {activeTab === 'company' && (
+          <div className="p-4 space-y-3">
+            <div className="flex gap-2">
+              <input value={companyInput} onChange={e => setCompanyInput(e.target.value)} placeholder="Company name (e.g., Google, Stripe)" className="input-field !py-1.5 !text-xs flex-1" onKeyDown={e => e.key === 'Enter' && doCompanySearch()} />
+              <button onClick={doCompanySearch} disabled={loading} className="btn-primary !py-1.5 !text-xs !px-4">{loading ? '...' : 'Search'}</button>
+            </div>
+            {loading && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-studio-600"></div></div>}
+            {!loading && results.length > 0 && (
+              <div className="space-y-2">{results.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}</div>
+            )}
+            {!loading && activeTab === 'company' && results.length === 0 && companyInput && (
+              <div className="text-center text-xs text-gray-400 py-4">No results. Try a different company name.</div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'manual' && (
+          <div className="p-4 space-y-3">
+            <textarea value={manualInput} onChange={e => setManualInput(e.target.value)} rows={4} placeholder={"Paste LinkedIn handles or URLs, one per line\nramavala\nhttps://www.linkedin.com/in/someone"} className="input-field !py-2 !text-xs resize-none font-mono" />
+            <button onClick={doManualLoad} disabled={loading || !manualInput.trim()} className="w-full btn-primary !py-2 !text-xs">{loading ? 'Loading profiles...' : 'Load Profiles'}</button>
+            {loading && <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-studio-600"></div></div>}
+            {!loading && results.length > 0 && (
+              <div className="space-y-2">{results.map((conn, i) => <ConnectionCard key={i} conn={conn} {...cardProps} />)}</div>
+            )}
           </div>
         )}
       </div>

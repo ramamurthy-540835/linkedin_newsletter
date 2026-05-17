@@ -275,3 +275,79 @@ async def get_connections(
         raise
     except Exception as e:
         return ConnectionsResponse(connections=[], total=0, page=page)
+
+
+@router.get("/people", response_model=ConnectionsResponse)
+async def search_people(
+    key: str = Query(""),
+    name: str = Query(""),
+    handle: str = Query(""),
+    company: str = Query(""),
+    title: str = Query(""),
+    event_type: str = Query(""),
+    page: int = Query(1),
+    per_page: int = Query(10),
+) -> ConnectionsResponse:
+    """Search LinkedIn people by name, handle, company, or title."""
+    api_key = _get_serp_key(key)
+
+    if handle:
+        clean = handle.strip().rstrip("/")
+        if "/in/" in clean:
+            clean = clean.split("/in/")[-1]
+        query = f"site:linkedin.com/in/{clean}"
+    else:
+        parts = ["site:linkedin.com/in"]
+        if name:
+            parts.append(f'"{name.strip()}"')
+        if company:
+            parts.append(f'"{company.strip()}"')
+        if title:
+            parts.append(f'"{title.strip()}"')
+        if len(parts) == 1:
+            return ConnectionsResponse(connections=[], total=0, page=page)
+        query = " ".join(parts)
+
+    start = (page - 1) * per_page
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get("https://serpapi.com/search.json", params={
+                "engine": "google",
+                "q": query,
+                "api_key": api_key,
+                "num": per_page,
+                "start": start,
+            })
+            if resp.status_code != 200:
+                raise HTTPException(502, f"SerpAPI error: {resp.text}")
+
+            results = []
+            seen = set()
+            for item in resp.json().get("organic_results", []):
+                link = item.get("link", "")
+                if "/in/" not in link or link in seen:
+                    continue
+                seen.add(link)
+
+                raw_title = item.get("title", "")
+                snippet = item.get("snippet", "")
+                name_part = raw_title.split(" - ")[0].split(" | ")[0].strip()
+                headline_part = raw_title.split(" - ")[1].strip() if " - " in raw_title else snippet.split(".")[0] if snippet else ""
+                initials = "".join(w[0].upper() for w in name_part.split()[:2] if w) if name_part else "?"
+
+                results.append(ConnectionItem(
+                    name=name_part[:60],
+                    headline=headline_part[:120],
+                    profile_url=link,
+                    avatar=initials,
+                    event=event_type or "connection",
+                    details=headline_part[:80],
+                ))
+
+            return ConnectionsResponse(connections=results, total=len(results), page=page)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        return ConnectionsResponse(connections=[], total=0, page=page)

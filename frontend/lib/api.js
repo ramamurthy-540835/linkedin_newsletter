@@ -98,6 +98,11 @@ export const testPlatform = (platform) => req(`/api/admin/platforms/${platform}/
 export const searchSerp = (q, key, freshness = '7d') => req(`/api/serp/search?q=${encodeURIComponent(q)}&key=${key || ''}&freshness=${freshness}`);
 export const scrapeProfile = (url, key) => req(`/api/serp/profile/scrape?linkedin_url=${encodeURIComponent(url)}&key=${key || ''}`);
 export const getConnections = (key = '', page = 1, perPage = 10, profile = '') => req(`/api/serp/connections?key=${key || ''}&page=${page}&per_page=${perPage}&profile=${encodeURIComponent(profile)}`);
+export const searchPeople = (params = {}) => {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, v); });
+  return req(`/api/serp/people?${qs.toString()}`);
+};
 
 // Discovery Reports
 export const getDiscoveryReports = () => req('/api/discovery-reports');
