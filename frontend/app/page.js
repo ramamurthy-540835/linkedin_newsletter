@@ -1376,10 +1376,10 @@ function MyConnections({ onToast }) {
                 {showManualSessionInput && (
                   <>
                     <div className="text-[11px] text-gray-500">
-                      Local Cookie Helper: Open LinkedIn in your browser -> DevTools -> Application -> Cookies -> https://www.linkedin.com -> copy `li_at` value and paste below.
+                      Local Cookie Helper: Open LinkedIn in your browser {'->'} DevTools {'->'} Application {'->'} Cookies {'->'} https://www.linkedin.com {'->'} copy li_at value and paste below.
                     </div>
                     <div className="text-[11px] text-gray-500 break-all">
-                      Bookmarklet: <code>javascript:copy(document.cookie.match(/li_at=([^;]+)/)?.[1]||'')</code>
+                      Bookmarklet: <code>{`javascript:copy(document.cookie.match(/li_at=([^;]+)/)?.[1]||'')`}</code>
                     </div>
                     <div className="flex gap-2 justify-center">
                       <input value={liAtCookie} onChange={(e) => setLiAtCookie(e.target.value)} placeholder="Paste li_at cookie" className="input-field !py-1.5 !text-xs w-64" />
