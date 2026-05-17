@@ -289,7 +289,15 @@ async def auto_connect_linkedin_session(body: LinkedInAutoSessionRequest):
         setattr(settings, "linkedin_session_cookie", li_at)
         return {"ok": True, "linkedinSessionConfigured": True, "message": "LinkedIn session imported successfully."}
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        msg = str(exc)
+        if msg.startswith("NO_DISPLAY:"):
+            return {
+                "ok": False,
+                "code": "NO_DISPLAY",
+                "message": msg.split("NO_DISPLAY:", 1)[1],
+                "linkedinSessionConfigured": False,
+            }
+        raise HTTPException(status_code=400, detail=msg) from exc
 
 @router.get("/connections", response_model=ConnectionsResponse)
 async def get_connections(

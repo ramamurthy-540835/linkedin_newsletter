@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections, getLinkedinStatus, autoConnectLinkedinSession } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections, getLinkedinStatus, autoConnectLinkedinSession, connectLinkedinSession } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
 import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
@@ -963,7 +963,10 @@ function MyConnections({ onToast }) {
   });
   const [connStatus, setConnStatus] = useState(null);
   const [followersMeta, setFollowersMeta] = useState({ selectedSource: 'none', selectedMode: 'followers', debugMessage: '' });
+  const [liAtCookie, setLiAtCookie] = useState('');
   const [sessionAutoConnecting, setSessionAutoConnecting] = useState(false);
+  const [showManualSessionInput, setShowManualSessionInput] = useState(false);
+  const [sessionConnecting, setSessionConnecting] = useState(false);
 
   const serpKey = () => (typeof window !== 'undefined' ? localStorage.getItem('SERP_API_KEY') || '' : '');
   const profileUrl = () => (typeof window !== 'undefined' ? localStorage.getItem('linkedin_profile_url') || '' : '');
@@ -1240,7 +1243,12 @@ function MyConnections({ onToast }) {
     setSessionAutoConnecting(true);
     try {
       onToast('Opening browser for LinkedIn login...');
-      await autoConnectLinkedinSession({});
+      const resp = await autoConnectLinkedinSession({});
+      if (resp && resp.ok === false && resp.code === 'NO_DISPLAY') {
+        setShowManualSessionInput(true);
+        onToast(resp.message || 'Backend is running without GUI. Use manual cookie paste.');
+        return;
+      }
       const st = await getLinkedinStatus();
       setConnStatus(st);
       onToast('LinkedIn Session connected automatically');
@@ -1249,6 +1257,23 @@ function MyConnections({ onToast }) {
       onToast(`Auto-connect failed: ${e.message}`);
     } finally {
       setSessionAutoConnecting(false);
+    }
+  };
+
+  const connectSessionManual = async () => {
+    const cleaned = liAtCookie.replace(/^li_at=/, '').trim();
+    if (!cleaned) return onToast('Please paste your LinkedIn li_at cookie');
+    setSessionConnecting(true);
+    try {
+      await connectLinkedinSession(cleaned);
+      const st = await getLinkedinStatus();
+      setConnStatus(st);
+      onToast('LinkedIn Session connected');
+      await loadFollowers(1);
+    } catch (e) {
+      onToast(`Session connect failed: ${e.message}`);
+    } finally {
+      setSessionConnecting(false);
     }
   };
 
@@ -1265,7 +1290,7 @@ function MyConnections({ onToast }) {
       <div className="bg-gradient-to-r from-pink-50 to-rose-50 border-b border-pink-100 p-4 flex items-center gap-2">
         <IconUsers className="text-pink-600" size={20} />
         <h2 className="font-bold text-gray-900">My Connections</h2>
-        <span className="ml-auto text-xs text-gray-400">Connected as <span className="font-semibold text-studio-600">{profileHandle}</span></span>
+        <span className="ml-auto text-xs text-gray-400">Profile detected: <span className="font-semibold text-studio-600">{profileHandle}</span></span>
       </div>
       <div className="flex border-b border-gray-100 overflow-x-auto">
         {CONN_TABS.map(t => (
@@ -1348,6 +1373,23 @@ function MyConnections({ onToast }) {
                     {sessionAutoConnecting ? 'Opening Browser...' : 'Connect LinkedIn Automatically'}
                   </button>
                 </div>
+                {showManualSessionInput && (
+                  <>
+                    <div className="text-[11px] text-gray-500">
+                      Local Cookie Helper: Open LinkedIn in your browser -> DevTools -> Application -> Cookies -> https://www.linkedin.com -> copy `li_at` value and paste below.
+                    </div>
+                    <div className="text-[11px] text-gray-500 break-all">
+                      Bookmarklet: <code>javascript:copy(document.cookie.match(/li_at=([^;]+)/)?.[1]||'')</code>
+                    </div>
+                    <div className="flex gap-2 justify-center">
+                      <input value={liAtCookie} onChange={(e) => setLiAtCookie(e.target.value)} placeholder="Paste li_at cookie" className="input-field !py-1.5 !text-xs w-64" />
+                      <button onClick={connectSessionManual} disabled={sessionConnecting} className="px-3 py-1.5 bg-linkedin-600 text-white rounded-lg text-xs font-semibold hover:bg-linkedin-700 transition disabled:opacity-50">
+                        {sessionConnecting ? 'Connecting...' : 'Connect LinkedIn Session'}
+                      </button>
+                    </div>
+                    <div className="text-[11px] text-gray-400">Cookie chars: {liAtCookie.length}</div>
+                  </>
+                )}
               </div>
             )}
             {results.length > 0 && !loading && (

@@ -73,11 +73,12 @@ class LinkedInSessionService:
         profile_dir = Path(user_data_dir)
         profile_dir.mkdir(parents=True, exist_ok=True)
         has_display = bool(os.getenv("DISPLAY"))
-        print(f"[PLAYWRIGHT] launch_profile={profile_dir} has_display={has_display}")
+        print(f"[PLAYWRIGHT] launch_profile={profile_dir} display={os.getenv('DISPLAY', '')!r} has_display={has_display}")
         if not has_display:
-            raise RuntimeError("Open backend browser not available on this server. Use manual li_at paste or run auto-connect locally with desktop browser.")
+            raise RuntimeError("NO_DISPLAY:Open backend browser not available on this server. Use manual li_at paste or run auto-connect locally with desktop browser.")
 
         with sync_playwright() as p:
+            print("[PLAYWRIGHT] launching headed browser headless=False")
             ctx = p.chromium.launch_persistent_context(
                 user_data_dir=str(profile_dir),
                 headless=False,
