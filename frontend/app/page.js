@@ -967,6 +967,7 @@ function MyConnections({ onToast }) {
   const [sessionAutoConnecting, setSessionAutoConnecting] = useState(false);
   const [showManualSessionInput, setShowManualSessionInput] = useState(false);
   const [sessionConnecting, setSessionConnecting] = useState(false);
+  const [showAdvancedCookieHelp, setShowAdvancedCookieHelp] = useState(false);
 
   const serpKey = () => (typeof window !== 'undefined' ? localStorage.getItem('SERP_API_KEY') || '' : '');
   const profileUrl = () => (typeof window !== 'undefined' ? localStorage.getItem('linkedin_profile_url') || '' : '');
@@ -1276,6 +1277,17 @@ function MyConnections({ onToast }) {
       setSessionConnecting(false);
     }
   };
+  const cleanedCookie = liAtCookie.replace(/^li_at=/, '').trim();
+  const cookieLooksValid = cleanedCookie.length >= 20;
+
+  const pasteCookieFromClipboard = async () => {
+    try {
+      const txt = await navigator.clipboard.readText();
+      setLiAtCookie((txt || '').trim());
+    } catch {
+      onToast('Clipboard read failed. Paste manually.');
+    }
+  };
 
   const cardProps = { replies, onGenerate: generateReply, onCopy: copyReply, onMessage: openMessage, onAddToCart: addToCartHandler, onViewActivity: viewActivity, onDone: markDone };
 
@@ -1376,18 +1388,32 @@ function MyConnections({ onToast }) {
                 {showManualSessionInput && (
                   <>
                     <div className="text-[11px] text-gray-500">
-                      Local Cookie Helper: Open LinkedIn in your browser {'->'} DevTools {'->'} Application {'->'} Cookies {'->'} https://www.linkedin.com {'->'} copy li_at value and paste below.
-                    </div>
-                    <div className="text-[11px] text-gray-500 break-all">
-                      Bookmarklet: <code>{`javascript:copy(document.cookie.match(/li_at=([^;]+)/)?.[1]||'')`}</code>
+                      Paste li_at cookie value to connect your LinkedIn session.
                     </div>
                     <div className="flex gap-2 justify-center">
-                      <input value={liAtCookie} onChange={(e) => setLiAtCookie(e.target.value)} placeholder="Paste li_at cookie" className="input-field !py-1.5 !text-xs w-64" />
-                      <button onClick={connectSessionManual} disabled={sessionConnecting} className="px-3 py-1.5 bg-linkedin-600 text-white rounded-lg text-xs font-semibold hover:bg-linkedin-700 transition disabled:opacity-50">
+                      <input value={liAtCookie} onChange={(e) => setLiAtCookie(e.target.value)} placeholder="Paste li_at cookie value" className="input-field !py-1.5 !text-xs w-64" />
+                      <button onClick={pasteCookieFromClipboard} className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold hover:bg-gray-300 transition">Paste</button>
+                      <button onClick={connectSessionManual} disabled={sessionConnecting || !cookieLooksValid} className="px-3 py-1.5 bg-linkedin-600 text-white rounded-lg text-xs font-semibold hover:bg-linkedin-700 transition disabled:opacity-50">
                         {sessionConnecting ? 'Connecting...' : 'Connect LinkedIn Session'}
                       </button>
                     </div>
                     <div className="text-[11px] text-gray-400">Cookie chars: {liAtCookie.length}</div>
+                    <div className="text-[11px] text-gray-500">{cookieLooksValid ? 'Cookie looks valid' : 'Cookie seems too short'}</div>
+                    <div className="text-[11px]">
+                      <button onClick={() => setShowAdvancedCookieHelp((v) => !v)} className="text-gray-500 underline">
+                        {showAdvancedCookieHelp ? 'Hide advanced help' : 'Show advanced help'}
+                      </button>
+                    </div>
+                    {showAdvancedCookieHelp && (
+                      <>
+                        <div className="text-[11px] text-gray-500">
+                          Local Cookie Helper: Open LinkedIn in your browser {'->'} DevTools {'->'} Application {'->'} Cookies {'->'} https://www.linkedin.com {'->'} copy li_at value.
+                        </div>
+                        <div className="text-[11px] text-gray-500 break-all">
+                          Bookmarklet: <code>{`javascript:copy(document.cookie.match(/li_at=([^;]+)/)?.[1]||'')`}</code>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
               </div>
