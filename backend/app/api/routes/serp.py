@@ -1,8 +1,10 @@
 import os
-from fastapi import APIRouter, HTTPException, Query
+import io
+import csv
+import math
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from pydantic import BaseModel
 import httpx
-import json
 from app.core.config import settings
 
 router = APIRouter()
@@ -161,12 +163,46 @@ class ConnectionItem(BaseModel):
     avatar: str = ""
     event: str = ""
     details: str = ""
+    company: str = ""
+    location: str = ""
 
 
 class ConnectionsResponse(BaseModel):
     connections: list[ConnectionItem]
     total: int = 0
     page: int = 1
+    pageSize: int = 10
+    hasNext: bool = False
+    hasPrev: bool = False
+
+
+def _parse_linkedin_title(title: str, snippet: str = ""):
+    """Parse a LinkedIn search result title into name and headline."""
+    name_part = title.split(" - ")[0].split(" | ")[0].strip() if " - " in title or " | " in title else title
+    headline_part = ""
+    if " - " in title and len(title.split(" - ")) > 1:
+        headline_part = title.split(" - ")[1].strip()
+    elif snippet:
+        headline_part = snippet.split(".")[0]
+    initials = "".join(w[0].upper() for w in name_part.split()[:2] if w) if name_part else "?"
+    return name_part[:60], headline_part[:120], initials
+
+
+def _paginate(items: list, page: int, page_size: int) -> dict:
+    """Compute pagination metadata for a list of items."""
+    total = len(items)
+    total_pages = max(1, math.ceil(total / page_size))
+    page = max(1, min(page, total_pages))
+    start = (page - 1) * page_size
+    end = start + page_size
+    return {
+        "items": items[start:end],
+        "total": total,
+        "page": page,
+        "pageSize": page_size,
+        "hasNext": page < total_pages,
+        "hasPrev": page > 1,
+    }
 
 
 @router.get("/connections", response_model=ConnectionsResponse)
@@ -176,7 +212,7 @@ async def get_connections(
     per_page: int = Query(10),
     profile: str = Query(""),
 ) -> ConnectionsResponse:
-    """Fetch real LinkedIn connections via SerpAPI Google search."""
+    """Fetch LinkedIn connections via SerpAPI with diversified queries (not company-locked)."""
     api_key = _get_serp_key(key)
 
     handle = ""
@@ -187,7 +223,6 @@ async def get_connections(
         if purl:
             handle = purl.rstrip("/").split("/")[-1]
 
-    start = (page - 1) * per_page
     own_url_fragments = [f"/in/{handle}"] if handle else []
 
     try:
@@ -195,6 +230,7 @@ async def get_connections(
             user_name = ""
             user_company = ""
             user_title = ""
+            user_location = ""
             if handle:
                 pr = await client.get("https://serpapi.com/search.json", params={
                     "engine": "google", "q": f"site:linkedin.com/in/{handle}", "api_key": api_key, "num": 1,
@@ -203,6 +239,7 @@ async def get_connections(
                     items = pr.json().get("organic_results", [])
                     if items:
                         t = items[0].get("title", "")
+                        snippet = items[0].get("snippet", "")
                         parts = t.split(" - ")
                         user_name = parts[0].strip() if parts else handle
                         if len(parts) > 1:
@@ -214,14 +251,27 @@ async def get_connections(
                             elif " at " in role_company.lower():
                                 cp2 = role_company.split(" at ")
                                 user_company = cp2[-1].strip()
+                        for loc_kw in ["Greater", "Area", "Metro"]:
+                            if loc_kw in snippet:
+                                for part in snippet.split("·"):
+                                    part = part.strip()
+                                    if loc_kw in part:
+                                        user_location = part
+                                        break
 
             queries = []
+            if handle:
+                queries.append(f'site:linkedin.com/in "{handle}" connections')
+            if user_name:
+                name_parts = user_name.split()
+                if len(name_parts) >= 2:
+                    queries.append(f'site:linkedin.com/in "{name_parts[0]}" network professional')
             if user_company:
                 queries.append(f'site:linkedin.com/in "{user_company}"')
-            if user_name:
-                queries.append(f'site:linkedin.com/in "{user_name}"')
             if user_title:
                 queries.append(f'site:linkedin.com/in "{user_title}"')
+            if user_location:
+                queries.append(f'site:linkedin.com/in "{user_location}" professional')
             if not queries:
                 queries = ["site:linkedin.com/in professional network"]
 
@@ -234,7 +284,7 @@ async def get_connections(
                     "q": q,
                     "api_key": api_key,
                     "num": per_page * 2,
-                    "start": start,
+                    "start": 0,
                 })
                 if resp.status_code != 200:
                     continue
@@ -250,31 +300,31 @@ async def get_connections(
 
                     title = item.get("title", "")
                     snippet = item.get("snippet", "")
-
-                    name_part = title.split(" - ")[0].split(" | ")[0].strip() if " - " in title or " | " in title else title
-                    headline_part = title.split(" - ")[1].strip() if " - " in title and len(title.split(" - ")) > 1 else snippet.split(".")[0] if snippet else ""
-
-                    initials = "".join(w[0].upper() for w in name_part.split()[:2] if w) if name_part else "?"
+                    name_part, headline_part, initials = _parse_linkedin_title(title, snippet)
 
                     all_connections.append(ConnectionItem(
-                        name=name_part[:60],
-                        headline=headline_part[:120],
+                        name=name_part,
+                        headline=headline_part,
                         profile_url=link,
                         avatar=initials,
                         event="connection",
                         details=headline_part[:80],
                     ))
 
+            paged = _paginate(all_connections, page, per_page)
             return ConnectionsResponse(
-                connections=all_connections[:per_page],
-                total=len(all_connections),
-                page=page,
+                connections=paged["items"],
+                total=paged["total"],
+                page=paged["page"],
+                pageSize=paged["pageSize"],
+                hasNext=paged["hasNext"],
+                hasPrev=paged["hasPrev"],
             )
 
     except HTTPException:
         raise
     except Exception as e:
-        return ConnectionsResponse(connections=[], total=0, page=page)
+        return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page)
 
 
 @router.get("/people", response_model=ConnectionsResponse)
@@ -284,11 +334,14 @@ async def search_people(
     handle: str = Query(""),
     company: str = Query(""),
     title: str = Query(""),
+    location: str = Query(""),
+    industry: str = Query(""),
+    degree: str = Query(""),
     event_type: str = Query(""),
     page: int = Query(1),
     per_page: int = Query(10),
 ) -> ConnectionsResponse:
-    """Search LinkedIn people by name, handle, company, or title."""
+    """Search LinkedIn people by name, handle, company, title, location, industry."""
     api_key = _get_serp_key(key)
 
     if handle:
@@ -304,8 +357,12 @@ async def search_people(
             parts.append(f'"{company.strip()}"')
         if title:
             parts.append(f'"{title.strip()}"')
+        if location:
+            parts.append(f'"{location.strip()}"')
+        if industry:
+            parts.append(f'"{industry.strip()}"')
         if len(parts) == 1:
-            return ConnectionsResponse(connections=[], total=0, page=page)
+            return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page)
         query = " ".join(parts)
 
     start = (page - 1) * per_page
@@ -316,7 +373,7 @@ async def search_people(
                 "engine": "google",
                 "q": query,
                 "api_key": api_key,
-                "num": per_page,
+                "num": per_page * 2,
                 "start": start,
             })
             if resp.status_code != 200:
@@ -324,7 +381,9 @@ async def search_people(
 
             results = []
             seen = set()
-            for item in resp.json().get("organic_results", []):
+            data = resp.json()
+            total_serp = data.get("search_information", {}).get("total_results", 0)
+            for item in data.get("organic_results", []):
                 link = item.get("link", "")
                 if "/in/" not in link or link in seen:
                     continue
@@ -332,22 +391,108 @@ async def search_people(
 
                 raw_title = item.get("title", "")
                 snippet = item.get("snippet", "")
-                name_part = raw_title.split(" - ")[0].split(" | ")[0].strip()
-                headline_part = raw_title.split(" - ")[1].strip() if " - " in raw_title else snippet.split(".")[0] if snippet else ""
-                initials = "".join(w[0].upper() for w in name_part.split()[:2] if w) if name_part else "?"
+                name_part, headline_part, initials = _parse_linkedin_title(raw_title, snippet)
 
                 results.append(ConnectionItem(
-                    name=name_part[:60],
-                    headline=headline_part[:120],
+                    name=name_part,
+                    headline=headline_part,
                     profile_url=link,
                     avatar=initials,
                     event=event_type or "connection",
                     details=headline_part[:80],
                 ))
 
-            return ConnectionsResponse(connections=results, total=len(results), page=page)
+            estimated_total = max(len(results), min(total_serp, 100))
+            return ConnectionsResponse(
+                connections=results,
+                total=estimated_total,
+                page=page,
+                pageSize=per_page,
+                hasNext=len(results) >= per_page,
+                hasPrev=page > 1,
+            )
 
     except HTTPException:
         raise
     except Exception as e:
-        return ConnectionsResponse(connections=[], total=0, page=page)
+        return ConnectionsResponse(connections=[], total=0, page=page, pageSize=per_page)
+
+
+@router.post("/connections/import-csv", response_model=ConnectionsResponse)
+async def import_connections_csv(
+    file: UploadFile = File(...),
+    page: int = Query(1),
+    per_page: int = Query(10),
+):
+    """Import LinkedIn connections from a CSV export."""
+    content = await file.read()
+    text = content.decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(text))
+
+    header_map = {}
+    if reader.fieldnames:
+        for f in reader.fieldnames:
+            fl = f.strip().lower().replace(" ", "_")
+            if "first" in fl and "name" in fl:
+                header_map["first_name"] = f
+            elif "last" in fl and "name" in fl:
+                header_map["last_name"] = f
+            elif fl in ("name", "full_name"):
+                header_map["name"] = f
+            elif fl in ("url", "profile_url", "linkedin_url", "profile_link"):
+                header_map["url"] = f
+            elif fl in ("company", "organization", "employer"):
+                header_map["company"] = f
+            elif fl in ("title", "position", "job_title", "role"):
+                header_map["title"] = f
+            elif fl in ("location", "city", "region"):
+                header_map["location"] = f
+            elif "email" in fl:
+                header_map["email"] = f
+            elif "connected" in fl and "on" in fl:
+                header_map["connected_on"] = f
+
+    connections = []
+    for row in reader:
+        name = ""
+        if "name" in header_map:
+            name = row.get(header_map["name"], "").strip()
+        if not name and "first_name" in header_map:
+            first = row.get(header_map["first_name"], "").strip()
+            last = row.get(header_map["last_name"], "").strip() if "last_name" in header_map else ""
+            name = f"{first} {last}".strip()
+        if not name:
+            continue
+
+        url = row.get(header_map.get("url", ""), "").strip()
+        company = row.get(header_map.get("company", ""), "").strip()
+        title = row.get(header_map.get("title", ""), "").strip()
+        location = row.get(header_map.get("location", ""), "").strip()
+
+        headline = f"{title} at {company}" if title and company else title or company or ""
+        initials = "".join(w[0].upper() for w in name.split()[:2] if w) if name else "?"
+
+        if not url:
+            slug = name.lower().replace(" ", "-")
+            url = f"https://www.linkedin.com/in/{slug}"
+
+        connections.append(ConnectionItem(
+            name=name[:60],
+            headline=headline[:120],
+            profile_url=url,
+            avatar=initials,
+            event="connection",
+            details=headline[:80],
+            company=company,
+            location=location,
+        ))
+
+    paged = _paginate(connections, page, per_page)
+    return ConnectionsResponse(
+        connections=paged["items"],
+        total=paged["total"],
+        page=paged["page"],
+        pageSize=paged["pageSize"],
+        hasNext=paged["hasNext"],
+        hasPrev=paged["hasPrev"],
+    )

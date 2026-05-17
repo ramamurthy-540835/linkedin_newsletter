@@ -98,11 +98,23 @@ export const testPlatform = (platform) => req(`/api/admin/platforms/${platform}/
 // SerpAPI endpoints
 export const searchSerp = (q, key, freshness = '7d') => req(`/api/serp/search?q=${encodeURIComponent(q)}&key=${key || ''}&freshness=${freshness}`);
 export const scrapeProfile = (url, key) => req(`/api/serp/profile/scrape?linkedin_url=${encodeURIComponent(url)}&key=${key || ''}`);
-export const getConnections = (key = '', page = 1, perPage = 10, profile = '') => req(`/api/serp/connections?key=${key || ''}&page=${page}&per_page=${perPage}&profile=${encodeURIComponent(profile)}`);
+export const getConnections = (params = {}) => {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
+  return req(`/api/serp/connections?${qs.toString()}`);
+};
 export const searchPeople = (params = {}) => {
   const qs = new URLSearchParams();
-  Object.entries(params).forEach(([k, v]) => { if (v) qs.set(k, v); });
+  Object.entries(params).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, String(v)); });
   return req(`/api/serp/people?${qs.toString()}`);
+};
+export const uploadConnectionsCsv = async (file, page = 1, perPage = 10) => {
+  const form = new FormData();
+  form.append('file', file);
+  const qs = `page=${page}&per_page=${perPage}`;
+  const res = await fetch(`${API_URL}/api/serp/connections/import-csv?${qs}`, { method: 'POST', body: form });
+  if (!res.ok) throw new Error(`CSV upload failed: ${res.status}`);
+  return res.json();
 };
 
 // Discovery Reports
