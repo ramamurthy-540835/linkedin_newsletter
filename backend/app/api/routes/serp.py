@@ -193,6 +193,10 @@ class ConnectionsResponse(BaseModel):
 class LinkedInSessionRequest(BaseModel):
     li_at: str
 
+class LinkedInAutoSessionRequest(BaseModel):
+    user_data_dir: str = "/tmp/linkedin_playwright_profile"
+    timeout_sec: int = 180
+
 
 def _parse_linkedin_title(title: str, snippet: str = ""):
     """Parse a LinkedIn search result title into name and headline."""
@@ -273,6 +277,19 @@ async def set_linkedin_session(body: LinkedInSessionRequest):
         raise HTTPException(status_code=400, detail="li_at cookie is required")
     setattr(settings, "linkedin_session_cookie", li_at)
     return {"ok": True, "linkedinSessionConfigured": True}
+
+
+@router.post("/linkedin/session/auto-connect")
+async def auto_connect_linkedin_session(body: LinkedInAutoSessionRequest):
+    try:
+        li_at = LinkedInSessionService.auto_import_li_at(
+            user_data_dir=body.user_data_dir,
+            timeout_sec=max(30, min(body.timeout_sec, 600)),
+        )
+        setattr(settings, "linkedin_session_cookie", li_at)
+        return {"ok": True, "linkedinSessionConfigured": True, "message": "LinkedIn session imported successfully."}
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 @router.get("/connections", response_model=ConnectionsResponse)
 async def get_connections(

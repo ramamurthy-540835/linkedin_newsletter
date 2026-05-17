@@ -2,6 +2,8 @@ import re
 from typing import Any
 
 import httpx
+from pathlib import Path
+import os
 
 
 class LinkedInSessionService:
@@ -59,3 +61,45 @@ class LinkedInSessionService:
                 }
             )
         return out
+
+    @staticmethod
+    def auto_import_li_at(user_data_dir: str = "/tmp/linkedin_playwright_profile", timeout_sec: int = 180) -> str:
+        """Open a persistent browser session and import li_at after login."""
+        try:
+            from playwright.sync_api import sync_playwright
+        except Exception as exc:
+            raise RuntimeError("Playwright is not installed. Run: pip install playwright && playwright install") from exc
+
+        profile_dir = Path(user_data_dir)
+        profile_dir.mkdir(parents=True, exist_ok=True)
+        has_display = bool(os.getenv("DISPLAY"))
+        print(f"[PLAYWRIGHT] launch_profile={profile_dir} has_display={has_display}")
+        if not has_display:
+            raise RuntimeError("Open backend browser not available on this server. Use manual li_at paste or run auto-connect locally with desktop browser.")
+
+        with sync_playwright() as p:
+            ctx = p.chromium.launch_persistent_context(
+                user_data_dir=str(profile_dir),
+                headless=False,
+            )
+            page = ctx.new_page()
+            page.goto("https://www.linkedin.com/feed/", wait_until="domcontentloaded")
+            print(f"[PLAYWRIGHT] landed_url={page.url}")
+            page.wait_for_timeout(3000)
+            deadline_ms = timeout_sec * 1000
+            elapsed = 0
+            li_at = ""
+            while elapsed < deadline_ms:
+                for c in ctx.cookies():
+                    if c.get("name") == "li_at" and c.get("value"):
+                        li_at = c["value"]
+                        break
+                if li_at:
+                    break
+                page.wait_for_timeout(2000)
+                elapsed += 2000
+            ctx.close()
+            print(f"[PLAYWRIGHT] li_at_found={bool(li_at)}")
+            if not li_at:
+                raise RuntimeError("Could not capture li_at cookie. Please login in the opened browser and retry.")
+            return li_at

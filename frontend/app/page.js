@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections, getLinkedinStatus, connectLinkedinSession } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections, getLinkedinStatus, autoConnectLinkedinSession } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
 import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
@@ -963,7 +963,7 @@ function MyConnections({ onToast }) {
   });
   const [connStatus, setConnStatus] = useState(null);
   const [followersMeta, setFollowersMeta] = useState({ selectedSource: 'none', selectedMode: 'followers', debugMessage: '' });
-  const [liAtInput, setLiAtInput] = useState('');
+  const [sessionAutoConnecting, setSessionAutoConnecting] = useState(false);
 
   const serpKey = () => (typeof window !== 'undefined' ? localStorage.getItem('SERP_API_KEY') || '' : '');
   const profileUrl = () => (typeof window !== 'undefined' ? localStorage.getItem('linkedin_profile_url') || '' : '');
@@ -1104,6 +1104,9 @@ function MyConnections({ onToast }) {
     try {
       const data = await getMyConnections({ mode: 'followers', page, per_page: pageSize, key: serpKey() });
       setResults(data.connections || []);
+      const status = connStatus || await getLinkedinStatus().catch(() => null);
+      const hasReal = !!(status && (status.linkedinOAuthConfigured || status.linkedinSessionConfigured || status.csvImported));
+      const hasSerp = !!(status && status.serpConfigured);
       setFollowersMeta({
         selectedSource: data.selectedSource || (hasReal ? 'oauth' : hasSerp ? 'serp' : 'none'),
         selectedMode: data.selectedMode || 'followers',
@@ -1233,6 +1236,21 @@ function MyConnections({ onToast }) {
     csv: 'CSV import',
     none: 'None',
   };
+  const autoConnectSession = async () => {
+    setSessionAutoConnecting(true);
+    try {
+      onToast('Opening browser for LinkedIn login...');
+      await autoConnectLinkedinSession({});
+      const st = await getLinkedinStatus();
+      setConnStatus(st);
+      onToast('LinkedIn Session connected automatically');
+      await loadFollowers(1);
+    } catch (e) {
+      onToast(`Auto-connect failed: ${e.message}`);
+    } finally {
+      setSessionAutoConnecting(false);
+    }
+  };
 
   const cardProps = { replies, onGenerate: generateReply, onCopy: copyReply, onMessage: openMessage, onAddToCart: addToCartHandler, onViewActivity: viewActivity, onDone: markDone };
 
@@ -1325,9 +1343,10 @@ function MyConnections({ onToast }) {
             {!loading && results.length === 0 && (!connStatus || (!connStatus.linkedinOAuthConfigured && !connStatus.linkedinSessionConfigured && !connStatus.csvImported)) && (
               <div className="space-y-2 text-center py-4 text-xs text-gray-500">
                 <div>LinkedIn authentication required for real followers.</div>
-                <div className="flex gap-2 justify-center">
-                  <input value={liAtInput} onChange={(e) => setLiAtInput(e.target.value)} placeholder="Paste li_at cookie" className="input-field !py-1.5 !text-xs w-64" />
-                  <button onClick={async () => { try { await connectLinkedinSession(liAtInput); const st = await getLinkedinStatus(); setConnStatus(st); onToast('LinkedIn Session connected'); loadFollowers(1); } catch (e) { onToast(`Session connect failed: ${e.message}`); } }} className="px-3 py-1.5 bg-linkedin-600 text-white rounded-lg text-xs font-semibold hover:bg-linkedin-700 transition">Connect LinkedIn Session</button>
+                <div className="flex justify-center">
+                  <button onClick={autoConnectSession} disabled={sessionAutoConnecting} className="px-3 py-1.5 bg-studio-600 text-white rounded-lg text-xs font-semibold hover:bg-studio-700 transition disabled:opacity-50">
+                    {sessionAutoConnecting ? 'Opening Browser...' : 'Connect LinkedIn Automatically'}
+                  </button>
                 </div>
               </div>
             )}

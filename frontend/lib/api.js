@@ -126,6 +126,11 @@ export const connectLinkedinSession = (liAt) =>
     method: 'POST',
     body: JSON.stringify({ li_at: liAt || '' }),
   });
+export const autoConnectLinkedinSession = (payload = {}) =>
+  req('/api/serp/linkedin/session/auto-connect', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 
 export const getMyNetworkContext = () =>
   req('/api/serp/connections?mode=context').catch(() => ({
