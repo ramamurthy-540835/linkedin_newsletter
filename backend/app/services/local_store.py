@@ -4,6 +4,9 @@ from typing import Any
 
 import threading
 
+from app.core.config import settings
+from app.db import local_db
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 DATA_DIR = BASE_DIR / "data"
 DRAFTS_FILE = DATA_DIR / "drafts.json"
@@ -31,6 +34,8 @@ def _write(path: Path, rows: list[dict[str, Any]]) -> None:
 
 
 def save_draft(payload: dict[str, Any]) -> dict[str, Any]:
+    if settings.local_dev_mode:
+        return local_db.save_draft(payload)
     rows = _read(DRAFTS_FILE)
     rows.append(payload)
     _write(DRAFTS_FILE, rows)
@@ -38,6 +43,8 @@ def save_draft(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def get_draft(draft_id: str) -> dict[str, Any] | None:
+    if settings.local_dev_mode:
+        return local_db.get_draft(draft_id)
     rows = _read(DRAFTS_FILE)
     for row in rows:
         if row.get("id") == draft_id:
@@ -53,6 +60,8 @@ def save_post(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def list_drafts() -> list[dict[str, Any]]:
+    if settings.local_dev_mode:
+        return local_db.list_drafts()
     return _read(DRAFTS_FILE)
 
 

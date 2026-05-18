@@ -279,6 +279,12 @@ async def set_linkedin_session(body: LinkedInSessionRequest):
     return {"ok": True, "linkedinSessionConfigured": True}
 
 
+@router.post("/linkedin/session/connect")
+async def set_linkedin_session_connect(body: LinkedInSessionRequest):
+    # Backward-compatible alias for clients expecting /connect.
+    return await set_linkedin_session(body)
+
+
 @router.post("/linkedin/session/auto-connect")
 async def auto_connect_linkedin_session(body: LinkedInAutoSessionRequest):
     try:

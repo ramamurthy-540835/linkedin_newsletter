@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections, getLinkedinStatus, autoConnectLinkedinSession, connectLinkedinSession } from '@/lib/api';
+import { searchSerp, scrapeProfile, parseJSON, getPosts, getPublishedPosts, savePost, getConnections, searchPeople, uploadConnectionsCsv, getMyConnections, getLinkedinStatus, autoConnectLinkedinSession, connectLinkedinSession, getBackendHealth } from '@/lib/api';
 import { callAI } from '@/lib/modelResolver';
 import { API_URL } from '@/lib/constants';
 import { currentDateLabel, currentMonthYear, currentYear, filterStaleSuggestions } from '@/lib/utils';
@@ -83,7 +83,7 @@ function QuickCreateGrid() {
         <IconZap size={20} className="text-studio-600" />
         Quick Create
       </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {items.map((item) => {
           const Icon = item.icon;
           return (
@@ -92,8 +92,8 @@ function QuickCreateGrid() {
               onClick={() => router.push(item.href)}
               className="content-card p-4 text-center group cursor-pointer"
             >
-              <div className={`w-10 h-10 rounded-xl ${item.bg} flex items-center justify-center mx-auto mb-2 group-hover:scale-110 transition-transform duration-200`}>
-                <Icon size={20} className={item.text} />
+              <div className={`w-12 h-12 rounded-xl ${item.bg} flex items-center justify-center mx-auto mb-2 group-hover:scale-105 transition-transform duration-200`}>
+                <Icon size={22} className={item.text} />
               </div>
               <div className="text-sm font-semibold text-gray-900">{item.label}</div>
               <div className="text-xs text-gray-500 mt-0.5">{item.desc}</div>
@@ -111,22 +111,32 @@ function StatCards({ draftCount, publishedCount, linkedinConnected, linkedinName
     { label: 'Published', value: publishedCount, icon: IconCheckCircle, bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-200' },
     { label: 'Scheduled', value: 0, icon: IconCalendar, bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-200' },
     { label: 'Engagement', value: '-', icon: IconTarget, bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-200' },
-    { label: 'LinkedIn', value: linkedinConnected ? (linkedinName ? linkedinName.split(' ')[0] : 'Yes') : 'No', icon: IconLinkedIn, bg: 'bg-linkedin-50', text: 'text-linkedin-600', border: 'border-linkedin-200', small: true },
+    { label: 'LinkedIn Profile', value: linkedinConnected ? (linkedinName || 'Connected') : 'Not Connected', icon: IconLinkedIn, bg: 'bg-linkedin-50', text: 'text-linkedin-600', border: 'border-linkedin-200', isLinkedIn: true },
     { label: 'Topics', value: topicCount, icon: IconTrending, bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-200' },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
       {stats.map((s) => {
         const Icon = s.icon;
+        const shouldTruncate = String(s.value || '').length > 20;
         return (
-          <div key={s.label} className="stat-card flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
+          <div key={s.label} className="stat-card flex items-center gap-3 p-5 min-h-[96px] min-w-0">
+            <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
               <Icon className={s.text} size={20} />
             </div>
-            <div>
-              <div className={`font-bold text-gray-900 ${s.small ? 'text-sm' : 'text-xl'}`}>{s.value}</div>
-              <div className="text-xs text-gray-500">{s.label}</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-sm text-gray-500 leading-tight">{s.label}</div>
+              {s.isLinkedIn ? (
+                <div
+                  className={`font-bold text-gray-900 text-sm sm:text-base leading-tight mt-0.5 ${shouldTruncate ? 'truncate' : ''}`}
+                  title={String(s.value || '')}
+                >
+                  {s.value}
+                </div>
+              ) : (
+                <div className="font-bold text-gray-900 text-2xl leading-tight mt-0.5">{s.value}</div>
+              )}
             </div>
           </div>
         );
@@ -537,6 +547,7 @@ function MyFeed() {
 function TopicSuggestions({ onToast, onAddTopic }) {
   const router = useRouter();
   const { addToCart } = useDraftCart() || {};
+  const SUGGESTIONS_KEY = 'linkedin_ai_topic_suggestions_v1';
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const [profileUrl, setProfileUrl] = useState('');
@@ -546,6 +557,10 @@ function TopicSuggestions({ onToast, onAddTopic }) {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setProfileUrl(localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala');
+      try {
+        const cached = JSON.parse(localStorage.getItem(SUGGESTIONS_KEY) || '[]');
+        if (Array.isArray(cached) && cached.length > 0) setSuggestions(cached);
+      } catch {}
     }
   }, []);
 
@@ -582,6 +597,7 @@ Today is ${currentDateLabel()}. Suggest 8 high-performing LinkedIn post topics f
       const parsed = parseJSON(response);
       const fresh = filterStaleSuggestions(Array.isArray(parsed) ? parsed : []);
       setSuggestions(fresh);
+      try { localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(fresh)); } catch {}
     } catch (e) {
       onToast(`Error: ${e.message}`);
     } finally {
@@ -591,9 +607,9 @@ Today is ${currentDateLabel()}. Suggest 8 high-performing LinkedIn post topics f
 
   const useThisTopic = (topic, hook) => {
     if (onAddTopic) onAddTopic(topic);
-    localStorage.setItem('prefill_topic', topic);
-    localStorage.setItem('prefill_hook', hook);
-    router.push('/create');
+    const qs = new URLSearchParams({ topic, prefill: 'true' });
+    if (hook) qs.set('hook', hook);
+    router.push(`/create?${qs.toString()}`);
   };
 
   const generateAndPost = async (s, index) => {
@@ -896,12 +912,12 @@ function ConnectionCard({ conn, replies, onGenerate, onCopy, onMessage, onAddToC
 }
 
 const CONN_TABS = [
-  { id: 'network', label: 'My Network' },
-  { id: 'followers', label: 'Followers' },
-  { id: 'notifications', label: 'Notifications' },
-  { id: 'search', label: 'People Search' },
-  { id: 'company', label: 'Company' },
-  { id: 'manual', label: 'Manual' },
+  { id: 'network', label: 'My Network', icon: IconGlobe },
+  { id: 'followers', label: 'Followers', icon: IconUsers },
+  { id: 'notifications', label: 'Notifications', icon: IconBell },
+  { id: 'search', label: 'People Search', icon: IconSearch },
+  { id: 'company', label: 'Company', icon: IconBarChart },
+  { id: 'manual', label: 'Manual', icon: IconSearch },
 ];
 
 const EVENT_TYPES = [
@@ -968,6 +984,8 @@ function MyConnections({ onToast }) {
   const [showManualSessionInput, setShowManualSessionInput] = useState(false);
   const [sessionConnecting, setSessionConnecting] = useState(false);
   const [showAdvancedCookieHelp, setShowAdvancedCookieHelp] = useState(false);
+  const [showAdvancedCsvImport, setShowAdvancedCsvImport] = useState(false);
+  const [backendHealth, setBackendHealth] = useState({ status: 'checking', detail: '' });
 
   const serpKey = () => (typeof window !== 'undefined' ? localStorage.getItem('SERP_API_KEY') || '' : '');
   const profileUrl = () => (typeof window !== 'undefined' ? localStorage.getItem('linkedin_profile_url') || '' : '');
@@ -977,6 +995,12 @@ function MyConnections({ onToast }) {
       const s = await getLinkedinStatus();
       setConnStatus(s);
     } catch {}
+    try {
+      const h = await getBackendHealth();
+      setBackendHealth(h);
+    } catch (e) {
+      setBackendHealth({ status: 'down', detail: e.message || String(e) });
+    }
   };
 
   const generateReply = async (conn) => {
@@ -1304,9 +1328,18 @@ function MyConnections({ onToast }) {
         <h2 className="font-bold text-gray-900">My Connections</h2>
         <span className="ml-auto text-xs text-gray-400">Profile detected: <span className="font-semibold text-studio-600">{profileHandle}</span></span>
       </div>
-      <div className="flex border-b border-gray-100 overflow-x-auto">
+      <div className="flex flex-wrap gap-1 border-b border-gray-100 p-2">
         {CONN_TABS.map(t => (
-          <button key={t.id} onClick={() => handleTabChange(t.id)} className={`flex-shrink-0 px-3 py-2 text-xs font-medium transition whitespace-nowrap ${activeTab === t.id ? 'text-studio-600 border-b-2 border-studio-600' : 'text-gray-500 hover:text-gray-700'}`}>{t.label}</button>
+          <button
+            key={t.id}
+            onClick={() => handleTabChange(t.id)}
+            className={`inline-flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg transition whitespace-nowrap ${
+              activeTab === t.id ? 'text-studio-700 bg-studio-50 border border-studio-200' : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50 border border-transparent'
+            }`}
+          >
+            <t.icon size={14} />
+            {t.label}
+          </button>
         ))}
       </div>
       {activeTab === 'followers' && (
@@ -1318,24 +1351,47 @@ function MyConnections({ onToast }) {
 
         {activeTab === 'network' && (
           <div className="p-4 space-y-3 flex-1 flex flex-col">
-            <div className="flex gap-2">
-              <button onClick={() => window.open('https://www.linkedin.com/mynetwork/', '_blank')} className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-linkedin-600 text-white rounded-xl text-xs font-semibold hover:bg-linkedin-700 transition">
-                <IconGlobe size={14} /> Open My Network
-              </button>
-              <button onClick={() => window.open(`https://www.linkedin.com/in/${profileHandle}/`, '_blank')} className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-studio-600 text-white rounded-xl text-xs font-semibold hover:bg-studio-700 transition">
-                <IconUsers size={14} /> My Profile
-              </button>
-            </div>
-            <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl">
-              <div className="text-xs text-blue-700">
-                <span className="font-semibold">How to import your network:</span> Go to LinkedIn &rarr; Settings &rarr; Get a copy of your data &rarr; Connections &rarr; Download CSV. Then import below.
+            <div className="p-4 border border-gray-200 rounded-2xl bg-white space-y-2">
+              <div className="text-sm font-semibold text-gray-900">Connect your LinkedIn network</div>
+              <div className="text-xs text-gray-500">Use LinkedIn session or open LinkedIn directly to manage your network.</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <button onClick={() => window.open('https://www.linkedin.com/mynetwork/', '_blank')} className="h-14 rounded-2xl px-5 py-4 inline-flex items-center justify-center gap-2.5 text-[15px] font-semibold text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-linkedin-600 to-studio-600 hover:from-linkedin-700 hover:to-studio-700">
+                  <IconGlobe size={20} /> Open My Network
+                </button>
+                <button onClick={autoConnectSession} disabled={sessionAutoConnecting} className="h-14 rounded-2xl px-5 py-4 inline-flex items-center justify-center gap-2.5 text-[15px] font-semibold text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-studio-600 to-linkedin-600 hover:from-studio-700 hover:to-linkedin-700 disabled:opacity-50">
+                  <IconLinkedIn size={20} /> {sessionAutoConnecting ? 'Opening Browser...' : 'Connect LinkedIn Session'}
+                </button>
+                <button onClick={() => handleTabChange('manual')} className="h-14 rounded-2xl px-5 py-4 inline-flex items-center justify-center gap-2.5 text-[15px] font-semibold text-gray-700 bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
+                  <IconSearch size={20} /> Manual Search
+                </button>
               </div>
             </div>
-            <input ref={csvInputRef} type="file" accept=".csv" onChange={handleCsvUpload} className="hidden" />
-            <button onClick={() => csvInputRef.current?.click()} disabled={loading} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-200 transition border border-gray-200">
-              <IconUpload size={14} /> {csvConnections.length > 0 ? 'Re-import CSV' : 'Import LinkedIn Connections CSV'}
-            </button>
-            {csvConnections.length > 0 && (
+            <div className="space-y-1">
+              <button onClick={() => setShowAdvancedCsvImport(v => !v)} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
+                <IconUpload size={16} /> {showAdvancedCsvImport ? 'Hide Upload CSV' : 'Upload CSV'}
+              </button>
+              <div className="text-xs text-gray-500">Import LinkedIn exported connections</div>
+            </div>
+            {showAdvancedCsvImport && (
+              <>
+                <input ref={csvInputRef} type="file" accept=".csv" onChange={handleCsvUpload} className="hidden" />
+                <button onClick={() => csvInputRef.current?.click()} disabled={loading} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-200 transition border border-gray-200">
+                  <IconUpload size={14} /> {csvConnections.length > 0 ? 'Re-import CSV' : 'Import LinkedIn Connections CSV'}
+                </button>
+                {csvConnections.length > 0 && (
+                  <>
+                    <div className="text-xs font-medium text-gray-600">{csvPagination.total} connections loaded</div>
+                    <div className="space-y-2">
+                      {csvConnections.map((conn, i) => <ConnectionCard key={conn.profile_url || i} conn={conn} hidden={hiddenCards[conn.profile_url || conn.name]} {...cardProps} />)}
+                    </div>
+                    <div className="mt-auto">
+                      <PaginationBar pagination={csvPagination} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+            {!showAdvancedCsvImport && csvConnections.length > 0 && (
               <>
                 <div className="text-xs font-medium text-gray-600">{csvPagination.total} connections loaded</div>
                 <div className="space-y-2">
@@ -1345,9 +1401,6 @@ function MyConnections({ onToast }) {
                   <PaginationBar pagination={csvPagination} onPageChange={handlePageChange} onPageSizeChange={handlePageSizeChange} />
                 </div>
               </>
-            )}
-            {csvConnections.length === 0 && !loading && (
-              <div className="text-center py-4 text-xs text-gray-400">No connections imported yet. Use the button above to load your LinkedIn CSV export.</div>
             )}
           </div>
         )}
@@ -1359,16 +1412,19 @@ function MyConnections({ onToast }) {
                 <IconGlobe size={14} /> Open LinkedIn Followers
               </button>
             </div>
-            <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-xl">
-              <div className="text-xs text-yellow-700">Followers and notifications require authenticated LinkedIn data. Public SERP fallback is disabled.</div>
-            </div>
             {connStatus && (
               <div className="flex flex-wrap gap-1 text-[10px]">
+                <span className={`px-1.5 py-0.5 rounded ${backendHealth.status === 'ok' ? 'bg-green-100 text-green-700' : backendHealth.status === 'checking' ? 'bg-gray-100 text-gray-500' : 'bg-red-100 text-red-700'}`}>
+                  Backend: {backendHealth.status === 'ok' ? 'Healthy' : backendHealth.status === 'checking' ? 'Checking' : 'Down'}
+                </span>
                 <span className={`px-1.5 py-0.5 rounded ${connStatus.linkedinOAuthConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>LinkedIn OAuth: {connStatus.linkedinOAuthConfigured ? 'Connected' : 'Missing'}</span>
                 <span className={`px-1.5 py-0.5 rounded ${connStatus.linkedinSessionConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>LinkedIn Session: {connStatus.linkedinSessionConfigured ? 'Connected' : 'Missing'}</span>
                 <span className={`px-1.5 py-0.5 rounded ${connStatus.serpConfigured ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>SERP: {connStatus.serpConfigured ? 'Connected' : 'Missing'}</span>
                 <span className={`px-1.5 py-0.5 rounded ${connStatus.csvImported ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>CSV: {connStatus.csvImported ? 'Imported' : 'Not imported'}</span>
               </div>
+            )}
+            {backendHealth.status !== 'ok' && backendHealth.detail && (
+              <div className="text-[11px] text-red-600">Backend health error: {backendHealth.detail}</div>
             )}
             <div className="text-[11px] text-gray-500">
               Source: {sourceLabelMap[followersMeta.selectedSource] || followersMeta.selectedSource} <span className="mx-1">|</span> Mode: {followersMeta.selectedMode || 'followers'} <span className="mx-1">|</span> Status: {results.length === 0 ? (connStatus && (connStatus.linkedinOAuthConfigured || connStatus.linkedinSessionConfigured || connStatus.csvImported) ? 'Configured but 0 results' : 'Not configured') : `${results.length} results found`}

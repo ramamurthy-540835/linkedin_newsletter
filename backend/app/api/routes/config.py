@@ -6,7 +6,7 @@ import httpx
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from google import genai
-from app.core.config import settings
+from app.core.config import ROOT_ENV_LOCAL, settings
 
 router = APIRouter()
 
@@ -33,6 +33,15 @@ async def config_status() -> dict:
     linkedin_client_secret = settings.linkedin_client_secret or os.getenv("LINKEDIN_CLIENT_SECRET", "").strip()
     gemini_env = os.getenv("GEMINI_API_KEY", "").strip()
     gemini_runtime = get_runtime_key("gemini_api_key")
+    ai_provider = (settings.ai_provider or "auto").strip().lower()
+    xai_key = (settings.xai_api_key or "").strip()
+    xai_base = (settings.xai_base_url or "").strip()
+    xai_model = (settings.xai_model or "").strip()
+    vertex_model = (settings.vertex_ai_model or "").strip()
+    gcp_disabled = settings.local_dev_mode or settings.disable_gcp
+    bq_disabled = gcp_disabled or settings.disable_bigquery
+    vertex_disabled = gcp_disabled or settings.disable_vertex_ai or ai_provider == "xai"
+    vertex_enabled = not vertex_disabled and ai_provider in ("google", "vertex", "auto")
 
     return {
         "serp_configured": bool(serp_key),
@@ -40,6 +49,20 @@ async def config_status() -> dict:
         "linkedin_client_id": (linkedin_client_id[:8] + "...") if linkedin_client_id else "",
         "gemini_configured": bool(gemini_env or gemini_runtime),
         "gemini_source": "env" if gemini_env else ("runtime" if gemini_runtime else "none"),
+        "ai_provider": ai_provider,
+        "gcp": "disabled" if gcp_disabled else "enabled",
+        "bigquery": "disabled" if bq_disabled else "enabled",
+        "vertex": "disabled" if vertex_disabled else "enabled",
+        "google_vertex": "enabled" if vertex_enabled else "disabled",
+        "xai": "connected" if bool(xai_key) else "missing",
+        "xai_base_url": xai_base,
+        "xai_model": xai_model,
+        "active_provider": "xai" if (ai_provider == "xai" or gcp_disabled) else ai_provider,
+        "active_model": xai_model if (ai_provider == "xai" or gcp_disabled) else vertex_model,
+        "active_base_url": xai_base if ai_provider == "xai" else "",
+        "env_file_loaded": ROOT_ENV_LOCAL.exists(),
+        "env_file_path": str(ROOT_ENV_LOCAL),
+        "xai_key_present": bool(xai_key),
     }
 
 
@@ -77,16 +100,23 @@ async def autocomplete_topics(req: AutocompleteRequest) -> dict:
         pass
 
     # Fallback: Gemini AI for LinkedIn-specific suggestions
+    if settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai:
+        return {"suggestions": []}
+
     try:
         try:
             client = genai.Client(vertexai=True, project=settings.gcp_project_id, location=settings.gcp_region)
-            model = settings.vertex_model or "gemini-2.5-flash"
+            model = settings.vertex_ai_model
+            if not model:
+                return {"suggestions": []}
         except Exception:
             api_key = os.getenv("GOOGLE_API_KEY", "").strip() or os.getenv("GEMINI_API_KEY", "").strip() or get_runtime_key("gemini_api_key")
             if not api_key:
                 return {"suggestions": []}
             client = genai.Client(api_key=api_key)
-            model = "gemini-2.5-flash"
+            model = settings.vertex_ai_model
+            if not model:
+                return {"suggestions": []}
 
         response = client.models.generate_content(
             model=model,

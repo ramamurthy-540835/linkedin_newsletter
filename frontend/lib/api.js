@@ -6,21 +6,35 @@ async function req(path, opts = {}) {
     ...opts,
   };
 
+  const directUrl = `${API_URL}${path}`;
+  const proxyUrl = `/api/proxy${path}`;
   let res;
+  let usedUrl = directUrl;
   try {
-    res = await fetch(`${API_URL}${path}`, requestInit);
+    res = await fetch(directUrl, requestInit);
   } catch (directErr) {
     // Fall back to Next.js proxy when direct backend URL is unreachable.
-    res = await fetch(`/api/proxy${path}`, requestInit);
+    usedUrl = proxyUrl;
+    try {
+      res = await fetch(proxyUrl, requestInit);
+    } catch (proxyErr) {
+      throw new Error(
+        `Network error calling ${directUrl} (fallback ${proxyUrl} also failed): ${directErr?.message || 'Failed to fetch'}`
+      );
+    }
   }
 
   if (!res.ok) {
     let detail = '';
+    let rawBody = '';
     try {
       const body = await res.json();
-      detail = body?.detail ? ` - ${body.detail}` : '';
-    } catch {}
-    throw new Error(`Request failed: ${res.status}${detail}`);
+      rawBody = JSON.stringify(body);
+      detail = body?.detail ? String(body.detail) : rawBody;
+    } catch {
+      try { rawBody = await res.text(); detail = rawBody; } catch {}
+    }
+    throw new Error(`Request failed ${res.status} on ${usedUrl}${detail ? `: ${detail}` : ''}`);
   }
   return res.status === 204 ? null : res.json();
 }
@@ -132,6 +146,8 @@ export const autoConnectLinkedinSession = (payload = {}) =>
     body: JSON.stringify(payload),
   });
 
+export const getBackendHealth = () => req('/health').catch((e) => ({ status: 'down', detail: e.message || String(e) }));
+
 export const getMyNetworkContext = () =>
   req('/api/serp/connections?mode=context').catch(() => ({
     simulated: true,
@@ -233,4 +249,10 @@ export const searchWithFreshness = (options) =>
   req('/api/trends/search', {
     method: 'POST',
     body: JSON.stringify(options),
+  });
+
+export const aiGenerate = (payload) =>
+  req('/api/ai/generate', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   });

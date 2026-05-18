@@ -42,11 +42,19 @@ SEED_ROWS = [
 ]
 
 
+def _gcp_disabled() -> bool:
+    return settings.local_dev_mode or settings.disable_gcp or settings.disable_bigquery or (settings.ai_provider or "").lower() == "xai"
+
+
 def _bq_client() -> bigquery.Client:
+    if _gcp_disabled():
+        raise RuntimeError("BigQuery disabled in local xAI mode")
     return bigquery.Client(project=settings.gcp_project_id or None)
 
 
 def ensure_models_table() -> None:
+    if _gcp_disabled():
+        return
     try:
         client = _bq_client()
         dataset_id = f"{client.project}.{DATASET}"
@@ -103,6 +111,21 @@ def _sql_esc(s: str) -> str:
 @router.get("")
 async def list_models() -> dict[str, Any]:
     grouped: dict[str, list[dict[str, Any]]] = {"google": [], "anthropic": [], "openai": []}
+    if _gcp_disabled():
+        for row in SEED_ROWS:
+            d = {
+                "model_id": row[0],
+                "provider": row[1],
+                "display_name": row[2],
+                "use_case": [x.strip() for x in row[3].split(",")],
+                "speed_score": row[4],
+                "cost_tier": row[5],
+                "is_default": row[6],
+                "is_active": row[7],
+                "notes": row[8],
+            }
+            grouped.setdefault(d["provider"], []).append(d)
+        return grouped
     try:
         client = _bq_client()
         table_id = f"{client.project}.{DATASET}.{TABLE}"
@@ -134,6 +157,13 @@ async def list_models() -> dict[str, Any]:
 
 @router.get("/recommend")
 async def recommend_model(use_case: str = "general") -> dict[str, str]:
+    if _gcp_disabled():
+        return {
+            "model_id": settings.xai_model or "grok-4",
+            "display_name": "xAI Model",
+            "provider": "xai",
+            "reason": f"Local xAI mode active for use case: {use_case}",
+        }
     try:
         client = _bq_client()
         table_id = f"{client.project}.{DATASET}.{TABLE}"
@@ -180,6 +210,8 @@ class ModelUpdateRequest(BaseModel):
 
 @router.post("/update")
 async def update_model(body: ModelUpdateRequest) -> dict[str, Any]:
+    if _gcp_disabled():
+        return {"success": True, "message": "BigQuery disabled in local xAI mode"}
     try:
         client = _bq_client()
         table_id = f"{client.project}.{DATASET}.{TABLE}"

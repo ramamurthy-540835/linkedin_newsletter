@@ -78,8 +78,10 @@ Rules:
 - Trending ideas should feel timely and relevant to this week"""
 
     try:
+        if not (settings.vertex_ai_model or "").strip():
+            raise HTTPException(status_code=400, detail="AI model not configured in environment")
         response = client.models.generate_content(
-            model=settings.vertex_model,
+            model=settings.vertex_ai_model,
             contents=["Return valid JSON only. No markdown fences.", prompt],
         )
         raw = (response.text or "{}").strip()
@@ -178,3 +180,5 @@ async def search_trends(req: TrendSearchRequest) -> dict:
         raise
     except Exception as exc:
         raise HTTPException(502, f"Search error: {str(exc)}") from exc
+    if settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai or (settings.ai_provider or "").lower() == "xai":
+        raise HTTPException(status_code=400, detail="Trend discovery via Vertex is disabled in local xAI mode")

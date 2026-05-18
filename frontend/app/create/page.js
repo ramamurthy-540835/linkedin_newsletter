@@ -31,6 +31,7 @@ import {
   startVideoGeneration,
   getMediaJobStatus,
   getMediaFileUrl,
+  aiGenerate,
 } from '@/lib/api';
 
 const CONTENT_TYPES = [
@@ -83,15 +84,15 @@ const ASPECT_RATIOS = [
 ];
 
 const IMAGE_PROVIDERS = [
-  { value: 'google-imagen-3', label: 'Google Imagen 3' },
-  { value: 'google-imagen-4', label: 'Google Imagen 4' },
-  { value: 'google-imagen-4-fast', label: 'Google Imagen 4 Fast' },
-  { value: 'google-imagen-4-ultra', label: 'Google Imagen 4 Ultra' },
+  { value: 'google-imagen-3', label: 'Imagen 3' },
+  { value: 'google-imagen-4', label: 'Imagen 4' },
+  { value: 'google-imagen-4-fast', label: 'Imagen 4 Fast' },
+  { value: 'google-imagen-4-ultra', label: 'Imagen 4 Ultra' },
 ];
 
 const VIDEO_PROVIDERS = [
-  { value: 'google-veo', label: 'Google Veo' },
-  { value: 'google-veo-lite', label: 'Google Veo Lite' },
+  { value: 'google-veo', label: 'Veo' },
+  { value: 'google-veo-lite', label: 'Veo Lite' },
 ];
 
 const VIDEO_DURATIONS = [
@@ -242,6 +243,8 @@ function CreatePageContent() {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [videoLoading, setVideoLoading] = useState(false);
+  const [aiCompleting, setAiCompleting] = useState(false);
+  const [prefillNotice, setPrefillNotice] = useState('');
 
   const pollRef = useRef(null);
 
@@ -258,20 +261,55 @@ function CreatePageContent() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const t = searchParams.get('topic');
+    const prefill = searchParams.get('prefill') === 'true';
+    const hook = searchParams.get('hook');
     const type = searchParams.get('type');
     if (type && CONTENT_TYPES.some(ct => ct.value === type)) {
       setContentType(type);
       if (type === 'image') setGenerateImg(true);
       if (type === 'video') setGenerateVid(true);
     }
-    if (t) { setTopic(decodeURIComponent(t)); return; }
-    const prefill = localStorage.getItem('prefill_topic');
-    const hook = localStorage.getItem('prefill_hook');
-    if (prefill) {
-      setTopic(prefill);
-      if (hook) setSuggestedTitle(hook);
-      localStorage.removeItem('prefill_topic');
-      localStorage.removeItem('prefill_hook');
+    if (t) {
+      setTopic(decodeURIComponent(t));
+      if (hook && !suggestedTitle) setSuggestedTitle(decodeURIComponent(hook));
+      if (prefill) {
+        (async () => {
+          setAiCompleting(true);
+          try {
+            const out = await aiGenerate({
+              system: "Return strict JSON only. No markdown.",
+              prompt: `Given this LinkedIn content topic, generate recommended metadata fields only. Do not generate full post content.
+Topic: ${decodeURIComponent(t)}
+Return ONLY valid JSON:
+{
+  "targetAudience": "",
+  "tone": "",
+  "goal": "",
+  "callToAction": "",
+  "keywords": [],
+  "writingStyle": "",
+  "visualStyle": "",
+  "brandColors": ["#0A66C2", "#FFFFFF"],
+  "hashtags": []
+}`,
+            });
+            let pkg = {};
+            try { pkg = JSON.parse((out?.text || "{}").replace(/```json|```/g, "").trim()); } catch {}
+            if (!audience?.trim() && pkg.targetAudience) setAudience(pkg.targetAudience);
+            if ((!tone || tone === 'professional') && pkg.tone) setTone(pkg.tone);
+            if ((!goal || goal === 'engagement') && pkg.goal) setGoal(pkg.goal);
+            if (!ctaInput?.trim() && pkg.callToAction) setCtaInput(pkg.callToAction);
+            if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
+            if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
+            if ((!visualStyle || visualStyle === 'corporate') && pkg.visualStyle) setVisualStyle(pkg.visualStyle);
+            if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
+            if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
+            setPrefillNotice('xAI filled recommended settings. Review and click Generate Content.');
+          } catch {}
+          setAiCompleting(false);
+        })();
+      }
+      return;
     }
   }, [searchParams]);
 
@@ -307,9 +345,55 @@ function CreatePageContent() {
     let stepIdx = 0;
 
     try {
+      setAiCompleting(true);
+      const completionPrompt = `Given this LinkedIn content topic, generate a complete publishing package.
+Topic: ${topic.trim()}
+Return ONLY valid JSON:
+{
+  "targetAudience": "",
+  "tone": "",
+  "goal": "",
+  "callToAction": "",
+  "keywords": [],
+  "writingStyle": "",
+  "visualStyle": "",
+  "brandColors": ["#0A66C2", "#FFFFFF"],
+  "hashtags": [],
+  "post": "",
+  "imagePrompt": "",
+  "carouselSlides": []
+}
+Rules:
+- Post must be 1200-2500 chars, LinkedIn-ready, professional, practical, and current.
+- If carouselSlides is present, return 4-7 slides with heading/body/bullets.`;
+      const aiOut = await aiGenerate({
+        prompt: completionPrompt,
+        system: "Return strict JSON only. No markdown.",
+      });
+      let pkg = {};
+      try { pkg = JSON.parse((aiOut?.text || "{}").replace(/```json|```/g, "").trim()); } catch {}
+
+      // Preserve user-entered values; only fill missing fields.
+      if (!audience?.trim() && pkg.targetAudience) setAudience(pkg.targetAudience);
+      if ((!tone || tone === 'professional') && pkg.tone) setTone(pkg.tone);
+      if ((!goal || goal === 'engagement') && pkg.goal) setGoal(pkg.goal);
+      if (!ctaInput?.trim() && pkg.callToAction) setCtaInput(pkg.callToAction);
+      if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
+      if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
+      if ((!visualStyle || visualStyle === 'corporate') && pkg.visualStyle) setVisualStyle(pkg.visualStyle);
+      if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
+      if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
+      if (!postText?.trim() && pkg.post) setPostText(pkg.post);
+      if (wantImage && !imagePrompt?.trim() && pkg.imagePrompt) setImagePrompt(pkg.imagePrompt);
+      if (contentType === 'carousel' && (!carouselSlides || carouselSlides.length === 0) && Array.isArray(pkg.carouselSlides)) {
+        setCarouselSlides(pkg.carouselSlides);
+      }
+      if (!cta?.trim() && pkg.callToAction) setCta(pkg.callToAction);
+      setAiCompleting(false);
+
       const plan = await generateContentPlan({
         topic: topic.trim(),
-        audience: audience.trim() || 'LinkedIn professionals',
+        audience: (audience || pkg.targetAudience || '').trim() || 'LinkedIn professionals',
         tone,
         contentType: contentType === 'image' ? 'text' : contentType === 'video' ? 'text' : contentType,
         brandColors,
@@ -323,9 +407,9 @@ function CreatePageContent() {
         videoStyle,
       });
 
-      setPostText(plan.postText || '');
-      setHashtags(plan.hashtags || []);
-      setCta(plan.cta || '');
+      if (!postText?.trim()) setPostText(plan.postText || '');
+      if (!hashtags?.length) setHashtags(plan.hashtags || []);
+      if (!cta?.trim()) setCta(plan.cta || '');
       setSuggestedTitle(plan.suggestedTitle || '');
       setAltText(plan.altText || '');
       if (plan.imagePrompt) setImagePrompt(plan.imagePrompt);
@@ -398,9 +482,11 @@ function CreatePageContent() {
       }
 
     } catch (e) {
+      setAiCompleting(false);
       updateStep(stepIdx, { status: 'error', label: 'Content plan failed', detail: e.message });
       setError(e.message || 'Failed to generate content');
     } finally {
+      setAiCompleting(false);
       setBusy(false);
     }
   };
@@ -583,6 +669,11 @@ function CreatePageContent() {
           </div>
         </div>
       )}
+      {prefillNotice && (
+        <div className="mb-4 text-sm text-studio-700 bg-studio-50 border border-studio-200 rounded-xl px-4 py-2">
+          {prefillNotice}
+        </div>
+      )}
 
       {/* Content Type Selector */}
       <div className="mb-6">
@@ -669,7 +760,7 @@ function CreatePageContent() {
                     className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
                   <div>
                     <span className="font-semibold text-sm text-gray-900">Add AI Image</span>
-                    <span className="text-xs text-gray-500 ml-2">Imagen 3/4 visual</span>
+                    <span className="text-xs text-gray-500 ml-2">AI visual enhancement</span>
                   </div>
                 </label>
 
@@ -684,7 +775,7 @@ function CreatePageContent() {
                     </div>
                     <div className="flex gap-2">
                       <Button onClick={generateImagePromptOnly} variant="outline" size="sm" disabled={!topic.trim() || busy}>
-                        Generate Prompt with Gemini
+                        Generate Prompt with xAI
                       </Button>
                       <Button onClick={generateImageOnly} variant="outline" size="sm" disabled={!imagePrompt.trim() || imageLoading} loading={imageLoading}>
                         Generate Image
@@ -705,7 +796,7 @@ function CreatePageContent() {
                     className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
                   <div>
                     <span className="font-semibold text-sm text-gray-900">Add AI Video</span>
-                    <span className="text-xs text-gray-500 ml-2">Veo-powered video</span>
+                    <span className="text-xs text-gray-500 ml-2">AI video enhancement</span>
                   </div>
                 </label>
 
@@ -724,7 +815,7 @@ function CreatePageContent() {
                     </div>
                     <div className="flex gap-2">
                       <Button onClick={generateVideoScriptOnly} variant="outline" size="sm" disabled={!topic.trim() || busy}>
-                        Generate Script with Gemini
+                        Generate Script with xAI
                       </Button>
                       <Button onClick={generateVideoOnly} variant="outline" size="sm" disabled={videoLoading} loading={videoLoading}>
                         Generate Video
@@ -750,7 +841,7 @@ function CreatePageContent() {
             {busy ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                Generating...
+                {aiCompleting ? 'xAI is completing missing fields...' : 'Generating...'}
               </>
             ) : (
               <>

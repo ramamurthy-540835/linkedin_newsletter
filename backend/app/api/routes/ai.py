@@ -1,35 +1,42 @@
-import os
-
 from fastapi import APIRouter, HTTPException
-from google import genai
+import httpx
 from pydantic import BaseModel
 
-from app.api.routes.config import get_runtime_key
 from app.core.config import settings
 
 router = APIRouter()
 
 
 class GenerateBody(BaseModel):
-    model: str = "models/gemini-2.5-flash"
+    model: str = ""
     prompt: str
     system: str = ""
 
 
 @router.post("/generate")
 async def ai_generate(body: GenerateBody) -> dict:
-    try:
-        client = genai.Client(vertexai=True, project=settings.gcp_project_id, location=settings.gcp_region)
-    except Exception:
-        api_key = os.getenv("GEMINI_API_KEY") or get_runtime_key("gemini_api_key")
-        if not api_key:
-            raise HTTPException(status_code=400, detail="GEMINI_API_KEY not configured")
-        client = genai.Client(api_key=api_key)
-
-    try:
-        model_name = body.model.removeprefix("models/") if body.model else "gemini-2.5-flash"
+    ai_provider = (settings.ai_provider or "auto").strip().lower()
+    if ai_provider == "xai" or settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai:
+        base = (settings.xai_base_url or "").rstrip("/")
+        key = (settings.xai_api_key or "").strip()
+        model = (body.model or settings.xai_model or "").removeprefix("models/").strip()
+        if not key:
+            raise HTTPException(status_code=400, detail="XAI_API_KEY not configured")
+        if not base:
+            raise HTTPException(status_code=400, detail="XAI_BASE_URL not configured in environment")
+        if not model:
+            raise HTTPException(status_code=400, detail="AI model not configured in environment")
         prompt = f"System: {body.system}\n\nUser: {body.prompt}" if body.system else body.prompt
-        response = client.models.generate_content(model=model_name, contents=prompt)
-        return {"text": (response.text or "").strip()}
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Gemini generation failed: {exc}") from exc
+        payload = {"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.2}
+        async with httpx.AsyncClient(timeout=40) as client:
+            resp = await client.post(
+                f"{base}/chat/completions",
+                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                json=payload,
+            )
+            if resp.status_code >= 400:
+                raise HTTPException(status_code=502, detail=f"xAI generation failed: {resp.text}")
+            data = resp.json()
+            text = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+            return {"text": text}
+    raise HTTPException(status_code=400, detail="AI_PROVIDER must be xai for local mode")

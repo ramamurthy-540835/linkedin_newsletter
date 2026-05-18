@@ -1,4 +1,9 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ROOT_ENV_LOCAL = Path(__file__).resolve().parents[3] / ".env.local"
+BACKEND_ENV = Path(__file__).resolve().parents[2] / ".env"
 
 
 class Settings(BaseSettings):
@@ -9,8 +14,14 @@ class Settings(BaseSettings):
 
     gcp_project_id: str = ""
     gcp_region: str = "us-central1"
+    disable_gcp: bool = False
+    disable_bigquery: bool = False
+    disable_vertex_ai: bool = False
+    local_dev_mode: bool = False
+    local_db_path: str = "backend/data/content_studio.db"
 
-    vertex_model: str = "gemini-2.5-flash"
+    vertex_ai_model: str = ""
+    ai_provider: str = "auto"
 
     linkedin_client_id: str = ""
     linkedin_client_secret: str = ""
@@ -29,6 +40,9 @@ class Settings(BaseSettings):
 
     serp_api_key: str = ""
     openai_api_key: str = ""
+    xai_api_key: str = ""
+    xai_base_url: str = ""
+    xai_model: str = ""
 
     # 44-char URL-safe base64 Fernet key; if empty a deterministic dev key is used
     credentials_encryption_key: str = ""
@@ -36,7 +50,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(str(BACKEND_ENV), str(ROOT_ENV_LOCAL)),
         env_file_encoding="utf-8",
         extra="ignore",
     )

@@ -127,8 +127,10 @@ Rules:
             location="us-central1",
         )
 
+        if not (settings.vertex_ai_model or "").strip():
+            raise HTTPException(status_code=400, detail="AI model not configured in environment")
         response = client.models.generate_content(
-            model=settings.vertex_model,
+            model=settings.vertex_ai_model,
             contents=["Return valid JSON only. No markdown fences.", prompt],
         )
 
@@ -160,3 +162,5 @@ async def get_providers() -> dict:
             {"value": "google-veo-lite", "label": "Google Veo Lite"},
         ],
     }
+    if settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai or (settings.ai_provider or "").lower() == "xai":
+        raise HTTPException(status_code=400, detail="Content plan via Vertex is disabled in local xAI mode")
