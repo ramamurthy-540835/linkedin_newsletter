@@ -48,6 +48,10 @@ class Settings(BaseSettings):
     xai_monthly_budget_usd: float = 5.0
     xai_soft_stop_usd: float = 4.0
     xai_hard_stop_usd: float = 5.0
+    xai_auto_reload_enabled: bool = False
+    xai_auto_reload_threshold_usd: float = 0.0
+    xai_auto_reload_amount_usd: float = 0.0
+    xai_absolute_hard_stop_usd: float = 100.0
 
     # 44-char URL-safe base64 Fernet key; if empty a deterministic dev key is used
     credentials_encryption_key: str = ""

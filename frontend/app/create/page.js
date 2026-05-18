@@ -68,6 +68,7 @@ const GOALS = [
 ];
 
 const VISUAL_STYLES = [
+  { value: 'archiect', label: 'Architecture & Systems' },
   { value: 'corporate', label: 'Corporate' },
   { value: 'modern_saas', label: 'Modern SaaS' },
   { value: 'infographic', label: 'Infographic' },
@@ -198,7 +199,7 @@ function CreatePageContent() {
   const [keywords, setKeywords] = useState('');
   const [writingStyle, setWritingStyle] = useState('');
   const [brandColors, setBrandColors] = useState('');
-  const [visualStyle, setVisualStyle] = useState('corporate');
+  const [visualStyle, setVisualStyle] = useState('archiect');
   const [aspectRatio, setAspectRatio] = useState('16:9');
 
   // Media checkboxes
@@ -247,7 +248,7 @@ function CreatePageContent() {
   const autofillSeqRef = useRef(0);
   const hasPrefilledRef = useRef(false);
 
-  const prefillMetadataFromXAI = async (topicValue, hookValue = '', sourceContentType = contentType) => {
+  const prefillMetadataFromAI = async (topicValue, hookValue = '', sourceContentType = contentType) => {
     const t = (topicValue || '').trim();
     if (!t) return null;
     const out = await aiGenerate({
@@ -275,6 +276,24 @@ Return ONLY valid JSON:
     let pkg = {};
     try { pkg = JSON.parse((out?.text || "{}").replace(/```json|```/g, "").trim()); } catch {}
     return pkg;
+  };
+
+  const fallbackMetadataPrefill = (topicValue, hookValue = '') => {
+    const seed = `${topicValue || ''} ${hookValue || ''}`.toLowerCase();
+    const inferredAudience = seed.includes('cto') || seed.includes('engineering')
+      ? 'CTOs and engineering leaders'
+      : 'LinkedIn professionals interested in this topic';
+    return {
+      targetAudience: inferredAudience,
+      tone: 'Professional',
+      goal: 'Engagement',
+      callToAction: 'Share your perspective in the comments',
+      keywords: [topicValue].filter(Boolean),
+      writingStyle: 'Concise, insight-driven',
+      visualStyle: 'archiect',
+      brandColors: ['#0A66C2', '#FFFFFF'],
+      hashtags: [],
+    };
   };
 
   useEffect(() => {
@@ -306,9 +325,8 @@ Return ONLY valid JSON:
       if (type === 'video') setGenerateVid(true);
     }
     if (topicParam) {
-      const decodedTopic = decodeURIComponent(topicParam);
-      setTopic(decodedTopic);
-      if (hookParam) setSuggestedTitle(decodeURIComponent(hookParam));
+      setTopic(topicParam);
+      if (hookParam) setSuggestedTitle(hookParam);
       if (prefillParam && !hasPrefilledRef.current) {
         hasPrefilledRef.current = true;
         (async () => {
@@ -316,7 +334,7 @@ Return ONLY valid JSON:
           setError('');
           setPrefillNotice('xAI is auto-filling recommended settings...');
           try {
-            const result = await prefillMetadataFromXAI(decodedTopic, decodeURIComponent(hookParam || ''), type || contentType);
+            const result = await prefillMetadataFromAI(topicParam, hookParam || '', type || contentType);
             console.log("CREATE_PREFILL_RESULT", result);
             if (!audience?.trim() && result?.targetAudience) setAudience(result.targetAudience);
             if ((!tone || tone === 'professional') && result?.tone) setTone(result.tone);
@@ -336,8 +354,17 @@ Return ONLY valid JSON:
             }
             setPrefillNotice('xAI filled recommended settings. Review and click Generate Content.');
           } catch (e) {
-            setError(e?.message || 'xAI metadata prefill failed');
-            setPrefillNotice('xAI metadata prefill failed.');
+            const fallback = fallbackMetadataPrefill(topicParam, hookParam || '');
+            if (!audience?.trim() && fallback?.targetAudience) setAudience(fallback.targetAudience);
+            if ((!tone || tone === 'professional') && fallback?.tone) setTone(fallback.tone);
+            if ((!goal || goal === 'engagement') && fallback?.goal) setGoal(fallback.goal);
+            if (!ctaInput?.trim() && fallback?.callToAction) setCtaInput(fallback.callToAction);
+            if (!keywords?.trim() && Array.isArray(fallback?.keywords)) setKeywords(fallback.keywords.join(', '));
+            if (!writingStyle?.trim() && fallback?.writingStyle) setWritingStyle(fallback.writingStyle);
+            if ((!visualStyle || visualStyle === 'corporate') && fallback?.visualStyle) setVisualStyle(fallback.visualStyle);
+            if (!brandColors?.trim() && Array.isArray(fallback?.brandColors)) setBrandColors(fallback.brandColors.join(', '));
+            setError(e?.message || 'AI metadata prefill failed');
+            setPrefillNotice('AI prefill could not complete fully. Default recommendations were applied. Review and click Generate Content.');
           } finally {
             setAiCompleting(false);
           }
@@ -350,6 +377,8 @@ Return ONLY valid JSON:
     const t = (topic || '').trim();
     if (!t) return;
     if (busy) return;
+    const isUrlPrefill = searchParams.get('prefill') === 'true';
+    if (isUrlPrefill && hasPrefilledRef.current) return;
 
     if (autofillRef.current) clearTimeout(autofillRef.current);
     autofillRef.current = setTimeout(async () => {
@@ -404,7 +433,7 @@ Return ONLY valid JSON:
         if (seq === autofillSeqRef.current) setAiCompleting(false);
       }
     }, 700);
-  }, [topic, contentType]);
+  }, [topic, contentType, searchParams]);
 
   const saveProfile = (url) => {
     localStorage.setItem(LINKEDIN_PROFILE_KEY, url);
@@ -459,6 +488,12 @@ Return ONLY valid JSON:
 }
 Rules:
 - Post must be 1200-2500 chars, LinkedIn-ready, professional, practical, and current.
+- Default voice: highly informative, executive-ready, and insight-dense (avoid casual diary tone).
+- Start with a sharp 1-sentence hook.
+- Structure post in 4-6 short paragraphs separated by blank lines.
+- Include 1 compact bullet list (2-4 bullets) using "•" for scannability.
+- Use 1-2 emphasis phrases wrapped in **bold** for readability.
+- End with one clear CTA question.
 - If Content Type is carousel, carouselSlides is REQUIRED and must include 4-7 slides with heading/body/bullets.`;
       const aiOut = await aiGenerate({
         prompt: completionPrompt,

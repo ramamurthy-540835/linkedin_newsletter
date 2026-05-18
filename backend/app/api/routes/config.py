@@ -67,6 +67,10 @@ async def config_status() -> dict:
         "env_file_loaded": ROOT_ENV_LOCAL.exists(),
         "env_file_path": str(ROOT_ENV_LOCAL),
         "xai_key_present": bool(xai_key),
+        "xai_auto_reload_enabled": bool(settings.xai_auto_reload_enabled),
+        "xai_auto_reload_threshold_usd": float(settings.xai_auto_reload_threshold_usd or 0),
+        "xai_auto_reload_amount_usd": float(settings.xai_auto_reload_amount_usd or 0),
+        "xai_absolute_hard_stop_usd": float(settings.xai_absolute_hard_stop_usd or 0),
     }
 
 

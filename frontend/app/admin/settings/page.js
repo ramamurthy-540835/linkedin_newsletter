@@ -160,7 +160,7 @@ function SettingsContent() {
   const [modelAssignments, setModelAssignments] = useState({});
   const [geminiTestStatus, setGeminiTestStatus] = useState('');
   const [geminiEnvStatus, setGeminiEnvStatus] = useState('');
-  const [runtimeAIStatus, setRuntimeAIStatus] = useState({ provider: '', model: '', imageModel: '', baseUrl: '', gcp: '', vertex: '', bigquery: '' });
+  const [runtimeAIStatus, setRuntimeAIStatus] = useState({ provider: '', model: '', imageModel: '', baseUrl: '', gcp: '', vertex: '', bigquery: '', xaiAutoReloadEnabled: false, xaiAutoReloadThresholdUsd: 0, xaiAutoReloadAmountUsd: 0, xaiAbsoluteHardStopUsd: 0 });
   const [usage, setUsage] = useState({ monthly_budget_usd: 0, used_usd: 0, remaining_usd: 0, total_tokens: 0, estimated_requests_left: null, last_request: null });
   const [linkedinProfileUrl, setLinkedinProfileUrl] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null);
@@ -197,6 +197,10 @@ function SettingsContent() {
           gcp: sRes.value?.gcp || '',
           vertex: sRes.value?.vertex || '',
           bigquery: sRes.value?.bigquery || '',
+          xaiAutoReloadEnabled: Boolean(sRes.value?.xai_auto_reload_enabled),
+          xaiAutoReloadThresholdUsd: Number(sRes.value?.xai_auto_reload_threshold_usd || 0),
+          xaiAutoReloadAmountUsd: Number(sRes.value?.xai_auto_reload_amount_usd || 0),
+          xaiAbsoluteHardStopUsd: Number(sRes.value?.xai_absolute_hard_stop_usd || 0),
         });
       }
       if (uRes.status === 'fulfilled') setUsage(uRes.value || {});
@@ -334,6 +338,10 @@ function SettingsContent() {
         <div className="text-sm text-gray-700">Total tokens: <span className="font-semibold">{usage.total_tokens || 0}</span></div>
         <div className="text-sm text-gray-700">Estimated requests left: <span className="font-semibold">{usage.estimated_requests_left ?? 'N/A'}</span></div>
         <div className="text-sm text-gray-700">Last request cost: <span className="font-semibold">${Number(usage.last_request?.cost_usd || 0).toFixed(6)}</span></div>
+        <div className="text-sm text-gray-700">Auto Reload: <span className="font-semibold">{runtimeAIStatus.xaiAutoReloadEnabled ? 'Enabled' : 'Disabled'}</span></div>
+        <div className="text-sm text-gray-700">Threshold: <span className="font-semibold">${Number(runtimeAIStatus.xaiAutoReloadThresholdUsd || 0).toFixed(2)}</span></div>
+        <div className="text-sm text-gray-700">Reload Amount: <span className="font-semibold">${Number(runtimeAIStatus.xaiAutoReloadAmountUsd || 0).toFixed(2)}</span></div>
+        <div className="text-sm text-gray-700">Absolute Hard Stop: <span className="font-semibold">${Number(runtimeAIStatus.xaiAbsoluteHardStopUsd || 0).toFixed(2)}</span></div>
       </section>
 
       {/* Model Selector Section */}

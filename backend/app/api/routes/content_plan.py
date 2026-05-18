@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.services.vertex_service import VertexService
 
 router = APIRouter()
 
@@ -32,7 +33,7 @@ class ContentPlanRequest(BaseModel):
     tone: str = "professional"
     contentType: str = "text"
     brandColors: str = ""
-    visualStyle: str = "corporate"
+    visualStyle: str = "archiect"
     aspectRatio: str = "16:9"
     generateImage: bool = False
     generateVideo: bool = False
@@ -51,7 +52,7 @@ async def generate_content_plan(req: ContentPlanRequest) -> dict:
     media_sections = []
     if req.generateImage:
         media_sections.append(
-            '"imagePrompt": "a detailed photorealistic image prompt describing a REAL physical scene — real objects on a real desk or in a real office, natural window light, bright white or cream background, warm tones, looks like an editorial stock photo from Unsplash shot with a Canon 5D — NEVER describe digital interfaces, abstract shapes, data streams, glowing elements, neon, dark backgrounds, or anything that looks like computer-generated art",'
+            '"imagePrompt": "a style-aware image prompt that strictly follows Visual Style input and use case context",'
             '\n  "imageTitle": "short image title",'
             '\n  "altText": "accessibility alt text for the image",'
         )
@@ -64,14 +65,18 @@ async def generate_content_plan(req: ContentPlanRequest) -> dict:
     media_instructions = ""
     if req.generateImage:
         media_instructions += f"""
-- CRITICAL IMAGE PROMPT RULES (you MUST follow ALL of these):
-  1. Describe a REAL physical scene: a real desk, real office, real coffee cup, real notebook, real laptop, real plants.
-  2. ALWAYS: bright white or cream background, natural window light or soft studio light, warm inviting tones.
-  3. NEVER EVER include: dark background, black background, digital interface, abstract shapes, data streams, neon glow, holographic, gradient mesh, geometric patterns, futuristic elements, glowing accents, connection points.
-  4. The prompt must produce an image that looks like a real photograph from Unsplash or Getty Images, NOT like AI-generated digital art.
-  5. Think: editorial lifestyle photography, product flat-lay, bright office scene, professional workspace.
-  6. Even if the topic is about technology or AI, show REAL physical objects (laptop, whiteboard, team meeting) not digital abstractions.
-- Brand colors (for small accents like a mug or notebook, NOT the background): {req.brandColors or 'professional blue/white'}.
+- Visual Style selected by user: {req.visualStyle}
+- If visualStyle is "corporate" or "professional_business":
+  - Generate photorealistic editorial image prompts (real office/people/objects, natural light, stock-photo quality).
+- If visualStyle is "archiect", "futuristic_ai", "modern_saas", "infographic", or "linkedin_brand":
+  - Generate attractive stylized digital-art prompts (animated/illustrated look is allowed).
+  - Prefer technical motifs relevant to the topic: UI flows, network nodes, code overlays, system diagrams, product screens, motion-like composition.
+  - When topic/use-case fits, include campaign and analytics motifs: performance dashboard cards, KPI charts, funnel stages, attribution flow, and modern data-dashboard layouts.
+  - Use cinematic contrast, clean composition, and brand-aligned accent colors.
+  - Do NOT force desk-only stock-photography language.
+- If visualStyle is "minimal":
+  - Generate minimal clean composition with strong focal subject and subtle technical context.
+- Brand colors for accents and composition: {req.brandColors or 'professional blue/white'}.
 - Aspect ratio: {req.aspectRatio}."""
     if req.generateVideo:
         media_instructions += f"""
@@ -94,6 +99,7 @@ Topic: {req.topic}
 Target Audience: {req.audience}
 Tone: {req.tone}
 Content Type: {req.contentType}
+Visual Style: {req.visualStyle}
 Generate Image: {req.generateImage}
 Generate Video: {req.generateVideo}
 
@@ -111,34 +117,22 @@ Return ONLY strict JSON (no markdown fences, no explanation):
 Rules:
 - Return strict JSON only.
 - Do not include markdown outside JSON.
-- Keep LinkedIn post professional and human.
+- Keep LinkedIn post professional, executive-friendly, and highly informative.
 - Avoid generic AI buzzwords like "revolutionize", "game-changer", "unlock".
 - Avoid stale year references. Current year is {date.today().year}. Today is {date.today().strftime("%B %d, %Y")}.
 - Post should tell a story, share an insight, or provoke thought.
+- Open with a strong single-line hook.
+- Structure the post into 4-6 short paragraphs with blank lines between paragraphs.
+- Include one compact bullet list (2-4 bullets) using "•" for scanability.
+- Include 1-2 important phrases wrapped in **bold** for emphasis.
 - 3-7 hashtags, relevant to the topic.
 - CTA should drive comments.{media_instructions}"""
 
     try:
-        from google import genai
-
-        client = genai.Client(
-            vertexai=True,
-            project=settings.gcp_project_id,
-            location="us-central1",
-        )
-
-        if not (settings.vertex_ai_model or "").strip():
-            raise HTTPException(status_code=400, detail="AI model not configured in environment")
-        response = client.models.generate_content(
-            model=settings.vertex_ai_model,
-            contents=["Return valid JSON only. No markdown fences.", prompt],
-        )
-
-        raw = (response.text or "{}").strip()
-        if raw.startswith("```"):
-            raw = raw.split("```json")[-1].split("```")[0].strip() if "```json" in raw else raw.replace("```", "").strip()
-
-        result = json.loads(raw)
+        svc = VertexService()
+        result = await svc.generate_json(prompt)
+        if not isinstance(result, dict):
+            raise HTTPException(status_code=500, detail="Content plan generation failed: invalid AI JSON response")
         return result
 
     except json.JSONDecodeError as exc:
@@ -152,15 +146,9 @@ async def get_providers() -> dict:
     """Return available image and video provider options."""
     return {
         "imageProviders": [
-            {"value": "google-imagen-3", "label": "Google Imagen 3"},
-            {"value": "google-imagen-4", "label": "Google Imagen 4"},
-            {"value": "google-imagen-4-fast", "label": "Google Imagen 4 Fast"},
-            {"value": "google-imagen-4-ultra", "label": "Google Imagen 4 Ultra"},
+            {"value": "xai-image", "label": "xAI Image Generation"},
         ],
         "videoProviders": [
-            {"value": "google-veo", "label": "Google Veo"},
-            {"value": "google-veo-lite", "label": "Google Veo Lite"},
+            {"value": "xai-video", "label": "xAI Video Generation"},
         ],
     }
-    if settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai or (settings.ai_provider or "").lower() == "xai":
-        raise HTTPException(status_code=400, detail="Content plan via Vertex is disabled in local xAI mode")

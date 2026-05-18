@@ -21,6 +21,8 @@ def get_month_usage_summary() -> dict:
     budget = float(settings.xai_monthly_budget_usd or 0)
     soft = float(settings.xai_soft_stop_usd or 0)
     hard = float(settings.xai_hard_stop_usd or 0)
+    absolute_hard = float(settings.xai_absolute_hard_stop_usd or 0)
+    auto_reload_enabled = bool(settings.xai_auto_reload_enabled)
     used = float(summary.get("used_usd", 0))
     remaining = max(0.0, budget - used)
     avg_cost = (used / summary["request_count"]) if summary.get("request_count") else 0.0
@@ -30,9 +32,20 @@ def get_month_usage_summary() -> dict:
             "monthly_budget_usd": budget,
             "soft_stop_usd": soft,
             "hard_stop_usd": hard,
+            "absolute_hard_stop_usd": absolute_hard,
+            "auto_reload_enabled": auto_reload_enabled,
+            "auto_reload_threshold_usd": float(settings.xai_auto_reload_threshold_usd or 0),
+            "auto_reload_amount_usd": float(settings.xai_auto_reload_amount_usd or 0),
             "remaining_usd": remaining,
             "estimated_requests_left": est_left,
-            "status": "hard_stop" if used >= hard and hard > 0 else ("soft_stop" if used >= soft and soft > 0 else "ok"),
+            "status": (
+                "hard_stop"
+                if (
+                    (absolute_hard > 0 and used >= absolute_hard)
+                    or (not auto_reload_enabled and hard > 0 and used >= hard)
+                )
+                else ("soft_stop" if used >= soft and soft > 0 else "ok")
+            ),
         }
     )
     return summary
@@ -41,8 +54,14 @@ def get_month_usage_summary() -> dict:
 def assert_budget_allows_request() -> dict:
     summary = get_month_usage_summary()
     hard = float(summary.get("hard_stop_usd") or 0)
+    absolute_hard = float(summary.get("absolute_hard_stop_usd") or 0)
+    auto_reload_enabled = bool(summary.get("auto_reload_enabled"))
     used = float(summary.get("used_usd") or 0)
-    if hard > 0 and used >= hard:
+    if absolute_hard > 0 and used >= absolute_hard:
+        raise XAIBudgetError(
+            f"xAI absolute hard stop reached: used ${used:.4f} >= ${absolute_hard:.4f}. Increase XAI_ABSOLUTE_HARD_STOP_USD to continue."
+        )
+    if not auto_reload_enabled and hard > 0 and used >= hard:
         raise XAIBudgetError(
             f"xAI monthly hard stop reached: used ${used:.4f} >= ${hard:.4f}. Increase XAI_HARD_STOP_USD to continue."
         )

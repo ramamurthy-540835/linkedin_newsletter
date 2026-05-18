@@ -1,4 +1,5 @@
 import { getMediaFileUrl } from '@/lib/api';
+import React from 'react';
 
 function MediaSkeleton({ label }) {
   return (
@@ -25,6 +26,16 @@ export default function LinkedInPreview({
   imageLoading,
   videoLoading,
 }) {
+  const renderPostText = (text) => {
+    const src = text || 'Your post will appear here...';
+    const parts = src.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) => {
+      if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+        return <strong key={idx}>{part.slice(2, -2)}</strong>;
+      }
+      return <React.Fragment key={idx}>{part}</React.Fragment>;
+    });
+  };
   const handle = profileUrl ? profileUrl.replace(/https?:\/\/(www\.)?linkedin\.com\/in\/?/i, '').replace(/\/$/, '') : 'Your Name';
   const avatarChar = profileUrl ? handle.charAt(0).toUpperCase() : '?';
   const charCount = (content || '').length;
@@ -61,7 +72,7 @@ export default function LinkedInPreview({
         )}
 
         {title && <div className="font-semibold text-sm mb-2 text-gray-900">{title}</div>}
-        <div className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">{content || 'Your post will appear here...'}</div>
+        <div className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">{renderPostText(content)}</div>
 
         {hashtags.length > 0 && <div className="mt-3 text-linkedin-600 text-sm font-medium">{hashtags.join(' ')}</div>}
         {cta && <div className="mt-3 font-medium text-sm text-gray-900">{cta}</div>}
