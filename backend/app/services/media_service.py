@@ -39,13 +39,16 @@ def _get_client():
 # ── Style presets ─────────────────────────────────────────────────────────────
 
 STYLE_PRESETS = {
-    "corporate": "Clean bright white background, natural studio lighting, real office objects and real professional workspace elements, photorealistic, soft natural shadows, warm neutral tones, high-end editorial photography look",
-    "modern_saas": "Bright clean white or very light gray background, real modern desk setup with laptop and coffee, natural window light, photorealistic product photography aesthetic, warm tones, no neon or gradients",
-    "infographic": "Clean white background, real printed charts and documents on a real desk, natural overhead lighting, flat lay photography style, bright and airy, photorealistic office still life",
-    "futuristic_ai": "Bright modern lab or office with large windows and natural light, real technology equipment, clean white walls, photorealistic contemporary workspace, warm daylight, no dark backgrounds or glowing effects",
-    "professional_business": "Real professional office environment with natural sunlight, warm wood and white decor, photorealistic editorial photography, bright and inviting, real people in business attire if applicable",
-    "minimal": "Pure white background, single real physical object as hero element, natural soft studio lighting, editorial product photography style, lots of white space, photorealistic and clean",
-    "linkedin_brand": "Bright professional headshot or workspace setting, natural daylight, clean white or light neutral background, warm skin tones, photorealistic portrait or lifestyle photography, approachable and authentic",
+    "corporate": "Clean white background (#FFFFFF). Navy (#003366) and slate grey (#4A5568) for structural elements, labels, and borders. Gold (#C9A84C) as a subtle accent on key nodes only. Flat 2D diagram style — no isometric, no 3D. Board-room ready: clean grid layout, enterprise data flow, executive KPI panels, cloud platform tiers, governance layers. No glow, no gradients, no shadows, no people, no lifestyle objects, no logos, no watermarks, no text overlays.",
+    "modern_saas": "Modern SaaS platform scene with dashboard modules, workflow cards, product analytics layers, cloud integration lines, crisp UI-inspired composition, premium enterprise social visual.",
+    "infographic": "Dense but organized technical infographic with labeled system blocks, data pipelines, chart widgets, orchestration arrows, and clear hierarchy for LinkedIn readability.",
+    "futuristic_ai": "Dark navy background (#0A0F1E). Electric blue (#00D4FF) and violet (#7B2FFF) accent colors for connector lines, node borders, and flow arrows. Soft glow on key nodes only — no excessive neon. Flat isometric illustration with subtle depth. Enterprise AI architecture scene: LLM orchestration layers, vector database nodes, agent reasoning loops, real-time inference pipelines, and observability dashboards. Clean geometric layout — no clutter, no lifestyle objects, no people, no logos, no watermarks, no text overlays.",
+    "professional_business": "Boardroom-grade enterprise systems visual with architecture clarity, observability metrics, decision pipelines, and polished executive presentation quality.",
+    "minimal": "Minimal enterprise architecture composition with a strong central system map, restrained palette, clean whitespace, and precise technical emphasis.",
+    "linkedin_brand": "White background (#FFFFFF). LinkedIn blue (#0A66C2) for all connector lines, icons, node borders, and highlights. Dark charcoal (#1D1D1D) for labels and text elements. Clean flat illustration style optimized for LinkedIn feed — high contrast, minimal detail, bold shapes. Scene shows a professional thought leadership concept: knowledge graph, insight flow, or platform architecture. No people, no faces, no logos, no watermarks, no text overlays, no glow, no dark background.",
+    "archiect": "IBM Carbon design language. White background (#FFFFFF). Black labels and titles (#161616). IBM blue (#0F62FE) for all connector lines, arrows, node borders, and accent elements. Flat isometric illustration style. No dark background, no neon glow, no gradients, no blur, no shadows. Clean whitepaper diagram aesthetic. Enterprise architecture scene showing interconnected AI agent workflows, cloud infrastructure nodes, orchestration layers, API integration flow lines, observability metrics panels, and KPI dashboards. Architecture dominates the full frame. No people, no lifestyle objects, no logos, no watermarks, no text overlays.",
+    "technical_diagram": "Technical diagram mode with explicit component boundaries, connectors, directional arrows, integration points, control planes, and observability metrics.",
+    "executive_dashboard": "Executive dashboard mode with KPI cards, trend charts, anomaly signals, SLA/latency widgets, and decision-support overlays in a premium enterprise layout.",
 }
 
 ASPECT_RATIOS = {
@@ -81,47 +84,40 @@ def _image_prompt(title: str, content: str) -> str:
 
 
 def _sanitize_prompt(prompt: str) -> str:
-    """Strip dark-background and AI-art instructions that Gemini may inject."""
     import re
-    removals = [
-        r"(?i)dark[\s,]*(?:subtle\s+)?background[^.]*[.]?",
-        r"(?i)against\s+a\s+dark[^.]*[.]?",
-        r"(?i)black\s+background[^.]*[.]?",
-        r"(?i)#0[Ff]172[Aa][^.]*[.]?",
-        r"(?i)neon[^.]*[.]?",
-        r"(?i)holographic[^.]*[.]?",
-        r"(?i)glowing\s+(?:accents|effects|elements|connection\s+points)[^.]*[.]?",
-        r"(?i)gradient\s+mesh[^.]*[.]?",
-        r"(?i)abstract\s+(?:elements|shapes|geometric)[^.]*[.]?",
-        r"(?i)data\s+streams[^.]*[.]?",
-        r"(?i)neural\s+network\s+patterns[^.]*[.]?",
-        r"(?i)digital\s+interface[^.]*[.]?",
-        r"(?i)futuristic[^.]*[.]?",
-    ]
-    cleaned = prompt
-    for pattern in removals:
-        cleaned = re.sub(pattern, "", cleaned)
-    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    cleaned = re.sub(r"\s{2,}", " ", (prompt or "")).strip()
     return cleaned
 
 
 def _styled_image_prompt(prompt: str, style: str, brand_colors: str = "") -> str:
     sanitized = _sanitize_prompt(prompt)
     style_desc = STYLE_PRESETS.get(style, STYLE_PRESETS["corporate"])
+    brand_colors_raw = (brand_colors or "").lower()
+    enforce_white_bg = ("#ffffff" in brand_colors_raw) or ("#fff" in brand_colors_raw) or ("white" in brand_colors_raw)
     parts = [
-        f"Photorealistic photograph taken with a professional DSLR camera. {sanitized}.",
+        f"{sanitized}.",
         style_desc,
-        "MANDATORY: Bright white or very light background. Abundant natural soft lighting.",
-        "Real physical scene with real objects, real textures, real materials.",
-        "Looks indistinguishable from a real professional stock photograph.",
-        "FORBIDDEN: dark background, black background, neon glow, abstract digital art, holographic, gradient, illustration style.",
+        "Expand beyond a single screen into a full immersive enterprise systems architecture scene.",
+        "Include interconnected AI agent workflows, BigQuery-style data warehouse nodes, Python orchestration panels, cloud infrastructure components, streaming analytics, API integration flow lines, orchestration arrows, observability metrics, and KPI widgets.",
+        "FORBIDDEN: coffee cup, notebook, keyboard, mouse, desk clutter, chair edges, lifestyle/home office objects, room/window background elements.",
+        "Architecture must dominate the full frame with rich technical depth.",
         "No text overlays, no watermarks, no logos.",
     ]
     if brand_colors:
         light_colors = [c.strip() for c in brand_colors.split(",") if not _is_dark_color(c.strip())]
         if light_colors:
             parts.insert(2, f"Subtle accent colors: {', '.join(light_colors)}.")
-    return " ".join(parts)
+    final_prompt = " ".join(parts)
+    if enforce_white_bg:
+        final_prompt = (
+            "MANDATORY: Pure white background (#FFFFFF). "
+            "No dark background, no black background, no navy background, "
+            "no gradient background. The background must be completely white. "
+            + final_prompt
+            + " CRITICAL OVERRIDE: Background is white (#FFFFFF). "
+            "Reject any dark or colored background."
+        )
+    return final_prompt
 
 
 def _is_dark_color(hex_color: str) -> bool:
