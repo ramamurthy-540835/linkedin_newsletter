@@ -1354,25 +1354,23 @@ function MyConnections({ onToast }) {
             <div className="p-4 border border-gray-200 rounded-2xl bg-white space-y-2">
               <div className="text-sm font-semibold text-gray-900">Connect your LinkedIn network</div>
               <div className="text-xs text-gray-500">Use LinkedIn session or open LinkedIn directly to manage your network.</div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <button onClick={() => window.open('https://www.linkedin.com/mynetwork/', '_blank')} className="h-auto md:h-[72px] rounded-2xl px-6 py-4 inline-flex items-center justify-center text-center text-[16px] font-semibold leading-tight text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-linkedin-600 to-studio-600 hover:from-linkedin-700 hover:to-studio-700">
-                  <div className="flex items-center justify-center gap-3">
-                    <IconGlobe className="w-5 h-5 shrink-0" />
-                    <span className="whitespace-nowrap">Open My Network</span>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full pt-2">
+                <button onClick={() => window.open('https://www.linkedin.com/mynetwork/', '_blank')} className="w-full min-h-[72px] h-full rounded-2xl px-4 py-3 inline-flex items-center justify-start text-left text-sm md:text-base font-semibold leading-snug text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-linkedin-600 to-studio-600 hover:from-linkedin-700 hover:to-studio-700">
+                  <div className="w-full flex items-center gap-2.5">
+                    <IconGlobe className="w-4 h-4 shrink-0" />
+                    <span className="block break-words">Open My Network</span>
                   </div>
                 </button>
-                <button onClick={autoConnectSession} disabled={sessionAutoConnecting} className="h-auto md:h-[72px] rounded-2xl px-6 py-4 inline-flex items-center justify-center text-center text-[16px] font-semibold leading-tight text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-studio-600 to-linkedin-600 hover:from-studio-700 hover:to-linkedin-700 disabled:opacity-50">
-                  <div className="flex items-center justify-center gap-3">
-                    <IconLinkedIn className="w-5 h-5 shrink-0" />
-                    <span className="whitespace-normal md:whitespace-nowrap">{
-                      sessionAutoConnecting ? 'Opening Browser...' : 'Connect LinkedIn Session'
-                    }</span>
+                <button onClick={autoConnectSession} disabled={sessionAutoConnecting} className="w-full min-h-[72px] h-full rounded-2xl px-4 py-3 inline-flex items-center justify-start text-left text-sm md:text-base font-semibold leading-snug text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-studio-600 to-linkedin-600 hover:from-studio-700 hover:to-linkedin-700 disabled:opacity-50">
+                  <div className="w-full flex items-center gap-2.5">
+                    <IconLinkedIn className="w-4 h-4 shrink-0" />
+                    <span className="block break-words">{sessionAutoConnecting ? 'Opening Browser...' : 'Connect LinkedIn Session'}</span>
                   </div>
                 </button>
-                <button onClick={() => handleTabChange('manual')} className="h-auto md:h-[72px] rounded-2xl px-6 py-4 inline-flex items-center justify-center text-center text-[16px] font-semibold leading-tight text-gray-700 bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
-                  <div className="flex items-center justify-center gap-3">
-                    <IconSearch className="w-5 h-5 shrink-0" />
-                    <span className="whitespace-nowrap">Manual Search</span>
+                <button onClick={() => handleTabChange('manual')} className="w-full min-h-[72px] h-full rounded-2xl px-4 py-3 inline-flex items-center justify-start text-left text-sm md:text-base font-semibold leading-snug text-gray-700 bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
+                  <div className="w-full flex items-center gap-2.5">
+                    <IconSearch className="w-4 h-4 shrink-0" />
+                    <span className="block break-words">Manual Search</span>
                   </div>
                 </button>
               </div>

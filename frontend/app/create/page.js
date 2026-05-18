@@ -73,6 +73,8 @@ const VISUAL_STYLES = [
   { value: 'modern_saas', label: 'Modern SaaS' },
   { value: 'infographic', label: 'Infographic' },
   { value: 'futuristic_ai', label: 'Futuristic AI' },
+  { value: 'technical_diagram', label: 'Technical Diagram' },
+  { value: 'executive_dashboard', label: 'Executive Dashboard' },
   { value: 'professional_business', label: 'Professional Business' },
   { value: 'minimal', label: 'Minimal' },
   { value: 'linkedin_brand', label: 'LinkedIn Personal Brand' },
@@ -99,6 +101,34 @@ const normalizeVisualStyle = (value, topicValue = '') => {
   const seed = `${topicValue || ''}`.toLowerCase();
   if (/(ai|codex|openai|agent|llm|cloud|architecture|system|platform|api)/.test(seed)) return 'futuristic_ai';
   return 'modern_saas';
+};
+
+const forceTechVisualStyle = (currentStyle, topicValue = '') => {
+  const seed = `${topicValue || ''}`.toLowerCase();
+  const isTech = /(ai|codex|openai|agent|llm|cloud|architecture|system|platform|api)/.test(seed);
+  if (!isTech) return currentStyle;
+  const current = String(currentStyle || '').trim().toLowerCase();
+  if (!current || current === 'corporate') return 'futuristic_ai';
+  return currentStyle;
+};
+
+const aspectContext = (ar) => (
+  ar === '16:9' ? 'optimized for LinkedIn 16:9' :
+  ar === '1:1' ? 'optimized for LinkedIn 1:1' :
+  'optimized for LinkedIn vertical social'
+);
+
+const visualStyleGuidance = (style) => {
+  const s = String(style || '').trim().toLowerCase();
+  if (s === 'corporate') return 'Corporate executive design, polished office-grade presentation, clean and trustworthy.';
+  if (s === 'archiect') return 'Architecture & Systems style with distributed components, data flows, cloud nodes, and orchestration layers.';
+  if (s === 'futuristic_ai') return 'Futuristic AI style with advanced interfaces, intelligent agents, signal pathways, and high-tech visual energy.';
+  if (s === 'minimal') return 'Minimal style, reduced clutter, strong focal element, restrained palette, premium whitespace.';
+  if (s === 'technical_diagram') return 'Technical diagram style with labeled modules, arrows, integration paths, and precise system relationships.';
+  if (s === 'executive_dashboard') return 'Executive dashboard style with KPI panels, trend charts, operational metrics, and boardroom-ready clarity.';
+  if (s === 'modern_saas') return 'Modern SaaS product visual language with sleek UI cards, workflow panels, and conversion-focused composition.';
+  if (s === 'infographic') return 'Infographic style with structured sections, visual hierarchy, and concise insight framing.';
+  return 'Professional LinkedIn visual style tuned for enterprise technology audiences.';
 };
 
 const ASPECT_RATIOS = [
@@ -349,6 +379,7 @@ Return ONLY valid JSON:
     }
     if (topicParam) {
       setTopic(topicParam);
+      setVisualStyle((prev) => forceTechVisualStyle(prev, topicParam));
       if (hookParam) setSuggestedTitle(hookParam);
       if (prefillParam && !hasPrefilledRef.current) {
         hasPrefilledRef.current = true;
@@ -366,7 +397,7 @@ Return ONLY valid JSON:
             if (!keywords?.trim() && Array.isArray(result?.keywords)) setKeywords(result.keywords.join(', '));
             if (!writingStyle?.trim() && result?.writingStyle) setWritingStyle(result.writingStyle);
             if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && result?.visualStyle) {
-              setVisualStyle(normalizeVisualStyle(result.visualStyle, topicParam));
+              setVisualStyle(forceTechVisualStyle(normalizeVisualStyle(result.visualStyle, topicParam), topicParam));
             }
             if (!brandColors?.trim() && Array.isArray(result?.brandColors)) setBrandColors(result.brandColors.join(', '));
             if ((!hashtags || hashtags.length === 0) && Array.isArray(result?.hashtags)) setHashtags(result.hashtags);
@@ -387,7 +418,7 @@ Return ONLY valid JSON:
             if (!keywords?.trim() && Array.isArray(fallback?.keywords)) setKeywords(fallback.keywords.join(', '));
             if (!writingStyle?.trim() && fallback?.writingStyle) setWritingStyle(fallback.writingStyle);
             if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && fallback?.visualStyle) {
-              setVisualStyle(normalizeVisualStyle(fallback.visualStyle, topicParam));
+              setVisualStyle(forceTechVisualStyle(normalizeVisualStyle(fallback.visualStyle, topicParam), topicParam));
             }
             if (!brandColors?.trim() && Array.isArray(fallback?.brandColors)) setBrandColors(fallback.brandColors.join(', '));
             setError(e?.message || 'AI metadata prefill failed');
@@ -444,7 +475,7 @@ Return ONLY valid JSON:
         if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
         if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
         if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && pkg.visualStyle) {
-          setVisualStyle(normalizeVisualStyle(pkg.visualStyle, topic));
+          setVisualStyle(forceTechVisualStyle(normalizeVisualStyle(pkg.visualStyle, topic), topic));
         }
         if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
         if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
@@ -539,7 +570,7 @@ Rules:
       if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
       if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
       if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && pkg.visualStyle) {
-        setVisualStyle(normalizeVisualStyle(pkg.visualStyle, topic));
+        setVisualStyle(forceTechVisualStyle(normalizeVisualStyle(pkg.visualStyle, topic), topic));
       }
       if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
       if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
@@ -582,7 +613,16 @@ Rules:
       stepIdx++;
 
       if (wantImage) {
-        const imgPrompt = plan.imagePrompt || imagePrompt;
+        let imgPrompt = plan.imagePrompt || imagePrompt;
+        if (!String(imgPrompt || '').trim()) {
+          try {
+            imgPrompt = await generateLongImagePromptFromXAI();
+            setImagePrompt(imgPrompt);
+          } catch (promptErr) {
+            updateStep(stepIdx, { status: 'error', label: 'Image prompt generation failed', detail: promptErr.message });
+            stepIdx++;
+          }
+        }
         if (!imgPrompt) {
           updateStep(stepIdx, { status: 'done', label: 'Image prompt from plan' });
           stepIdx++;
@@ -674,15 +714,57 @@ Rules:
     }, 5000);
   };
 
+  const generateLongImagePromptFromXAI = async () => {
+    if (!topic.trim()) return '';
+      const prompt = `Generate a professional LinkedIn visual prompt for xAI image generation.
+Include:
+- exact business topic
+- enterprise AI architecture context
+- cloud/data platform context
+- visual composition
+- foreground elements
+- background elements
+- infographic styling
+- typography guidance
+- iconography
+- brand color hints
+- lighting/style
+- professional LinkedIn social media aesthetics
+- aspect ratio context
+
+Topic: ${topic.trim()}
+Target audience: ${audience || 'enterprise technology leaders and practitioners'}
+Tone: ${tone || 'professional'}
+Visual style: ${visualStyle}
+Style guidance: ${visualStyleGuidance(visualStyle)}
+Brand colors: ${brandColors || '#0A66C2, #FFFFFF'}
+Aspect ratio: ${aspectRatio} (${aspectContext(aspectRatio)})
+
+Output requirements:
+- Return plain text only, no JSON and no markdown fences.
+- Minimum 120 words, target 150-250 words.
+- Make it specific and enterprise-grade, not generic.
+- Mention composition and layout details clearly.
+- Ensure social-media readiness for LinkedIn.
+- End with: "${aspectContext(aspectRatio)}".`;
+    const out = await aiGenerate({
+      system: 'You are a senior enterprise visual prompt engineer. Return only the final long-form image prompt text.',
+      prompt,
+    });
+    if (out?.provider && out.provider !== 'xai') {
+      throw new Error('xAI-only prompt generation required for image prompts. Configure xAI and retry.');
+    }
+    const generated = String(out?.text || '').trim();
+    if (!generated) throw new Error('xAI returned an empty image prompt.');
+    return generated;
+  };
+
   const generateImagePromptOnly = async () => {
     if (!topic.trim()) return;
     setError('');
     try {
-      const plan = await generateContentPlan({
-        topic: topic.trim(), audience, tone, contentType: 'text', brandColors, visualStyle, aspectRatio,
-        generateImage: true, generateVideo: false, imageProvider, videoProvider,
-      });
-      if (plan.imagePrompt) setImagePrompt(plan.imagePrompt);
+      const generated = await generateLongImagePromptFromXAI();
+      setImagePrompt(generated);
     } catch (e) {
       setError(e.message);
     }

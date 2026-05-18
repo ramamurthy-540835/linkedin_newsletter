@@ -57,6 +57,7 @@ class Settings(BaseSettings):
     credentials_encryption_key: str = ""
 
     frontend_url: str = "http://localhost:3000"
+    emphasis_mode: str = ""
 
     model_config = SettingsConfigDict(
         env_file=(str(BACKEND_ENV), str(ROOT_ENV_LOCAL)),

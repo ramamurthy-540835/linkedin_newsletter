@@ -1,0 +1,5313 @@
+{
+  "run_id": "20260514T100353.083494Z",
+  "started_at": "2026-05-14T10:03:53.083466+00:00",
+  "target_provider": "google",
+  "structured_source_used": true,
+  "docs_source_used": false,
+  "fallback_used": false,
+  "semantic_enrichment": 43,
+  "normalized_models": [
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash",
+      "display_name": "gemini-2.5-flash",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242129+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242148+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242157+00:00",
+          "verified_at": "2026-05-14T10:03:53.242164+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886605+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-pro",
+      "display_name": "gemini-2.5-pro",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242203+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242210+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242216+00:00",
+          "verified_at": "2026-05-14T10:03:53.242222+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886627+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash",
+      "display_name": "gemini-2.0-flash",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242244+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242251+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242258+00:00",
+          "verified_at": "2026-05-14T10:03:53.242264+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886637+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash-001",
+      "display_name": "gemini-2.0-flash-001",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242280+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242287+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242293+00:00",
+          "verified_at": "2026-05-14T10:03:53.242299+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886644+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash-lite-001",
+      "display_name": "gemini-2.0-flash-lite-001",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242315+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242321+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242327+00:00",
+          "verified_at": "2026-05-14T10:03:53.242332+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886651+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash-lite",
+      "display_name": "gemini-2.0-flash-lite",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242370+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242378+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242384+00:00",
+          "verified_at": "2026-05-14T10:03:53.242389+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886658+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-preview-tts",
+      "display_name": "gemini-2.5-flash-preview-tts",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242405+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242411+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242417+00:00",
+          "verified_at": "2026-05-14T10:03:53.242423+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886665+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-pro-preview-tts",
+      "display_name": "gemini-2.5-pro-preview-tts",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242444+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242456+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242462+00:00",
+          "verified_at": "2026-05-14T10:03:53.242468+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886672+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemma-4-26b-a4b-it",
+      "display_name": "gemma-4-26b-a4b-it",
+      "family": "unknown",
+      "version": "gemma-4-26b-a4b-it",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242490+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242497+00:00",
+      "version_history": [
+        {
+          "version": "gemma-4-26b-a4b-it",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242503+00:00",
+          "verified_at": "2026-05-14T10:03:53.242510+00:00"
+        }
+      ],
+      "model_purpose": "unknown model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886688+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemma-4-31b-it",
+      "display_name": "gemma-4-31b-it",
+      "family": "unknown",
+      "version": "gemma-4-31b-it",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242529+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242535+00:00",
+      "version_history": [
+        {
+          "version": "gemma-4-31b-it",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242546+00:00",
+          "verified_at": "2026-05-14T10:03:53.242552+00:00"
+        }
+      ],
+      "model_purpose": "unknown model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886695+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-flash-latest",
+      "display_name": "gemini-flash-latest",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242570+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242576+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242582+00:00",
+          "verified_at": "2026-05-14T10:03:53.242588+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886702+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-flash-lite-latest",
+      "display_name": "gemini-flash-lite-latest",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242603+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242609+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242614+00:00",
+          "verified_at": "2026-05-14T10:03:53.242620+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886709+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-pro-latest",
+      "display_name": "gemini-pro-latest",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242633+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242640+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242645+00:00",
+          "verified_at": "2026-05-14T10:03:53.242650+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886716+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-lite",
+      "display_name": "gemini-2.5-flash-lite",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242670+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242677+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242683+00:00",
+          "verified_at": "2026-05-14T10:03:53.242688+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886723+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-image",
+      "display_name": "gemini-2.5-flash-image",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242709+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242715+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242720+00:00",
+          "verified_at": "2026-05-14T10:03:53.242726+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886729+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3-pro-preview",
+      "display_name": "gemini-3-pro-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242741+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242747+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242753+00:00",
+          "verified_at": "2026-05-14T10:03:53.242758+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886735+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3-flash-preview",
+      "display_name": "gemini-3-flash-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242774+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242780+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242785+00:00",
+          "verified_at": "2026-05-14T10:03:53.242791+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886741+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-pro-preview",
+      "display_name": "gemini-3.1-pro-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242806+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242812+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242817+00:00",
+          "verified_at": "2026-05-14T10:03:53.242823+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886748+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-pro-preview-customtools",
+      "display_name": "gemini-3.1-pro-preview-customtools",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242838+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242844+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242850+00:00",
+          "verified_at": "2026-05-14T10:03:53.242861+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886754+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-lite-preview",
+      "display_name": "gemini-3.1-flash-lite-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242876+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242883+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242893+00:00",
+          "verified_at": "2026-05-14T10:03:53.242899+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886760+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-lite",
+      "display_name": "gemini-3.1-flash-lite",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242913+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242919+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242925+00:00",
+          "verified_at": "2026-05-14T10:03:53.242930+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886766+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3-pro-image-preview",
+      "display_name": "gemini-3-pro-image-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242944+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242950+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242956+00:00",
+          "verified_at": "2026-05-14T10:03:53.242961+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886773+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-image-preview",
+      "display_name": "gemini-3.1-flash-image-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242975+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242981+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242987+00:00",
+          "verified_at": "2026-05-14T10:03:53.242992+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886779+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-tts-preview",
+      "display_name": "gemini-3.1-flash-tts-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243013+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243020+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243025+00:00",
+          "verified_at": "2026-05-14T10:03:53.243031+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886785+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-robotics-er-1.5-preview",
+      "display_name": "gemini-robotics-er-1.5-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243045+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243051+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243056+00:00",
+          "verified_at": "2026-05-14T10:03:53.243062+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886791+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-robotics-er-1.6-preview",
+      "display_name": "gemini-robotics-er-1.6-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243076+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243081+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243087+00:00",
+          "verified_at": "2026-05-14T10:03:53.243092+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886797+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-computer-use-preview-10-2025",
+      "display_name": "gemini-2.5-computer-use-preview-10-2025",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243106+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243112+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243118+00:00",
+          "verified_at": "2026-05-14T10:03:53.243123+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886803+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-embedding-001",
+      "display_name": "gemini-embedding-001",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243143+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243149+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243155+00:00",
+          "verified_at": "2026-05-14T10:03:53.243160+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886809+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-embedding-2-preview",
+      "display_name": "gemini-embedding-2-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243174+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243181+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243186+00:00",
+          "verified_at": "2026-05-14T10:03:53.243192+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886815+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-embedding-2",
+      "display_name": "gemini-embedding-2",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243212+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243218+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243224+00:00",
+          "verified_at": "2026-05-14T10:03:53.243229+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886821+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "imagen-4.0-generate-001",
+      "display_name": "imagen-4.0-generate-001",
+      "family": "imagen",
+      "version": "1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243253+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243260+00:00",
+      "version_history": [
+        {
+          "version": "1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243266+00:00",
+          "verified_at": "2026-05-14T10:03:53.243272+00:00"
+        }
+      ],
+      "model_purpose": "imagen model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886827+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "imagen-4.0-ultra-generate-001",
+      "display_name": "imagen-4.0-ultra-generate-001",
+      "family": "imagen",
+      "version": "1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243288+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243295+00:00",
+      "version_history": [
+        {
+          "version": "1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243301+00:00",
+          "verified_at": "2026-05-14T10:03:53.243307+00:00"
+        }
+      ],
+      "model_purpose": "imagen model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886833+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "imagen-4.0-fast-generate-001",
+      "display_name": "imagen-4.0-fast-generate-001",
+      "family": "imagen",
+      "version": "1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243322+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243328+00:00",
+      "version_history": [
+        {
+          "version": "1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243335+00:00",
+          "verified_at": "2026-05-14T10:03:53.243341+00:00"
+        }
+      ],
+      "model_purpose": "imagen model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886840+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-2.0-generate-001",
+      "display_name": "veo-2.0-generate-001",
+      "family": "veo",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243403+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243410+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243416+00:00",
+          "verified_at": "2026-05-14T10:03:53.243422+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886846+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.0-generate-001",
+      "display_name": "veo-3.0-generate-001",
+      "family": "veo",
+      "version": "3.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243440+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243447+00:00",
+      "version_history": [
+        {
+          "version": "3.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243453+00:00",
+          "verified_at": "2026-05-14T10:03:53.243459+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886852+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.0-fast-generate-001",
+      "display_name": "veo-3.0-fast-generate-001",
+      "family": "veo",
+      "version": "3.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243476+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243483+00:00",
+      "version_history": [
+        {
+          "version": "3.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243489+00:00",
+          "verified_at": "2026-05-14T10:03:53.243495+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886857+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.1-generate-preview",
+      "display_name": "veo-3.1-generate-preview",
+      "family": "veo",
+      "version": "3.1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243512+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243518+00:00",
+      "version_history": [
+        {
+          "version": "3.1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243524+00:00",
+          "verified_at": "2026-05-14T10:03:53.243530+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886864+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.1-fast-generate-preview",
+      "display_name": "veo-3.1-fast-generate-preview",
+      "family": "veo",
+      "version": "3.1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243545+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243552+00:00",
+      "version_history": [
+        {
+          "version": "3.1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243557+00:00",
+          "verified_at": "2026-05-14T10:03:53.243563+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886870+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.1-lite-generate-preview",
+      "display_name": "veo-3.1-lite-generate-preview",
+      "family": "veo",
+      "version": "3.1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243577+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243583+00:00",
+      "version_history": [
+        {
+          "version": "3.1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243589+00:00",
+          "verified_at": "2026-05-14T10:03:53.243595+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886876+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-native-audio-latest",
+      "display_name": "gemini-2.5-flash-native-audio-latest",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243609+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243615+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243621+00:00",
+          "verified_at": "2026-05-14T10:03:53.243626+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886883+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-native-audio-preview-09-2025",
+      "display_name": "gemini-2.5-flash-native-audio-preview-09-2025",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243650+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243656+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243662+00:00",
+          "verified_at": "2026-05-14T10:03:53.243667+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886889+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-native-audio-preview-12-2025",
+      "display_name": "gemini-2.5-flash-native-audio-preview-12-2025",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243680+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243703+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243710+00:00",
+          "verified_at": "2026-05-14T10:03:53.243716+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886895+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-live-preview",
+      "display_name": "gemini-3.1-flash-live-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243735+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243742+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243747+00:00",
+          "verified_at": "2026-05-14T10:03:53.243752+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886901+00:00"
+    }
+  ],
+  "enriched_models": [
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash",
+      "display_name": "gemini-2.5-flash",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242129+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242148+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242157+00:00",
+          "verified_at": "2026-05-14T10:03:53.242164+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886605+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-pro",
+      "display_name": "gemini-2.5-pro",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242203+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242210+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242216+00:00",
+          "verified_at": "2026-05-14T10:03:53.242222+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886627+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash",
+      "display_name": "gemini-2.0-flash",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242244+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242251+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242258+00:00",
+          "verified_at": "2026-05-14T10:03:53.242264+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886637+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash-001",
+      "display_name": "gemini-2.0-flash-001",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242280+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242287+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242293+00:00",
+          "verified_at": "2026-05-14T10:03:53.242299+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886644+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash-lite-001",
+      "display_name": "gemini-2.0-flash-lite-001",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242315+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242321+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242327+00:00",
+          "verified_at": "2026-05-14T10:03:53.242332+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886651+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.0-flash-lite",
+      "display_name": "gemini-2.0-flash-lite",
+      "family": "gemini-2.0",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242370+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242378+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242384+00:00",
+          "verified_at": "2026-05-14T10:03:53.242389+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.0 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886658+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-preview-tts",
+      "display_name": "gemini-2.5-flash-preview-tts",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242405+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242411+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242417+00:00",
+          "verified_at": "2026-05-14T10:03:53.242423+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886665+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-pro-preview-tts",
+      "display_name": "gemini-2.5-pro-preview-tts",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242444+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242456+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242462+00:00",
+          "verified_at": "2026-05-14T10:03:53.242468+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886672+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemma-4-26b-a4b-it",
+      "display_name": "gemma-4-26b-a4b-it",
+      "family": "unknown",
+      "version": "gemma-4-26b-a4b-it",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242490+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242497+00:00",
+      "version_history": [
+        {
+          "version": "gemma-4-26b-a4b-it",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242503+00:00",
+          "verified_at": "2026-05-14T10:03:53.242510+00:00"
+        }
+      ],
+      "model_purpose": "unknown model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886688+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemma-4-31b-it",
+      "display_name": "gemma-4-31b-it",
+      "family": "unknown",
+      "version": "gemma-4-31b-it",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242529+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242535+00:00",
+      "version_history": [
+        {
+          "version": "gemma-4-31b-it",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242546+00:00",
+          "verified_at": "2026-05-14T10:03:53.242552+00:00"
+        }
+      ],
+      "model_purpose": "unknown model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886695+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-flash-latest",
+      "display_name": "gemini-flash-latest",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242570+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242576+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242582+00:00",
+          "verified_at": "2026-05-14T10:03:53.242588+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886702+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-flash-lite-latest",
+      "display_name": "gemini-flash-lite-latest",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242603+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242609+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242614+00:00",
+          "verified_at": "2026-05-14T10:03:53.242620+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886709+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-pro-latest",
+      "display_name": "gemini-pro-latest",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242633+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242640+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242645+00:00",
+          "verified_at": "2026-05-14T10:03:53.242650+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886716+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-lite",
+      "display_name": "gemini-2.5-flash-lite",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242670+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242677+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242683+00:00",
+          "verified_at": "2026-05-14T10:03:53.242688+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886723+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-image",
+      "display_name": "gemini-2.5-flash-image",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242709+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242715+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242720+00:00",
+          "verified_at": "2026-05-14T10:03:53.242726+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886729+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3-pro-preview",
+      "display_name": "gemini-3-pro-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242741+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242747+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242753+00:00",
+          "verified_at": "2026-05-14T10:03:53.242758+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886735+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3-flash-preview",
+      "display_name": "gemini-3-flash-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242774+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242780+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242785+00:00",
+          "verified_at": "2026-05-14T10:03:53.242791+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886741+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-pro-preview",
+      "display_name": "gemini-3.1-pro-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242806+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242812+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242817+00:00",
+          "verified_at": "2026-05-14T10:03:53.242823+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886748+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-pro-preview-customtools",
+      "display_name": "gemini-3.1-pro-preview-customtools",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242838+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242844+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242850+00:00",
+          "verified_at": "2026-05-14T10:03:53.242861+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886754+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-lite-preview",
+      "display_name": "gemini-3.1-flash-lite-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242876+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242883+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242893+00:00",
+          "verified_at": "2026-05-14T10:03:53.242899+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886760+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-lite",
+      "display_name": "gemini-3.1-flash-lite",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242913+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242919+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242925+00:00",
+          "verified_at": "2026-05-14T10:03:53.242930+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886766+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3-pro-image-preview",
+      "display_name": "gemini-3-pro-image-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242944+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242950+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242956+00:00",
+          "verified_at": "2026-05-14T10:03:53.242961+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886773+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-image-preview",
+      "display_name": "gemini-3.1-flash-image-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.242975+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.242981+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.242987+00:00",
+          "verified_at": "2026-05-14T10:03:53.242992+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886779+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-tts-preview",
+      "display_name": "gemini-3.1-flash-tts-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243013+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243020+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243025+00:00",
+          "verified_at": "2026-05-14T10:03:53.243031+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886785+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-robotics-er-1.5-preview",
+      "display_name": "gemini-robotics-er-1.5-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243045+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243051+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243056+00:00",
+          "verified_at": "2026-05-14T10:03:53.243062+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886791+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-robotics-er-1.6-preview",
+      "display_name": "gemini-robotics-er-1.6-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243076+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243081+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243087+00:00",
+          "verified_at": "2026-05-14T10:03:53.243092+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886797+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-computer-use-preview-10-2025",
+      "display_name": "gemini-2.5-computer-use-preview-10-2025",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243106+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243112+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243118+00:00",
+          "verified_at": "2026-05-14T10:03:53.243123+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886803+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-embedding-001",
+      "display_name": "gemini-embedding-001",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243143+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243149+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243155+00:00",
+          "verified_at": "2026-05-14T10:03:53.243160+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886809+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-embedding-2-preview",
+      "display_name": "gemini-embedding-2-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243174+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243181+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243186+00:00",
+          "verified_at": "2026-05-14T10:03:53.243192+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886815+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-embedding-2",
+      "display_name": "gemini-embedding-2",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243212+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243218+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243224+00:00",
+          "verified_at": "2026-05-14T10:03:53.243229+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886821+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "imagen-4.0-generate-001",
+      "display_name": "imagen-4.0-generate-001",
+      "family": "imagen",
+      "version": "1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243253+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243260+00:00",
+      "version_history": [
+        {
+          "version": "1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243266+00:00",
+          "verified_at": "2026-05-14T10:03:53.243272+00:00"
+        }
+      ],
+      "model_purpose": "imagen model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886827+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "imagen-4.0-ultra-generate-001",
+      "display_name": "imagen-4.0-ultra-generate-001",
+      "family": "imagen",
+      "version": "1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243288+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243295+00:00",
+      "version_history": [
+        {
+          "version": "1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243301+00:00",
+          "verified_at": "2026-05-14T10:03:53.243307+00:00"
+        }
+      ],
+      "model_purpose": "imagen model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886833+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "imagen-4.0-fast-generate-001",
+      "display_name": "imagen-4.0-fast-generate-001",
+      "family": "imagen",
+      "version": "1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243322+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243328+00:00",
+      "version_history": [
+        {
+          "version": "1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243335+00:00",
+          "verified_at": "2026-05-14T10:03:53.243341+00:00"
+        }
+      ],
+      "model_purpose": "imagen model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886840+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-2.0-generate-001",
+      "display_name": "veo-2.0-generate-001",
+      "family": "veo",
+      "version": "2.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243403+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243410+00:00",
+      "version_history": [
+        {
+          "version": "2.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243416+00:00",
+          "verified_at": "2026-05-14T10:03:53.243422+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886846+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.0-generate-001",
+      "display_name": "veo-3.0-generate-001",
+      "family": "veo",
+      "version": "3.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243440+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243447+00:00",
+      "version_history": [
+        {
+          "version": "3.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243453+00:00",
+          "verified_at": "2026-05-14T10:03:53.243459+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886852+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.0-fast-generate-001",
+      "display_name": "veo-3.0-fast-generate-001",
+      "family": "veo",
+      "version": "3.0",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243476+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243483+00:00",
+      "version_history": [
+        {
+          "version": "3.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243489+00:00",
+          "verified_at": "2026-05-14T10:03:53.243495+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886857+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.1-generate-preview",
+      "display_name": "veo-3.1-generate-preview",
+      "family": "veo",
+      "version": "3.1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243512+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243518+00:00",
+      "version_history": [
+        {
+          "version": "3.1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243524+00:00",
+          "verified_at": "2026-05-14T10:03:53.243530+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886864+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.1-fast-generate-preview",
+      "display_name": "veo-3.1-fast-generate-preview",
+      "family": "veo",
+      "version": "3.1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243545+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243552+00:00",
+      "version_history": [
+        {
+          "version": "3.1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243557+00:00",
+          "verified_at": "2026-05-14T10:03:53.243563+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886870+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "veo-3.1-lite-generate-preview",
+      "display_name": "veo-3.1-lite-generate-preview",
+      "family": "veo",
+      "version": "3.1",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243577+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243583+00:00",
+      "version_history": [
+        {
+          "version": "3.1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243589+00:00",
+          "verified_at": "2026-05-14T10:03:53.243595+00:00"
+        }
+      ],
+      "model_purpose": "veo model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886876+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-native-audio-latest",
+      "display_name": "gemini-2.5-flash-native-audio-latest",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": true,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243609+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243615+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243621+00:00",
+          "verified_at": "2026-05-14T10:03:53.243626+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886883+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-native-audio-preview-09-2025",
+      "display_name": "gemini-2.5-flash-native-audio-preview-09-2025",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243650+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243656+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243662+00:00",
+          "verified_at": "2026-05-14T10:03:53.243667+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886889+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-2.5-flash-native-audio-preview-12-2025",
+      "display_name": "gemini-2.5-flash-native-audio-preview-12-2025",
+      "family": "gemini-2.5",
+      "version": "2.5",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243680+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243703+00:00",
+      "version_history": [
+        {
+          "version": "2.5",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243710+00:00",
+          "verified_at": "2026-05-14T10:03:53.243716+00:00"
+        }
+      ],
+      "model_purpose": "gemini-2.5 model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886895+00:00"
+    },
+    {
+      "provider": "google",
+      "model_id": "gemini-3.1-flash-live-preview",
+      "display_name": "gemini-3.1-flash-live-preview",
+      "family": "gemini",
+      "version": "1.0",
+      "release_stage": "preview",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+      "source_domain": "generativelanguage.googleapis.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:03:53.243735+00:00",
+      "last_verified_at": "2026-05-14T10:03:53.243742+00:00",
+      "version_history": [
+        {
+          "version": "1.0",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "preview",
+          "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+          "discovered_at": "2026-05-14T10:03:53.243747+00:00",
+          "verified_at": "2026-05-14T10:03:53.243752+00:00"
+        }
+      ],
+      "model_purpose": "gemini model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T10:03:57.886901+00:00"
+    }
+  ],
+  "rejected_records": [],
+  "missing_models": [],
+  "deprecated_candidates": [],
+  "planned_bigquery_actions": {
+    "inserts": [
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-flash",
+        "display_name": "gemini-2.5-flash",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242129+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242148+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242157+00:00",
+            "verified_at": "2026-05-14T10:03:53.242164+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886605+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-pro",
+        "display_name": "gemini-2.5-pro",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242203+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242210+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242216+00:00",
+            "verified_at": "2026-05-14T10:03:53.242222+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886627+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.0-flash",
+        "display_name": "gemini-2.0-flash",
+        "family": "gemini-2.0",
+        "version": "2.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242244+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242251+00:00",
+        "version_history": [
+          {
+            "version": "2.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242258+00:00",
+            "verified_at": "2026-05-14T10:03:53.242264+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.0 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886637+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.0-flash-001",
+        "display_name": "gemini-2.0-flash-001",
+        "family": "gemini-2.0",
+        "version": "2.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242280+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242287+00:00",
+        "version_history": [
+          {
+            "version": "2.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242293+00:00",
+            "verified_at": "2026-05-14T10:03:53.242299+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.0 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886644+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.0-flash-lite-001",
+        "display_name": "gemini-2.0-flash-lite-001",
+        "family": "gemini-2.0",
+        "version": "2.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242315+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242321+00:00",
+        "version_history": [
+          {
+            "version": "2.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242327+00:00",
+            "verified_at": "2026-05-14T10:03:53.242332+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.0 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886651+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.0-flash-lite",
+        "display_name": "gemini-2.0-flash-lite",
+        "family": "gemini-2.0",
+        "version": "2.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242370+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242378+00:00",
+        "version_history": [
+          {
+            "version": "2.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242384+00:00",
+            "verified_at": "2026-05-14T10:03:53.242389+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.0 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886658+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-flash-preview-tts",
+        "display_name": "gemini-2.5-flash-preview-tts",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242405+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242411+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242417+00:00",
+            "verified_at": "2026-05-14T10:03:53.242423+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886665+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-pro-preview-tts",
+        "display_name": "gemini-2.5-pro-preview-tts",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242444+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242456+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242462+00:00",
+            "verified_at": "2026-05-14T10:03:53.242468+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886672+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemma-4-26b-a4b-it",
+        "display_name": "gemma-4-26b-a4b-it",
+        "family": "unknown",
+        "version": "gemma-4-26b-a4b-it",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242490+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242497+00:00",
+        "version_history": [
+          {
+            "version": "gemma-4-26b-a4b-it",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242503+00:00",
+            "verified_at": "2026-05-14T10:03:53.242510+00:00"
+          }
+        ],
+        "model_purpose": "unknown model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886688+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemma-4-31b-it",
+        "display_name": "gemma-4-31b-it",
+        "family": "unknown",
+        "version": "gemma-4-31b-it",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242529+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242535+00:00",
+        "version_history": [
+          {
+            "version": "gemma-4-31b-it",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242546+00:00",
+            "verified_at": "2026-05-14T10:03:53.242552+00:00"
+          }
+        ],
+        "model_purpose": "unknown model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886695+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-flash-latest",
+        "display_name": "gemini-flash-latest",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": true,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242570+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242576+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242582+00:00",
+            "verified_at": "2026-05-14T10:03:53.242588+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886702+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-flash-lite-latest",
+        "display_name": "gemini-flash-lite-latest",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": true,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242603+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242609+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242614+00:00",
+            "verified_at": "2026-05-14T10:03:53.242620+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886709+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-pro-latest",
+        "display_name": "gemini-pro-latest",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": true,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242633+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242640+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242645+00:00",
+            "verified_at": "2026-05-14T10:03:53.242650+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886716+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-flash-lite",
+        "display_name": "gemini-2.5-flash-lite",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242670+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242677+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242683+00:00",
+            "verified_at": "2026-05-14T10:03:53.242688+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886723+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-flash-image",
+        "display_name": "gemini-2.5-flash-image",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242709+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242715+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242720+00:00",
+            "verified_at": "2026-05-14T10:03:53.242726+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886729+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3-pro-preview",
+        "display_name": "gemini-3-pro-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242741+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242747+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242753+00:00",
+            "verified_at": "2026-05-14T10:03:53.242758+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886735+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3-flash-preview",
+        "display_name": "gemini-3-flash-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242774+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242780+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242785+00:00",
+            "verified_at": "2026-05-14T10:03:53.242791+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886741+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3.1-pro-preview",
+        "display_name": "gemini-3.1-pro-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242806+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242812+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242817+00:00",
+            "verified_at": "2026-05-14T10:03:53.242823+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886748+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3.1-pro-preview-customtools",
+        "display_name": "gemini-3.1-pro-preview-customtools",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242838+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242844+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242850+00:00",
+            "verified_at": "2026-05-14T10:03:53.242861+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886754+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3.1-flash-lite-preview",
+        "display_name": "gemini-3.1-flash-lite-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242876+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242883+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242893+00:00",
+            "verified_at": "2026-05-14T10:03:53.242899+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886760+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3.1-flash-lite",
+        "display_name": "gemini-3.1-flash-lite",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242913+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242919+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242925+00:00",
+            "verified_at": "2026-05-14T10:03:53.242930+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886766+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3-pro-image-preview",
+        "display_name": "gemini-3-pro-image-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242944+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242950+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242956+00:00",
+            "verified_at": "2026-05-14T10:03:53.242961+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886773+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3.1-flash-image-preview",
+        "display_name": "gemini-3.1-flash-image-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.242975+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.242981+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.242987+00:00",
+            "verified_at": "2026-05-14T10:03:53.242992+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886779+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3.1-flash-tts-preview",
+        "display_name": "gemini-3.1-flash-tts-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243013+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243020+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243025+00:00",
+            "verified_at": "2026-05-14T10:03:53.243031+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886785+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-robotics-er-1.5-preview",
+        "display_name": "gemini-robotics-er-1.5-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243045+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243051+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243056+00:00",
+            "verified_at": "2026-05-14T10:03:53.243062+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886791+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-robotics-er-1.6-preview",
+        "display_name": "gemini-robotics-er-1.6-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243076+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243081+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243087+00:00",
+            "verified_at": "2026-05-14T10:03:53.243092+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886797+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-computer-use-preview-10-2025",
+        "display_name": "gemini-2.5-computer-use-preview-10-2025",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243106+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243112+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243118+00:00",
+            "verified_at": "2026-05-14T10:03:53.243123+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886803+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-embedding-001",
+        "display_name": "gemini-embedding-001",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243143+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243149+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243155+00:00",
+            "verified_at": "2026-05-14T10:03:53.243160+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886809+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-embedding-2-preview",
+        "display_name": "gemini-embedding-2-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243174+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243181+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243186+00:00",
+            "verified_at": "2026-05-14T10:03:53.243192+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886815+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-embedding-2",
+        "display_name": "gemini-embedding-2",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243212+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243218+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243224+00:00",
+            "verified_at": "2026-05-14T10:03:53.243229+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886821+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "imagen-4.0-generate-001",
+        "display_name": "imagen-4.0-generate-001",
+        "family": "imagen",
+        "version": "1",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243253+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243260+00:00",
+        "version_history": [
+          {
+            "version": "1",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243266+00:00",
+            "verified_at": "2026-05-14T10:03:53.243272+00:00"
+          }
+        ],
+        "model_purpose": "imagen model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886827+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "imagen-4.0-ultra-generate-001",
+        "display_name": "imagen-4.0-ultra-generate-001",
+        "family": "imagen",
+        "version": "1",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243288+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243295+00:00",
+        "version_history": [
+          {
+            "version": "1",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243301+00:00",
+            "verified_at": "2026-05-14T10:03:53.243307+00:00"
+          }
+        ],
+        "model_purpose": "imagen model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886833+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "imagen-4.0-fast-generate-001",
+        "display_name": "imagen-4.0-fast-generate-001",
+        "family": "imagen",
+        "version": "1",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243322+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243328+00:00",
+        "version_history": [
+          {
+            "version": "1",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243335+00:00",
+            "verified_at": "2026-05-14T10:03:53.243341+00:00"
+          }
+        ],
+        "model_purpose": "imagen model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886840+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "veo-2.0-generate-001",
+        "display_name": "veo-2.0-generate-001",
+        "family": "veo",
+        "version": "2.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243403+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243410+00:00",
+        "version_history": [
+          {
+            "version": "2.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243416+00:00",
+            "verified_at": "2026-05-14T10:03:53.243422+00:00"
+          }
+        ],
+        "model_purpose": "veo model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886846+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "veo-3.0-generate-001",
+        "display_name": "veo-3.0-generate-001",
+        "family": "veo",
+        "version": "3.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243440+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243447+00:00",
+        "version_history": [
+          {
+            "version": "3.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243453+00:00",
+            "verified_at": "2026-05-14T10:03:53.243459+00:00"
+          }
+        ],
+        "model_purpose": "veo model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886852+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "veo-3.0-fast-generate-001",
+        "display_name": "veo-3.0-fast-generate-001",
+        "family": "veo",
+        "version": "3.0",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243476+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243483+00:00",
+        "version_history": [
+          {
+            "version": "3.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243489+00:00",
+            "verified_at": "2026-05-14T10:03:53.243495+00:00"
+          }
+        ],
+        "model_purpose": "veo model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886857+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "veo-3.1-generate-preview",
+        "display_name": "veo-3.1-generate-preview",
+        "family": "veo",
+        "version": "3.1",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243512+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243518+00:00",
+        "version_history": [
+          {
+            "version": "3.1",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243524+00:00",
+            "verified_at": "2026-05-14T10:03:53.243530+00:00"
+          }
+        ],
+        "model_purpose": "veo model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886864+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "veo-3.1-fast-generate-preview",
+        "display_name": "veo-3.1-fast-generate-preview",
+        "family": "veo",
+        "version": "3.1",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243545+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243552+00:00",
+        "version_history": [
+          {
+            "version": "3.1",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243557+00:00",
+            "verified_at": "2026-05-14T10:03:53.243563+00:00"
+          }
+        ],
+        "model_purpose": "veo model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886870+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "veo-3.1-lite-generate-preview",
+        "display_name": "veo-3.1-lite-generate-preview",
+        "family": "veo",
+        "version": "3.1",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243577+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243583+00:00",
+        "version_history": [
+          {
+            "version": "3.1",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243589+00:00",
+            "verified_at": "2026-05-14T10:03:53.243595+00:00"
+          }
+        ],
+        "model_purpose": "veo model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886876+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-flash-native-audio-latest",
+        "display_name": "gemini-2.5-flash-native-audio-latest",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": true,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243609+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243615+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243621+00:00",
+            "verified_at": "2026-05-14T10:03:53.243626+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886883+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-flash-native-audio-preview-09-2025",
+        "display_name": "gemini-2.5-flash-native-audio-preview-09-2025",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243650+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243656+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243662+00:00",
+            "verified_at": "2026-05-14T10:03:53.243667+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886889+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-2.5-flash-native-audio-preview-12-2025",
+        "display_name": "gemini-2.5-flash-native-audio-preview-12-2025",
+        "family": "gemini-2.5",
+        "version": "2.5",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243680+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243703+00:00",
+        "version_history": [
+          {
+            "version": "2.5",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243710+00:00",
+            "verified_at": "2026-05-14T10:03:53.243716+00:00"
+          }
+        ],
+        "model_purpose": "gemini-2.5 model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886895+00:00"
+      },
+      {
+        "provider": "google",
+        "model_id": "gemini-3.1-flash-live-preview",
+        "display_name": "gemini-3.1-flash-live-preview",
+        "family": "gemini",
+        "version": "1.0",
+        "release_stage": "preview",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+        "source_domain": "generativelanguage.googleapis.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:03:53.243735+00:00",
+        "last_verified_at": "2026-05-14T10:03:53.243742+00:00",
+        "version_history": [
+          {
+            "version": "1.0",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "preview",
+            "source_url": "https://generativelanguage.googleapis.com/v1beta/models",
+            "discovered_at": "2026-05-14T10:03:53.243747+00:00",
+            "verified_at": "2026-05-14T10:03:53.243752+00:00"
+          }
+        ],
+        "model_purpose": "gemini model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T10:03:57.886901+00:00"
+      }
+    ],
+    "updates": [],
+    "skips": [],
+    "deprecated": []
+  },
+  "dry_run": false
+}

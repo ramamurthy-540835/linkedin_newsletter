@@ -15,16 +15,9 @@ export const getModel = (useCase) => {
     const assignments = JSON.parse(localStorage.getItem('model_assignments') || '{}');
     if (assignments[useCase]) return assignments[useCase];
   } catch {}
-  const defaults = {
-    feed: 'models/gemini-2.5-flash',
-    digest: 'models/gemini-2.5-flash',
-    suggestions: 'models/gemini-2.5-flash',
-    ideas: 'models/gemini-2.5-flash',
-    images: 'models/gemini-2.5-flash',
-    video: 'models/gemini-2.5-flash',
-    post_generation: 'models/gemini-2.5-flash',
-  };
-  return defaults[useCase] || 'models/gemini-2.5-flash';
+  const envDefault = process.env.NEXT_PUBLIC_DEFAULT_AI_MODEL || '';
+  if (envDefault) return envDefault;
+  return '';
 };
 
 const detectProvider = (modelId) => {

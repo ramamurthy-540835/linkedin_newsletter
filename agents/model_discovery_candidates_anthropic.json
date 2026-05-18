@@ -1,0 +1,885 @@
+{
+  "run_id": "20260514T100823.328542Z",
+  "started_at": "2026-05-14T10:08:23.328516+00:00",
+  "target_provider": "anthropic",
+  "structured_source_used": true,
+  "docs_source_used": false,
+  "fallback_used": false,
+  "semantic_enrichment": 7,
+  "normalized_models": [
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-7",
+      "display_name": "claude-opus-4-7",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803833+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803851+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803860+00:00",
+          "verified_at": "2026-05-14T10:08:23.803866+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155277+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-sonnet-4-6",
+      "display_name": "claude-sonnet-4-6",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803904+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803910+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803917+00:00",
+          "verified_at": "2026-05-14T10:08:23.803922+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155296+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-6",
+      "display_name": "claude-opus-4-6",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803943+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803950+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803956+00:00",
+          "verified_at": "2026-05-14T10:08:23.803962+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155304+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-5-20251101",
+      "display_name": "claude-opus-4-5-20251101",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803979+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803986+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803992+00:00",
+          "verified_at": "2026-05-14T10:08:23.803998+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155310+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-haiku-4-5-20251001",
+      "display_name": "claude-haiku-4-5-20251001",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.804012+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.804019+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.804024+00:00",
+          "verified_at": "2026-05-14T10:08:23.804030+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155317+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-sonnet-4-5-20250929",
+      "display_name": "claude-sonnet-4-5-20250929",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.804045+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.804051+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.804057+00:00",
+          "verified_at": "2026-05-14T10:08:23.804062+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155323+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-1-20250805",
+      "display_name": "claude-opus-4-1-20250805",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.804077+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.804083+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.804089+00:00",
+          "verified_at": "2026-05-14T10:08:23.804095+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155329+00:00"
+    }
+  ],
+  "enriched_models": [
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-7",
+      "display_name": "claude-opus-4-7",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803833+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803851+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803860+00:00",
+          "verified_at": "2026-05-14T10:08:23.803866+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155277+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-sonnet-4-6",
+      "display_name": "claude-sonnet-4-6",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803904+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803910+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803917+00:00",
+          "verified_at": "2026-05-14T10:08:23.803922+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155296+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-6",
+      "display_name": "claude-opus-4-6",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803943+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803950+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803956+00:00",
+          "verified_at": "2026-05-14T10:08:23.803962+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155304+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-5-20251101",
+      "display_name": "claude-opus-4-5-20251101",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.803979+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.803986+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.803992+00:00",
+          "verified_at": "2026-05-14T10:08:23.803998+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155310+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-haiku-4-5-20251001",
+      "display_name": "claude-haiku-4-5-20251001",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.804012+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.804019+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.804024+00:00",
+          "verified_at": "2026-05-14T10:08:23.804030+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155317+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-sonnet-4-5-20250929",
+      "display_name": "claude-sonnet-4-5-20250929",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.804045+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.804051+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.804057+00:00",
+          "verified_at": "2026-05-14T10:08:23.804062+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155323+00:00"
+    },
+    {
+      "provider": "anthropic",
+      "model_id": "claude-opus-4-1-20250805",
+      "display_name": "claude-opus-4-1-20250805",
+      "family": "claude",
+      "version": "latest",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.anthropic.com/v1/models",
+      "source_domain": "api.anthropic.com",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-14T10:08:23.804077+00:00",
+      "last_verified_at": "2026-05-14T10:08:23.804083+00:00",
+      "version_history": [
+        {
+          "version": "latest",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.anthropic.com/v1/models",
+          "discovered_at": "2026-05-14T10:08:23.804089+00:00",
+          "verified_at": "2026-05-14T10:08:23.804095+00:00"
+        }
+      ],
+      "model_purpose": "claude model",
+      "recommended_for": [
+        "general use"
+      ],
+      "avoid_for": [],
+      "user_persona": [
+        "developers"
+      ],
+      "selection_notes": "Default (enrichment skipped)",
+      "capabilities": [],
+      "semantic_confidence": 0.3,
+      "official_context": "",
+      "first_seen_at": "2026-05-14T08:39:39.155329+00:00"
+    }
+  ],
+  "rejected_records": [],
+  "missing_models": [],
+  "deprecated_candidates": [],
+  "planned_bigquery_actions": {
+    "inserts": [],
+    "updates": [
+      {
+        "provider": "anthropic",
+        "model_id": "claude-opus-4-7",
+        "display_name": "claude-opus-4-7",
+        "family": "claude",
+        "version": "latest",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.anthropic.com/v1/models",
+        "source_domain": "api.anthropic.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:08:23.803833+00:00",
+        "last_verified_at": "2026-05-14T10:08:23.803851+00:00",
+        "version_history": [
+          {
+            "version": "latest",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.anthropic.com/v1/models",
+            "discovered_at": "2026-05-14T10:08:23.803860+00:00",
+            "verified_at": "2026-05-14T10:08:23.803866+00:00"
+          }
+        ],
+        "model_purpose": "claude model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T08:39:39.155277+00:00"
+      },
+      {
+        "provider": "anthropic",
+        "model_id": "claude-sonnet-4-6",
+        "display_name": "claude-sonnet-4-6",
+        "family": "claude",
+        "version": "latest",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.anthropic.com/v1/models",
+        "source_domain": "api.anthropic.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:08:23.803904+00:00",
+        "last_verified_at": "2026-05-14T10:08:23.803910+00:00",
+        "version_history": [
+          {
+            "version": "latest",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.anthropic.com/v1/models",
+            "discovered_at": "2026-05-14T10:08:23.803917+00:00",
+            "verified_at": "2026-05-14T10:08:23.803922+00:00"
+          }
+        ],
+        "model_purpose": "claude model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T08:39:39.155296+00:00"
+      },
+      {
+        "provider": "anthropic",
+        "model_id": "claude-opus-4-6",
+        "display_name": "claude-opus-4-6",
+        "family": "claude",
+        "version": "latest",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.anthropic.com/v1/models",
+        "source_domain": "api.anthropic.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:08:23.803943+00:00",
+        "last_verified_at": "2026-05-14T10:08:23.803950+00:00",
+        "version_history": [
+          {
+            "version": "latest",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.anthropic.com/v1/models",
+            "discovered_at": "2026-05-14T10:08:23.803956+00:00",
+            "verified_at": "2026-05-14T10:08:23.803962+00:00"
+          }
+        ],
+        "model_purpose": "claude model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T08:39:39.155304+00:00"
+      },
+      {
+        "provider": "anthropic",
+        "model_id": "claude-opus-4-5-20251101",
+        "display_name": "claude-opus-4-5-20251101",
+        "family": "claude",
+        "version": "latest",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.anthropic.com/v1/models",
+        "source_domain": "api.anthropic.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:08:23.803979+00:00",
+        "last_verified_at": "2026-05-14T10:08:23.803986+00:00",
+        "version_history": [
+          {
+            "version": "latest",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.anthropic.com/v1/models",
+            "discovered_at": "2026-05-14T10:08:23.803992+00:00",
+            "verified_at": "2026-05-14T10:08:23.803998+00:00"
+          }
+        ],
+        "model_purpose": "claude model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T08:39:39.155310+00:00"
+      },
+      {
+        "provider": "anthropic",
+        "model_id": "claude-haiku-4-5-20251001",
+        "display_name": "claude-haiku-4-5-20251001",
+        "family": "claude",
+        "version": "latest",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.anthropic.com/v1/models",
+        "source_domain": "api.anthropic.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:08:23.804012+00:00",
+        "last_verified_at": "2026-05-14T10:08:23.804019+00:00",
+        "version_history": [
+          {
+            "version": "latest",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.anthropic.com/v1/models",
+            "discovered_at": "2026-05-14T10:08:23.804024+00:00",
+            "verified_at": "2026-05-14T10:08:23.804030+00:00"
+          }
+        ],
+        "model_purpose": "claude model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T08:39:39.155317+00:00"
+      },
+      {
+        "provider": "anthropic",
+        "model_id": "claude-sonnet-4-5-20250929",
+        "display_name": "claude-sonnet-4-5-20250929",
+        "family": "claude",
+        "version": "latest",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.anthropic.com/v1/models",
+        "source_domain": "api.anthropic.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:08:23.804045+00:00",
+        "last_verified_at": "2026-05-14T10:08:23.804051+00:00",
+        "version_history": [
+          {
+            "version": "latest",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.anthropic.com/v1/models",
+            "discovered_at": "2026-05-14T10:08:23.804057+00:00",
+            "verified_at": "2026-05-14T10:08:23.804062+00:00"
+          }
+        ],
+        "model_purpose": "claude model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T08:39:39.155323+00:00"
+      },
+      {
+        "provider": "anthropic",
+        "model_id": "claude-opus-4-1-20250805",
+        "display_name": "claude-opus-4-1-20250805",
+        "family": "claude",
+        "version": "latest",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.anthropic.com/v1/models",
+        "source_domain": "api.anthropic.com",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-14T10:08:23.804077+00:00",
+        "last_verified_at": "2026-05-14T10:08:23.804083+00:00",
+        "version_history": [
+          {
+            "version": "latest",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.anthropic.com/v1/models",
+            "discovered_at": "2026-05-14T10:08:23.804089+00:00",
+            "verified_at": "2026-05-14T10:08:23.804095+00:00"
+          }
+        ],
+        "model_purpose": "claude model",
+        "recommended_for": [
+          "general use"
+        ],
+        "avoid_for": [],
+        "user_persona": [
+          "developers"
+        ],
+        "selection_notes": "Default (enrichment skipped)",
+        "capabilities": [],
+        "semantic_confidence": 0.3,
+        "official_context": "",
+        "first_seen_at": "2026-05-14T08:39:39.155329+00:00"
+      }
+    ],
+    "skips": [],
+    "deprecated": []
+  },
+  "dry_run": false
+}

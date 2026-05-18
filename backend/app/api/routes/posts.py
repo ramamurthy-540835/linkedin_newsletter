@@ -20,6 +20,7 @@ from app.models.schemas import (
 from app.services.linkedin_service import LinkedInService
 from app.services.local_store import POSTS_FILE
 from app.services.media_service import MEDIA_DIR
+from app.services.content_sanitizer import sanitize_post_payload, sanitize_content
 from app.services.vertex_service import VertexService
 
 router = APIRouter()
@@ -107,15 +108,16 @@ async def generate_post_stream(req: GenerateRequest):
 async def save_post(req: SavePostRequest) -> SavePostResponse:
     post_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
+    clean_content, clean_cta, clean_title = sanitize_post_payload(req.content, req.cta, req.title)
     payload = {
         "id": post_id,
-        "title": req.title,
+        "title": clean_title,
         "topic": req.topic,
         "audience": req.audience,
         "tone": req.tone,
-        "content": req.content,
+        "content": clean_content,
         "hashtags": req.hashtags,
-        "cta": req.cta,
+        "cta": clean_cta,
         "content_type": req.content_type,
         "status": "draft",
         "created_at": now.isoformat(),
@@ -153,8 +155,16 @@ async def publish_post(req: PublishRequest) -> PublishResponse:
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     hashtag_str = " ".join(post.get("hashtags", []))
-    cta = post.get("cta", "")
-    parts = [post["content"]]
+    clean_content, clean_cta, clean_title = sanitize_post_payload(
+        post.get("content", ""),
+        post.get("cta", ""),
+        post.get("title", ""),
+    )
+    post["content"] = clean_content
+    post["cta"] = clean_cta
+    post["title"] = clean_title
+    cta = clean_cta
+    parts = [clean_content]
     if cta:
         parts.append(cta)
     if hashtag_str:
@@ -321,11 +331,12 @@ async def publish_direct(req: DirectPublishRequest) -> dict:
     if not token or not urn:
         raise HTTPException(status_code=400, detail="LinkedIn not connected. Please connect your LinkedIn account in Settings.")
 
+    clean_text = sanitize_content(req.text.strip())
     try:
         linkedin_resp = await _linkedin.publish_post(
             access_token=token,
             author_urn=urn,
-            text=req.text.strip(),
+            text=clean_text,
         )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"LinkedIn API error: {str(exc)}") from exc
@@ -338,7 +349,7 @@ async def publish_direct(req: DirectPublishRequest) -> dict:
         "id": str(uuid.uuid4()),
         "draft_id": f"direct-{now.strftime('%Y%m%d%H%M%S')}",
         "status": "published",
-        "content": req.text.strip(),
+        "content": clean_text,
         "source": req.source,
         "linkedin_post_id": linkedin_post_id,
         "linkedin_url": linkedin_url,

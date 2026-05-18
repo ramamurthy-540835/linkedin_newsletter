@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 from app.core.config import settings
 from app.models.schemas import PublishRequest
+from app.services.content_sanitizer import sanitize_post_payload
 from app.services.linkedin_service import LinkedInService
 from app.services.local_store import get_draft, save_post
 
@@ -26,9 +27,14 @@ def _resolve_token_and_urn() -> tuple[str, str]:
 
 
 def _build_full_text(draft: dict) -> str:
-    content = draft.get("content", "")
+    clean_content, clean_cta, _ = sanitize_post_payload(
+        draft.get("content", ""),
+        draft.get("cta", ""),
+        draft.get("title", ""),
+    )
+    content = clean_content
     hashtags = draft.get("hashtags", [])
-    cta = draft.get("cta", "")
+    cta = clean_cta
     return f"{content}\n\n{' '.join(hashtags)}\n\n{cta}".strip()
 
 

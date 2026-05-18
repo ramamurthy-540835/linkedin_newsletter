@@ -1,5 +1,67 @@
 import { getMediaFileUrl } from '@/lib/api';
-import React from 'react';
+import React, { useState } from 'react';
+
+const CAROUSEL_THEMES = [
+  'linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)',
+  'linear-gradient(135deg,#0ea5e9 0%,#6366f1 100%)',
+  'linear-gradient(135deg,#10b981 0%,#0ea5e9 100%)',
+  'linear-gradient(135deg,#f59e0b 0%,#ef4444 100%)',
+  'linear-gradient(135deg,#8b5cf6 0%,#ec4899 100%)',
+];
+const CAROUSEL_LABELS = ['HOOK', 'INSIGHT', 'DETAIL', 'EXAMPLE', 'CTA'];
+
+function CarouselPreview({ carousel }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const slides = Array.isArray(carousel) ? carousel : [];
+  const count = slides.length || 5;
+  const slide = slides[activeIdx];
+
+  return (
+    <div className="mt-4">
+      <div
+        className="rounded-xl text-white relative overflow-hidden"
+        style={{ background: CAROUSEL_THEMES[activeIdx % CAROUSEL_THEMES.length], minHeight: '180px', padding: '1.25rem' }}
+      >
+        <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -bottom-10 -left-6 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-[9px] font-bold tracking-widest px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.2)' }}>
+              {CAROUSEL_LABELS[activeIdx % CAROUSEL_LABELS.length]}
+            </span>
+            <div className="flex gap-1 ml-auto">
+              {Array.from({ length: count }).map((_, i) => (
+                <button key={i} onClick={() => setActiveIdx(i)}
+                  className="rounded-full transition-all"
+                  style={{ width: i === activeIdx ? '14px' : '5px', height: '5px', background: i === activeIdx ? 'white' : 'rgba(255,255,255,0.35)' }}
+                />
+              ))}
+            </div>
+          </div>
+          {slide ? (
+            <>
+              <div className="font-bold text-base leading-snug mb-1">{slide.heading}</div>
+              {slide.body && <div className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.85)' }}>{slide.body}</div>}
+              {(slide.bullets || []).slice(0, 3).map((b, j) => (
+                <div key={j} className="flex items-start gap-1.5 text-xs mb-1">
+                  <span className="mt-0.5 w-3.5 h-3.5 flex-shrink-0 rounded-full flex items-center justify-center text-[9px] font-bold" style={{ background: 'rgba(255,255,255,0.25)' }}>{j + 1}</span>
+                  <span style={{ color: 'rgba(255,255,255,0.9)' }}>{b}</span>
+                </div>
+              ))}
+            </>
+          ) : (
+            <div className="font-bold text-base">Carousel Post</div>
+          )}
+          <div className="flex justify-between items-center mt-3 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
+            <button onClick={() => setActiveIdx(i => Math.max(0, i - 1))} disabled={activeIdx === 0} className="text-xs disabled:opacity-30" style={{ color: 'rgba(255,255,255,0.8)' }}>&#8592; Prev</button>
+            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.55)' }}>{activeIdx + 1} / {count}</span>
+            <button onClick={() => setActiveIdx(i => Math.min(count - 1, i + 1))} disabled={activeIdx === count - 1} className="text-xs disabled:opacity-30" style={{ color: 'rgba(255,255,255,0.8)' }}>Next &#8594;</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function MediaSkeleton({ label }) {
   return (
@@ -104,19 +166,7 @@ export default function LinkedInPreview({
           </div>
         )}
 
-        {(type === 'carousel' || carousel) && (
-          <div className="mt-4">
-            <div className="bg-gradient-to-br from-studio-600 to-linkedin-600 rounded-xl p-6 text-white min-h-[160px] flex flex-col justify-center items-center">
-              <div className="text-lg font-bold text-center">Carousel Post</div>
-              <div className="text-sm opacity-80 mt-2">Swipe through slides</div>
-              <div className="flex gap-1.5 mt-4">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className={`w-2 h-2 rounded-full ${i === 1 ? 'bg-white' : 'bg-white/40'}`} />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+        {(type === 'carousel' || carousel) && <CarouselPreview carousel={carousel} />}
 
         <div className={`mt-3 text-xs ${countColor}`}>{charCount}/3000 chars</div>
         {profileUrl && <a href={profileUrl} target="_blank" rel="noreferrer" className="block mt-2 text-xs text-studio-600 hover:underline">View your LinkedIn profile</a>}

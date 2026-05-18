@@ -7,6 +7,60 @@ import Textarea from '@/components/Textarea';
 import { callAI } from '@/lib/modelResolver';
 import { parseJSON } from '@/lib/api';
 
+const SLIDE_THEMES = [
+  { bg: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)', accent: '#a78bfa', dot: '#c4b5fd', label: 'HOOK' },
+  { bg: 'linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%)', accent: '#93c5fd', dot: '#bae6fd', label: 'INSIGHT' },
+  { bg: 'linear-gradient(135deg, #10b981 0%, #0ea5e9 100%)', accent: '#6ee7b7', dot: '#a7f3d0', label: 'DETAIL' },
+  { bg: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)', accent: '#fcd34d', dot: '#fde68a', label: 'EXAMPLE' },
+  { bg: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)', accent: '#c4b5fd', dot: '#f9a8d4', label: 'KEY POINT' },
+  { bg: 'linear-gradient(135deg, #14b8a6 0%, #6366f1 100%)', accent: '#99f6e4', dot: '#a5f3fc', label: 'TAKEAWAY' },
+  { bg: 'linear-gradient(135deg, #f97316 0%, #db2777 100%)', accent: '#fed7aa', dot: '#fbcfe8', label: 'ACTION' },
+  { bg: 'linear-gradient(135deg, #1d4ed8 0%, #0891b2 100%)', accent: '#93c5fd', dot: '#a5f3fc', label: 'CTA' },
+];
+
+function SlideDiagram({ index, bullets = [] }) {
+  const theme = SLIDE_THEMES[index % SLIDE_THEMES.length];
+  const count = Math.min(bullets.length || 3, 5);
+
+  if (index === 0) {
+    return (
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-30 absolute bottom-4 right-4">
+        <circle cx="60" cy="40" r="35" stroke="white" strokeWidth="2" strokeDasharray="6 4"/>
+        <circle cx="60" cy="40" r="22" fill="white" fillOpacity="0.15"/>
+        <circle cx="60" cy="40" r="8" fill="white" fillOpacity="0.4"/>
+        <line x1="60" y1="5" x2="60" y2="75" stroke="white" strokeWidth="1" strokeOpacity="0.4"/>
+        <line x1="25" y1="40" x2="95" y2="40" stroke="white" strokeWidth="1" strokeOpacity="0.4"/>
+      </svg>
+    );
+  }
+
+  if (bullets.length >= 3) {
+    const barW = 12;
+    const gap = 8;
+    const heights = bullets.slice(0, Math.min(count, 5)).map((_, i) => 20 + ((i * 17) % 40));
+    const totalW = count * (barW + gap) - gap;
+    const startX = (120 - totalW) / 2;
+    return (
+      <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-25 absolute bottom-4 right-4">
+        {heights.map((h, i) => (
+          <rect key={i} x={startX + i * (barW + gap)} y={70 - h} width={barW} height={h} rx="3" fill="white"/>
+        ))}
+        <line x1="10" y1="70" x2="110" y2="70" stroke="white" strokeWidth="1.5" strokeOpacity="0.6"/>
+      </svg>
+    );
+  }
+
+  return (
+    <svg width="120" height="80" viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" className="opacity-25 absolute bottom-4 right-4">
+      <rect x="15" y="10" width="38" height="24" rx="4" fill="white" fillOpacity="0.3"/>
+      <rect x="67" y="10" width="38" height="24" rx="4" fill="white" fillOpacity="0.3"/>
+      <rect x="41" y="46" width="38" height="24" rx="4" fill="white" fillOpacity="0.3"/>
+      <line x1="34" y1="22" x2="67" y2="22" stroke="white" strokeWidth="1.5" strokeOpacity="0.5"/>
+      <line x1="60" y1="34" x2="60" y2="46" stroke="white" strokeWidth="1.5" strokeOpacity="0.5"/>
+    </svg>
+  );
+}
+
 export default function CarouselPanel({ onAttach }) {
   const [topic, setTopic] = useState('');
   const [slides, setSlides] = useState([]);
@@ -94,56 +148,112 @@ Rules:
 
       {slides.length > 0 && (
         <>
-          {/* Slide navigation dots */}
-          <div className="flex items-center justify-center gap-2 py-2">
-            {slides.map((_, i) => (
+          {/* Slide thumbnail strip */}
+          <div className="flex items-center gap-2 py-2 overflow-x-auto pb-1">
+            {slides.map((s, i) => (
               <button
                 key={i}
                 onClick={() => setActiveSlide(i)}
-                className={`w-3 h-3 rounded-full transition-all ${
-                  i === activeSlide ? 'bg-linkedin-600 scale-125' : 'bg-gray-300 hover:bg-gray-400'
-                }`}
-              />
+                className="flex-shrink-0 rounded-lg text-white text-[10px] font-bold px-3 py-1.5 transition-all shadow-sm"
+                style={{
+                  background: SLIDE_THEMES[i % SLIDE_THEMES.length].bg,
+                  opacity: i === activeSlide ? 1 : 0.5,
+                  transform: i === activeSlide ? 'scale(1.08)' : 'scale(1)',
+                  minWidth: '56px',
+                }}
+              >
+                {i + 1}
+              </button>
             ))}
-            <button onClick={addSlide} className="w-6 h-6 rounded-full bg-gray-200 hover:bg-gray-300 text-gray-600 text-xs flex items-center justify-center ml-2">
+            <button
+              onClick={addSlide}
+              className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 text-lg flex items-center justify-center ml-1 transition-colors"
+            >
               +
             </button>
           </div>
 
           {/* Active slide preview */}
           <Card>
-            <div className="bg-gradient-to-br from-linkedin-600 to-linkedin-700 rounded-xl p-8 text-white min-h-[300px] flex flex-col justify-between">
-              <div>
-                <div className="text-xs font-semibold opacity-70 mb-2">
-                  Slide {activeSlide + 1} of {slides.length}
+            <div
+              className="rounded-xl text-white min-h-[320px] flex flex-col justify-between relative overflow-hidden"
+              style={{ background: SLIDE_THEMES[activeSlide % SLIDE_THEMES.length].bg, padding: '2rem' }}
+            >
+              {/* Decorative background circles */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5 pointer-events-none" />
+              <div className="absolute -bottom-16 -left-8 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
+
+              {/* SVG diagram */}
+              <SlideDiagram index={activeSlide} bullets={slides[activeSlide]?.bullets} />
+
+              <div className="relative z-10">
+                {/* Slide type label + progress pills */}
+                <div className="flex items-center gap-2 mb-4">
+                  <span
+                    className="text-[10px] font-bold tracking-widest px-2.5 py-1 rounded-full"
+                    style={{ background: 'rgba(255,255,255,0.2)', color: 'white', letterSpacing: '0.12em' }}
+                  >
+                    {SLIDE_THEMES[activeSlide % SLIDE_THEMES.length].label}
+                  </span>
+                  <div className="flex gap-1 ml-auto">
+                    {slides.map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setActiveSlide(i)}
+                        className="transition-all rounded-full"
+                        style={{
+                          width: i === activeSlide ? '20px' : '6px',
+                          height: '6px',
+                          background: i === activeSlide ? 'white' : 'rgba(255,255,255,0.35)',
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <h3 className="text-2xl font-bold mb-4">{slides[activeSlide]?.heading}</h3>
+
+                <h3 className="text-2xl font-bold mb-3 leading-tight">{slides[activeSlide]?.heading}</h3>
+
                 {slides[activeSlide]?.body && (
-                  <p className="text-sm opacity-90 mb-4">{slides[activeSlide].body}</p>
+                  <p className="text-sm leading-relaxed mb-4" style={{ color: 'rgba(255,255,255,0.88)' }}>
+                    {slides[activeSlide].body}
+                  </p>
                 )}
+
                 {slides[activeSlide]?.bullets?.length > 0 && (
                   <ul className="space-y-2">
-                    {slides[activeSlide].bullets.map((b, j) => (
-                      <li key={j} className="flex items-start gap-2 text-sm">
-                        <span className="text-linkedin-200 mt-0.5">&#10003;</span>
-                        <span>{b}</span>
+                    {slides[activeSlide].bullets.filter(Boolean).map((b, j) => (
+                      <li key={j} className="flex items-start gap-2.5 text-sm">
+                        <span
+                          className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold"
+                          style={{ background: 'rgba(255,255,255,0.25)' }}
+                        >
+                          {j + 1}
+                        </span>
+                        <span style={{ color: 'rgba(255,255,255,0.92)' }}>{b}</span>
                       </li>
                     ))}
                   </ul>
                 )}
               </div>
-              <div className="flex justify-between items-center mt-4">
+
+              {/* Bottom nav */}
+              <div className="relative z-10 flex justify-between items-center mt-6 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.2)' }}>
                 <button
                   onClick={() => setActiveSlide(Math.max(0, activeSlide - 1))}
                   disabled={activeSlide === 0}
-                  className="text-white/60 hover:text-white disabled:opacity-30"
+                  className="flex items-center gap-1.5 text-sm font-medium transition-opacity disabled:opacity-30"
+                  style={{ color: 'rgba(255,255,255,0.85)' }}
                 >
                   &#8592; Prev
                 </button>
+                <span className="text-xs font-semibold tabular-nums" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  {activeSlide + 1} / {slides.length}
+                </span>
                 <button
                   onClick={() => setActiveSlide(Math.min(slides.length - 1, activeSlide + 1))}
                   disabled={activeSlide === slides.length - 1}
-                  className="text-white/60 hover:text-white disabled:opacity-30"
+                  className="flex items-center gap-1.5 text-sm font-medium transition-opacity disabled:opacity-30"
+                  style={{ color: 'rgba(255,255,255,0.85)' }}
                 >
                   Next &#8594;
                 </button>

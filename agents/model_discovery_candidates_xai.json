@@ -1,0 +1,2682 @@
+{
+  "run_id": "20260513T094422.973335Z",
+  "started_at": "2026-05-13T09:44:22.973308+00:00",
+  "target_provider": "xai",
+  "structured_source_used": true,
+  "docs_source_used": false,
+  "fallback_used": false,
+  "semantic_enrichment": 16,
+  "normalized_models": [
+    {
+      "provider": "xai",
+      "model_id": "grok-3",
+      "display_name": "grok-3",
+      "family": "grok-3",
+      "version": "3",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.379897+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.379925+00:00",
+      "version_history": [
+        {
+          "version": "3",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.379934+00:00",
+          "verified_at": "2026-05-13T09:44:23.379941+00:00"
+        }
+      ],
+      "created": 1743724800,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581218+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-3-mini",
+      "display_name": "grok-3-mini",
+      "family": "grok-3",
+      "version": "3-mini",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380002+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380010+00:00",
+      "version_history": [
+        {
+          "version": "3-mini",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380017+00:00",
+          "verified_at": "2026-05-13T09:44:23.380022+00:00"
+        }
+      ],
+      "created": 1743724800,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581239+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-0709",
+      "display_name": "grok-4-0709",
+      "family": "grok-4",
+      "version": "4-0709",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380060+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380067+00:00",
+      "version_history": [
+        {
+          "version": "4-0709",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380074+00:00",
+          "verified_at": "2026-05-13T09:44:23.380081+00:00"
+        }
+      ],
+      "created": 1752019200,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581251+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-1-fast-non-reasoning",
+      "display_name": "grok-4-1-fast-non-reasoning",
+      "family": "grok-4",
+      "version": "4-1-fast-non-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380110+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380116+00:00",
+      "version_history": [
+        {
+          "version": "4-1-fast-non-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380122+00:00",
+          "verified_at": "2026-05-13T09:44:23.380127+00:00"
+        }
+      ],
+      "created": 1763510400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581263+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-1-fast-reasoning",
+      "display_name": "grok-4-1-fast-reasoning",
+      "family": "grok-4",
+      "version": "4-1-fast-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380151+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380157+00:00",
+      "version_history": [
+        {
+          "version": "4-1-fast-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380163+00:00",
+          "verified_at": "2026-05-13T09:44:23.380169+00:00"
+        }
+      ],
+      "created": 1763510400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581273+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-fast-non-reasoning",
+      "display_name": "grok-4-fast-non-reasoning",
+      "family": "grok-4",
+      "version": "4-fast-non-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380191+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380197+00:00",
+      "version_history": [
+        {
+          "version": "4-fast-non-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380203+00:00",
+          "verified_at": "2026-05-13T09:44:23.380208+00:00"
+        }
+      ],
+      "created": 1756944000,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581282+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-fast-reasoning",
+      "display_name": "grok-4-fast-reasoning",
+      "family": "grok-4",
+      "version": "4-fast-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380228+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380235+00:00",
+      "version_history": [
+        {
+          "version": "4-fast-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380241+00:00",
+          "verified_at": "2026-05-13T09:44:23.380247+00:00"
+        }
+      ],
+      "created": 1756944000,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581292+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.20-0309-non-reasoning",
+      "display_name": "grok-4.20-0309-non-reasoning",
+      "family": "grok-4",
+      "version": "4.20-0309-non-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380268+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380275+00:00",
+      "version_history": [
+        {
+          "version": "4.20-0309-non-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380281+00:00",
+          "verified_at": "2026-05-13T09:44:23.380286+00:00"
+        }
+      ],
+      "created": 1773014400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581301+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.20-0309-reasoning",
+      "display_name": "grok-4.20-0309-reasoning",
+      "family": "grok-4",
+      "version": "4.20-0309-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380305+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380312+00:00",
+      "version_history": [
+        {
+          "version": "4.20-0309-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380318+00:00",
+          "verified_at": "2026-05-13T09:44:23.380323+00:00"
+        }
+      ],
+      "created": 1773014400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581309+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.20-multi-agent-0309",
+      "display_name": "grok-4.20-multi-agent-0309",
+      "family": "grok-4",
+      "version": "4.20-multi-agent-0309",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380377+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380386+00:00",
+      "version_history": [
+        {
+          "version": "4.20-multi-agent-0309",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380391+00:00",
+          "verified_at": "2026-05-13T09:44:23.380398+00:00"
+        }
+      ],
+      "created": 1773014400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581319+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.3",
+      "display_name": "grok-4.3",
+      "family": "grok-4",
+      "version": "4.3",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380431+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380437+00:00",
+      "version_history": [
+        {
+          "version": "4.3",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380443+00:00",
+          "verified_at": "2026-05-13T09:44:23.380448+00:00"
+        }
+      ],
+      "created": 1776384000,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581328+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-code-fast-1",
+      "display_name": "grok-code-fast-1",
+      "family": "grok-code",
+      "version": "code-fast-1",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380474+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380480+00:00",
+      "version_history": [
+        {
+          "version": "code-fast-1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380486+00:00",
+          "verified_at": "2026-05-13T09:44:23.380491+00:00"
+        }
+      ],
+      "created": 1755993600,
+      "model_purpose": "coding and software engineering assistance",
+      "recommended_for": [
+        "code generation",
+        "debugging",
+        "refactoring",
+        "developer workflows"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation"
+      ],
+      "user_persona": [
+        "developers",
+        "engineering teams"
+      ],
+      "capabilities": [
+        "code generation",
+        "debugging",
+        "software engineering"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581337+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-image",
+      "display_name": "grok-imagine-image",
+      "family": "grok-image",
+      "version": "imagine-image",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380528+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380535+00:00",
+      "version_history": [
+        {
+          "version": "imagine-image",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380541+00:00",
+          "verified_at": "2026-05-13T09:44:23.380546+00:00"
+        }
+      ],
+      "created": 1769558400,
+      "model_purpose": "image generation",
+      "recommended_for": [
+        "creative visuals",
+        "marketing images",
+        "concept art"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "designers",
+        "marketers",
+        "content teams"
+      ],
+      "capabilities": [
+        "image generation",
+        "visual content"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581371+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-image-pro",
+      "display_name": "grok-imagine-image-pro",
+      "family": "grok-image",
+      "version": "imagine-image-pro",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380581+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380587+00:00",
+      "version_history": [
+        {
+          "version": "imagine-image-pro",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380593+00:00",
+          "verified_at": "2026-05-13T09:44:23.380598+00:00"
+        }
+      ],
+      "created": 1769558400,
+      "model_purpose": "image generation",
+      "recommended_for": [
+        "creative visuals",
+        "marketing images",
+        "concept art"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "designers",
+        "marketers",
+        "content teams"
+      ],
+      "capabilities": [
+        "image generation",
+        "visual content"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581382+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-image-quality",
+      "display_name": "grok-imagine-image-quality",
+      "family": "grok-image",
+      "version": "imagine-image-quality",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380630+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380637+00:00",
+      "version_history": [
+        {
+          "version": "imagine-image-quality",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380643+00:00",
+          "verified_at": "2026-05-13T09:44:23.380648+00:00"
+        }
+      ],
+      "created": 1775174400,
+      "model_purpose": "image generation",
+      "recommended_for": [
+        "creative visuals",
+        "marketing images",
+        "concept art"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "designers",
+        "marketers",
+        "content teams"
+      ],
+      "capabilities": [
+        "image generation",
+        "visual content"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581391+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-video",
+      "display_name": "grok-imagine-video",
+      "family": "grok-video",
+      "version": "imagine-video",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380674+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380681+00:00",
+      "version_history": [
+        {
+          "version": "imagine-video",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380686+00:00",
+          "verified_at": "2026-05-13T09:44:23.380692+00:00"
+        }
+      ],
+      "created": 1769558400,
+      "model_purpose": "video generation",
+      "recommended_for": [
+        "short video concepts",
+        "marketing clips",
+        "storyboarding"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "creative teams",
+        "marketers"
+      ],
+      "capabilities": [
+        "video generation"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581400+00:00"
+    }
+  ],
+  "enriched_models": [
+    {
+      "provider": "xai",
+      "model_id": "grok-3",
+      "display_name": "grok-3",
+      "family": "grok-3",
+      "version": "3",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.379897+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.379925+00:00",
+      "version_history": [
+        {
+          "version": "3",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.379934+00:00",
+          "verified_at": "2026-05-13T09:44:23.379941+00:00"
+        }
+      ],
+      "created": 1743724800,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581218+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-3-mini",
+      "display_name": "grok-3-mini",
+      "family": "grok-3",
+      "version": "3-mini",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380002+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380010+00:00",
+      "version_history": [
+        {
+          "version": "3-mini",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380017+00:00",
+          "verified_at": "2026-05-13T09:44:23.380022+00:00"
+        }
+      ],
+      "created": 1743724800,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581239+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-0709",
+      "display_name": "grok-4-0709",
+      "family": "grok-4",
+      "version": "4-0709",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380060+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380067+00:00",
+      "version_history": [
+        {
+          "version": "4-0709",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380074+00:00",
+          "verified_at": "2026-05-13T09:44:23.380081+00:00"
+        }
+      ],
+      "created": 1752019200,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581251+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-1-fast-non-reasoning",
+      "display_name": "grok-4-1-fast-non-reasoning",
+      "family": "grok-4",
+      "version": "4-1-fast-non-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380110+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380116+00:00",
+      "version_history": [
+        {
+          "version": "4-1-fast-non-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380122+00:00",
+          "verified_at": "2026-05-13T09:44:23.380127+00:00"
+        }
+      ],
+      "created": 1763510400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581263+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-1-fast-reasoning",
+      "display_name": "grok-4-1-fast-reasoning",
+      "family": "grok-4",
+      "version": "4-1-fast-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380151+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380157+00:00",
+      "version_history": [
+        {
+          "version": "4-1-fast-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380163+00:00",
+          "verified_at": "2026-05-13T09:44:23.380169+00:00"
+        }
+      ],
+      "created": 1763510400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581273+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-fast-non-reasoning",
+      "display_name": "grok-4-fast-non-reasoning",
+      "family": "grok-4",
+      "version": "4-fast-non-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380191+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380197+00:00",
+      "version_history": [
+        {
+          "version": "4-fast-non-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380203+00:00",
+          "verified_at": "2026-05-13T09:44:23.380208+00:00"
+        }
+      ],
+      "created": 1756944000,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581282+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4-fast-reasoning",
+      "display_name": "grok-4-fast-reasoning",
+      "family": "grok-4",
+      "version": "4-fast-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380228+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380235+00:00",
+      "version_history": [
+        {
+          "version": "4-fast-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380241+00:00",
+          "verified_at": "2026-05-13T09:44:23.380247+00:00"
+        }
+      ],
+      "created": 1756944000,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581292+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.20-0309-non-reasoning",
+      "display_name": "grok-4.20-0309-non-reasoning",
+      "family": "grok-4",
+      "version": "4.20-0309-non-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380268+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380275+00:00",
+      "version_history": [
+        {
+          "version": "4.20-0309-non-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380281+00:00",
+          "verified_at": "2026-05-13T09:44:23.380286+00:00"
+        }
+      ],
+      "created": 1773014400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581301+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.20-0309-reasoning",
+      "display_name": "grok-4.20-0309-reasoning",
+      "family": "grok-4",
+      "version": "4.20-0309-reasoning",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380305+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380312+00:00",
+      "version_history": [
+        {
+          "version": "4.20-0309-reasoning",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380318+00:00",
+          "verified_at": "2026-05-13T09:44:23.380323+00:00"
+        }
+      ],
+      "created": 1773014400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581309+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.20-multi-agent-0309",
+      "display_name": "grok-4.20-multi-agent-0309",
+      "family": "grok-4",
+      "version": "4.20-multi-agent-0309",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380377+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380386+00:00",
+      "version_history": [
+        {
+          "version": "4.20-multi-agent-0309",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380391+00:00",
+          "verified_at": "2026-05-13T09:44:23.380398+00:00"
+        }
+      ],
+      "created": 1773014400,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581319+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-4.3",
+      "display_name": "grok-4.3",
+      "family": "grok-4",
+      "version": "4.3",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380431+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380437+00:00",
+      "version_history": [
+        {
+          "version": "4.3",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380443+00:00",
+          "verified_at": "2026-05-13T09:44:23.380448+00:00"
+        }
+      ],
+      "created": 1776384000,
+      "model_purpose": "general reasoning, chat, analysis, and coding",
+      "recommended_for": [
+        "general assistant workflows",
+        "reasoning",
+        "summarization",
+        "content generation",
+        "coding support"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation",
+        "audio transcription"
+      ],
+      "user_persona": [
+        "developers",
+        "product teams",
+        "analysts"
+      ],
+      "capabilities": [
+        "text generation",
+        "reasoning",
+        "chat",
+        "coding"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581328+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-code-fast-1",
+      "display_name": "grok-code-fast-1",
+      "family": "grok-code",
+      "version": "code-fast-1",
+      "release_stage": "versioned",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380474+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380480+00:00",
+      "version_history": [
+        {
+          "version": "code-fast-1",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "versioned",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380486+00:00",
+          "verified_at": "2026-05-13T09:44:23.380491+00:00"
+        }
+      ],
+      "created": 1755993600,
+      "model_purpose": "coding and software engineering assistance",
+      "recommended_for": [
+        "code generation",
+        "debugging",
+        "refactoring",
+        "developer workflows"
+      ],
+      "avoid_for": [
+        "image generation",
+        "video generation"
+      ],
+      "user_persona": [
+        "developers",
+        "engineering teams"
+      ],
+      "capabilities": [
+        "code generation",
+        "debugging",
+        "software engineering"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581337+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-image",
+      "display_name": "grok-imagine-image",
+      "family": "grok-image",
+      "version": "imagine-image",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380528+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380535+00:00",
+      "version_history": [
+        {
+          "version": "imagine-image",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380541+00:00",
+          "verified_at": "2026-05-13T09:44:23.380546+00:00"
+        }
+      ],
+      "created": 1769558400,
+      "model_purpose": "image generation",
+      "recommended_for": [
+        "creative visuals",
+        "marketing images",
+        "concept art"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "designers",
+        "marketers",
+        "content teams"
+      ],
+      "capabilities": [
+        "image generation",
+        "visual content"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581371+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-image-pro",
+      "display_name": "grok-imagine-image-pro",
+      "family": "grok-image",
+      "version": "imagine-image-pro",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380581+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380587+00:00",
+      "version_history": [
+        {
+          "version": "imagine-image-pro",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380593+00:00",
+          "verified_at": "2026-05-13T09:44:23.380598+00:00"
+        }
+      ],
+      "created": 1769558400,
+      "model_purpose": "image generation",
+      "recommended_for": [
+        "creative visuals",
+        "marketing images",
+        "concept art"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "designers",
+        "marketers",
+        "content teams"
+      ],
+      "capabilities": [
+        "image generation",
+        "visual content"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581382+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-image-quality",
+      "display_name": "grok-imagine-image-quality",
+      "family": "grok-image",
+      "version": "imagine-image-quality",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380630+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380637+00:00",
+      "version_history": [
+        {
+          "version": "imagine-image-quality",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380643+00:00",
+          "verified_at": "2026-05-13T09:44:23.380648+00:00"
+        }
+      ],
+      "created": 1775174400,
+      "model_purpose": "image generation",
+      "recommended_for": [
+        "creative visuals",
+        "marketing images",
+        "concept art"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "designers",
+        "marketers",
+        "content teams"
+      ],
+      "capabilities": [
+        "image generation",
+        "visual content"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581391+00:00"
+    },
+    {
+      "provider": "xai",
+      "model_id": "grok-imagine-video",
+      "display_name": "grok-imagine-video",
+      "family": "grok-video",
+      "version": "imagine-video",
+      "release_stage": "stable",
+      "status": "current",
+      "is_active": true,
+      "is_latest": false,
+      "source_url": "https://api.x.ai/v1/models",
+      "source_domain": "api.x.ai",
+      "confidence": 1.0,
+      "discovery_tier": 1,
+      "discovered_at": "2026-05-13T09:44:23.380674+00:00",
+      "last_verified_at": "2026-05-13T09:44:23.380681+00:00",
+      "version_history": [
+        {
+          "version": "imagine-video",
+          "release_date": null,
+          "status": "current",
+          "release_stage": "stable",
+          "source_url": "https://api.x.ai/v1/models",
+          "discovered_at": "2026-05-13T09:44:23.380686+00:00",
+          "verified_at": "2026-05-13T09:44:23.380692+00:00"
+        }
+      ],
+      "created": 1769558400,
+      "model_purpose": "video generation",
+      "recommended_for": [
+        "short video concepts",
+        "marketing clips",
+        "storyboarding"
+      ],
+      "avoid_for": [
+        "text reasoning",
+        "code generation"
+      ],
+      "user_persona": [
+        "creative teams",
+        "marketers"
+      ],
+      "capabilities": [
+        "video generation"
+      ],
+      "semantic_confidence": 0.8,
+      "selection_notes": "Default (enrichment skipped)",
+      "official_context": "",
+      "first_seen_at": "2026-05-13T09:42:06.581400+00:00"
+    }
+  ],
+  "rejected_records": [],
+  "missing_models": [],
+  "deprecated_candidates": [],
+  "planned_bigquery_actions": {
+    "inserts": [],
+    "updates": [
+      {
+        "provider": "xai",
+        "model_id": "grok-3",
+        "display_name": "grok-3",
+        "family": "grok-3",
+        "version": "3",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.379897+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.379925+00:00",
+        "version_history": [
+          {
+            "version": "3",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.379934+00:00",
+            "verified_at": "2026-05-13T09:44:23.379941+00:00"
+          }
+        ],
+        "created": 1743724800,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581218+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-3-mini",
+        "display_name": "grok-3-mini",
+        "family": "grok-3",
+        "version": "3-mini",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380002+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380010+00:00",
+        "version_history": [
+          {
+            "version": "3-mini",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380017+00:00",
+            "verified_at": "2026-05-13T09:44:23.380022+00:00"
+          }
+        ],
+        "created": 1743724800,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581239+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4-0709",
+        "display_name": "grok-4-0709",
+        "family": "grok-4",
+        "version": "4-0709",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380060+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380067+00:00",
+        "version_history": [
+          {
+            "version": "4-0709",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380074+00:00",
+            "verified_at": "2026-05-13T09:44:23.380081+00:00"
+          }
+        ],
+        "created": 1752019200,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581251+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4-1-fast-non-reasoning",
+        "display_name": "grok-4-1-fast-non-reasoning",
+        "family": "grok-4",
+        "version": "4-1-fast-non-reasoning",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380110+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380116+00:00",
+        "version_history": [
+          {
+            "version": "4-1-fast-non-reasoning",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380122+00:00",
+            "verified_at": "2026-05-13T09:44:23.380127+00:00"
+          }
+        ],
+        "created": 1763510400,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581263+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4-1-fast-reasoning",
+        "display_name": "grok-4-1-fast-reasoning",
+        "family": "grok-4",
+        "version": "4-1-fast-reasoning",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380151+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380157+00:00",
+        "version_history": [
+          {
+            "version": "4-1-fast-reasoning",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380163+00:00",
+            "verified_at": "2026-05-13T09:44:23.380169+00:00"
+          }
+        ],
+        "created": 1763510400,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581273+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4-fast-non-reasoning",
+        "display_name": "grok-4-fast-non-reasoning",
+        "family": "grok-4",
+        "version": "4-fast-non-reasoning",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380191+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380197+00:00",
+        "version_history": [
+          {
+            "version": "4-fast-non-reasoning",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380203+00:00",
+            "verified_at": "2026-05-13T09:44:23.380208+00:00"
+          }
+        ],
+        "created": 1756944000,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581282+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4-fast-reasoning",
+        "display_name": "grok-4-fast-reasoning",
+        "family": "grok-4",
+        "version": "4-fast-reasoning",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380228+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380235+00:00",
+        "version_history": [
+          {
+            "version": "4-fast-reasoning",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380241+00:00",
+            "verified_at": "2026-05-13T09:44:23.380247+00:00"
+          }
+        ],
+        "created": 1756944000,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581292+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4.20-0309-non-reasoning",
+        "display_name": "grok-4.20-0309-non-reasoning",
+        "family": "grok-4",
+        "version": "4.20-0309-non-reasoning",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380268+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380275+00:00",
+        "version_history": [
+          {
+            "version": "4.20-0309-non-reasoning",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380281+00:00",
+            "verified_at": "2026-05-13T09:44:23.380286+00:00"
+          }
+        ],
+        "created": 1773014400,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581301+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4.20-0309-reasoning",
+        "display_name": "grok-4.20-0309-reasoning",
+        "family": "grok-4",
+        "version": "4.20-0309-reasoning",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380305+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380312+00:00",
+        "version_history": [
+          {
+            "version": "4.20-0309-reasoning",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380318+00:00",
+            "verified_at": "2026-05-13T09:44:23.380323+00:00"
+          }
+        ],
+        "created": 1773014400,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581309+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4.20-multi-agent-0309",
+        "display_name": "grok-4.20-multi-agent-0309",
+        "family": "grok-4",
+        "version": "4.20-multi-agent-0309",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380377+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380386+00:00",
+        "version_history": [
+          {
+            "version": "4.20-multi-agent-0309",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380391+00:00",
+            "verified_at": "2026-05-13T09:44:23.380398+00:00"
+          }
+        ],
+        "created": 1773014400,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581319+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-4.3",
+        "display_name": "grok-4.3",
+        "family": "grok-4",
+        "version": "4.3",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380431+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380437+00:00",
+        "version_history": [
+          {
+            "version": "4.3",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380443+00:00",
+            "verified_at": "2026-05-13T09:44:23.380448+00:00"
+          }
+        ],
+        "created": 1776384000,
+        "model_purpose": "general reasoning, chat, analysis, and coding",
+        "recommended_for": [
+          "general assistant workflows",
+          "reasoning",
+          "summarization",
+          "content generation",
+          "coding support"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation",
+          "audio transcription"
+        ],
+        "user_persona": [
+          "developers",
+          "product teams",
+          "analysts"
+        ],
+        "capabilities": [
+          "text generation",
+          "reasoning",
+          "chat",
+          "coding"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581328+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-code-fast-1",
+        "display_name": "grok-code-fast-1",
+        "family": "grok-code",
+        "version": "code-fast-1",
+        "release_stage": "versioned",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380474+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380480+00:00",
+        "version_history": [
+          {
+            "version": "code-fast-1",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "versioned",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380486+00:00",
+            "verified_at": "2026-05-13T09:44:23.380491+00:00"
+          }
+        ],
+        "created": 1755993600,
+        "model_purpose": "coding and software engineering assistance",
+        "recommended_for": [
+          "code generation",
+          "debugging",
+          "refactoring",
+          "developer workflows"
+        ],
+        "avoid_for": [
+          "image generation",
+          "video generation"
+        ],
+        "user_persona": [
+          "developers",
+          "engineering teams"
+        ],
+        "capabilities": [
+          "code generation",
+          "debugging",
+          "software engineering"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581337+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-imagine-image",
+        "display_name": "grok-imagine-image",
+        "family": "grok-image",
+        "version": "imagine-image",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380528+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380535+00:00",
+        "version_history": [
+          {
+            "version": "imagine-image",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380541+00:00",
+            "verified_at": "2026-05-13T09:44:23.380546+00:00"
+          }
+        ],
+        "created": 1769558400,
+        "model_purpose": "image generation",
+        "recommended_for": [
+          "creative visuals",
+          "marketing images",
+          "concept art"
+        ],
+        "avoid_for": [
+          "text reasoning",
+          "code generation"
+        ],
+        "user_persona": [
+          "designers",
+          "marketers",
+          "content teams"
+        ],
+        "capabilities": [
+          "image generation",
+          "visual content"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581371+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-imagine-image-pro",
+        "display_name": "grok-imagine-image-pro",
+        "family": "grok-image",
+        "version": "imagine-image-pro",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380581+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380587+00:00",
+        "version_history": [
+          {
+            "version": "imagine-image-pro",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380593+00:00",
+            "verified_at": "2026-05-13T09:44:23.380598+00:00"
+          }
+        ],
+        "created": 1769558400,
+        "model_purpose": "image generation",
+        "recommended_for": [
+          "creative visuals",
+          "marketing images",
+          "concept art"
+        ],
+        "avoid_for": [
+          "text reasoning",
+          "code generation"
+        ],
+        "user_persona": [
+          "designers",
+          "marketers",
+          "content teams"
+        ],
+        "capabilities": [
+          "image generation",
+          "visual content"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581382+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-imagine-image-quality",
+        "display_name": "grok-imagine-image-quality",
+        "family": "grok-image",
+        "version": "imagine-image-quality",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380630+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380637+00:00",
+        "version_history": [
+          {
+            "version": "imagine-image-quality",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380643+00:00",
+            "verified_at": "2026-05-13T09:44:23.380648+00:00"
+          }
+        ],
+        "created": 1775174400,
+        "model_purpose": "image generation",
+        "recommended_for": [
+          "creative visuals",
+          "marketing images",
+          "concept art"
+        ],
+        "avoid_for": [
+          "text reasoning",
+          "code generation"
+        ],
+        "user_persona": [
+          "designers",
+          "marketers",
+          "content teams"
+        ],
+        "capabilities": [
+          "image generation",
+          "visual content"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581391+00:00"
+      },
+      {
+        "provider": "xai",
+        "model_id": "grok-imagine-video",
+        "display_name": "grok-imagine-video",
+        "family": "grok-video",
+        "version": "imagine-video",
+        "release_stage": "stable",
+        "status": "current",
+        "is_active": true,
+        "is_latest": false,
+        "source_url": "https://api.x.ai/v1/models",
+        "source_domain": "api.x.ai",
+        "confidence": 1.0,
+        "discovery_tier": 1,
+        "discovered_at": "2026-05-13T09:44:23.380674+00:00",
+        "last_verified_at": "2026-05-13T09:44:23.380681+00:00",
+        "version_history": [
+          {
+            "version": "imagine-video",
+            "release_date": null,
+            "status": "current",
+            "release_stage": "stable",
+            "source_url": "https://api.x.ai/v1/models",
+            "discovered_at": "2026-05-13T09:44:23.380686+00:00",
+            "verified_at": "2026-05-13T09:44:23.380692+00:00"
+          }
+        ],
+        "created": 1769558400,
+        "model_purpose": "video generation",
+        "recommended_for": [
+          "short video concepts",
+          "marketing clips",
+          "storyboarding"
+        ],
+        "avoid_for": [
+          "text reasoning",
+          "code generation"
+        ],
+        "user_persona": [
+          "creative teams",
+          "marketers"
+        ],
+        "capabilities": [
+          "video generation"
+        ],
+        "semantic_confidence": 0.8,
+        "selection_notes": "Default (enrichment skipped)",
+        "official_context": "",
+        "first_seen_at": "2026-05-13T09:42:06.581400+00:00"
+      }
+    ],
+    "skips": [],
+    "deprecated": []
+  },
+  "dry_run": true
+}

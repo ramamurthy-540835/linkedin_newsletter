@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.services.content_sanitizer import sanitize_content
 from app.services.devto_service import DevToService
 from app.services.linkedin_service import LinkedInService
 
@@ -136,7 +137,7 @@ async def publish_to_linkedin(provider: str, req: PublishLinkedInRequest) -> dic
         raise HTTPException(status_code=404, detail="No LinkedIn post found")
 
     provider_dir = REPORTS_DIR / provider
-    text = (provider_dir / info["linkedin_post_file"]).read_text().strip()
+    text = sanitize_content((provider_dir / info["linkedin_post_file"]).read_text().strip())
 
     image_urns: list[str] = []
     if req.include_image and info["dashboard_image"]:
