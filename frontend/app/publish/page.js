@@ -320,6 +320,22 @@ export default function PublishQueuePage() {
                         </div>
                       </div>
                     )}
+
+                    {selectedDraft.poll_question && (
+                      <div>
+                        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Poll</div>
+                        <div className="p-3 bg-green-50 border border-green-100 rounded-xl">
+                          <div className="text-sm font-semibold text-gray-900 mb-2">{selectedDraft.poll_question}</div>
+                          <div className="space-y-1.5">
+                            {(selectedDraft.poll_options || []).map((opt, i) => (
+                              <div key={i} className="text-xs bg-white border border-green-100 rounded-lg px-2.5 py-1.5 text-gray-700">
+                                {opt}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="hidden lg:block">
@@ -330,6 +346,7 @@ export default function PublishQueuePage() {
                       cta={selectedDraft.cta}
                       image={selectedDraft.media?.image?.filename ? { filename: selectedDraft.media.image.filename } : null}
                       video={selectedDraft.media?.video?.filename ? { filename: selectedDraft.media.video.filename } : null}
+                      poll={selectedDraft.poll_question ? { question: selectedDraft.poll_question, options: selectedDraft.poll_options || [] } : null}
                     />
                     {selectedDraft.carousel_slides?.length > 0 && (
                       <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-xl">

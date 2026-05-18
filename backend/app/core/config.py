@@ -43,6 +43,11 @@ class Settings(BaseSettings):
     xai_api_key: str = ""
     xai_base_url: str = ""
     xai_model: str = ""
+    xai_image_model: str = ""
+    xai_video_model: str = ""
+    xai_monthly_budget_usd: float = 5.0
+    xai_soft_stop_usd: float = 4.0
+    xai_hard_stop_usd: float = 5.0
 
     # 44-char URL-safe base64 Fernet key; if empty a deterministic dev key is used
     credentials_encryption_key: str = ""

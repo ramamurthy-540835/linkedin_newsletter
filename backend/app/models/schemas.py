@@ -68,6 +68,8 @@ class SavePostRequest(BaseModel):
     content_type: str = "text"
     media: Optional[PostMedia] = None
     carousel_slides: Optional[list[CarouselSlide]] = None
+    poll_question: Optional[str] = None
+    poll_options: Optional[list[str]] = None
 
 
 class SavePostResponse(BaseModel):
@@ -100,6 +102,8 @@ class Post(BaseModel):
     content_type: str = "text"
     media: Optional[PostMedia] = None
     carousel_slides: Optional[list[dict]] = None
+    poll_question: Optional[str] = None
+    poll_options: Optional[list[str]] = None
     created_at: datetime
     updated_at: datetime
 

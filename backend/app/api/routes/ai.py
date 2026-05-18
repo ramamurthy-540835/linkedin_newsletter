@@ -3,6 +3,7 @@ import httpx
 from pydantic import BaseModel
 
 from app.core.config import settings
+from app.services.xai_usage_service import XAIBudgetError, assert_budget_allows_request, record_xai_usage
 
 router = APIRouter()
 
@@ -17,6 +18,10 @@ class GenerateBody(BaseModel):
 async def ai_generate(body: GenerateBody) -> dict:
     ai_provider = (settings.ai_provider or "auto").strip().lower()
     if ai_provider == "xai" or settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai:
+        try:
+            budget = assert_budget_allows_request()
+        except XAIBudgetError as e:
+            raise HTTPException(status_code=429, detail=str(e))
         base = (settings.xai_base_url or "").rstrip("/")
         key = (settings.xai_api_key or "").strip()
         model = (body.model or settings.xai_model or "").removeprefix("models/").strip()
@@ -38,5 +43,11 @@ async def ai_generate(body: GenerateBody) -> dict:
                 raise HTTPException(status_code=502, detail=f"xAI generation failed: {resp.text}")
             data = resp.json()
             text = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
-            return {"text": text}
+            usage = record_xai_usage(feature="ai_generate", model=model, usage=data.get("usage") or {})
+            soft = float(settings.xai_soft_stop_usd or 0)
+            used = float(budget.get("used_usd") or 0)
+            warning = None
+            if soft > 0 and used >= soft:
+                warning = f"xAI soft budget reached (${used:.4f}/${soft:.4f})."
+            return {"text": text, "usage": usage, "budget_warning": warning}
     raise HTTPException(status_code=400, detail="AI_PROVIDER must be xai for local mode")

@@ -116,26 +116,26 @@ function StatCards({ draftCount, publishedCount, linkedinConnected, linkedinName
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
       {stats.map((s) => {
         const Icon = s.icon;
-        const shouldTruncate = String(s.value || '').length > 20;
         return (
-          <div key={s.label} className="stat-card flex items-center gap-3 p-5 min-h-[96px] min-w-0">
+          <div key={s.label} className="stat-card flex items-center gap-3 px-4 py-4 min-h-[100px] max-h-[120px] min-w-[220px] w-auto flex-1 basis-[220px]">
             <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-xl ${s.bg} flex items-center justify-center flex-shrink-0`}>
-              <Icon className={s.text} size={20} />
+              <Icon className={s.text} size={19} />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="text-sm text-gray-500 leading-tight">{s.label}</div>
+              <div className="text-sm text-gray-500 leading-tight whitespace-normal break-words">{s.label}</div>
               {s.isLinkedIn ? (
                 <div
-                  className={`font-bold text-gray-900 text-sm sm:text-base leading-tight mt-0.5 ${shouldTruncate ? 'truncate' : ''}`}
+                  className="font-bold text-gray-900 text-sm sm:text-[15px] leading-tight mt-0.5 whitespace-normal break-words overflow-hidden"
+                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
                   title={String(s.value || '')}
                 >
                   {s.value}
                 </div>
               ) : (
-                <div className="font-bold text-gray-900 text-2xl leading-tight mt-0.5">{s.value}</div>
+                <div className="font-bold text-gray-900 text-2xl leading-tight mt-0.5 whitespace-normal break-words">{s.value}</div>
               )}
             </div>
           </div>
@@ -1355,20 +1355,31 @@ function MyConnections({ onToast }) {
               <div className="text-sm font-semibold text-gray-900">Connect your LinkedIn network</div>
               <div className="text-xs text-gray-500">Use LinkedIn session or open LinkedIn directly to manage your network.</div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <button onClick={() => window.open('https://www.linkedin.com/mynetwork/', '_blank')} className="h-14 rounded-2xl px-5 py-4 inline-flex items-center justify-center gap-2.5 text-[15px] font-semibold text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-linkedin-600 to-studio-600 hover:from-linkedin-700 hover:to-studio-700">
-                  <IconGlobe size={20} /> Open My Network
+                <button onClick={() => window.open('https://www.linkedin.com/mynetwork/', '_blank')} className="h-auto md:h-[72px] rounded-2xl px-6 py-4 inline-flex items-center justify-center text-center text-[16px] font-semibold leading-tight text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-linkedin-600 to-studio-600 hover:from-linkedin-700 hover:to-studio-700">
+                  <div className="flex items-center justify-center gap-3">
+                    <IconGlobe className="w-5 h-5 shrink-0" />
+                    <span className="whitespace-nowrap">Open My Network</span>
+                  </div>
                 </button>
-                <button onClick={autoConnectSession} disabled={sessionAutoConnecting} className="h-14 rounded-2xl px-5 py-4 inline-flex items-center justify-center gap-2.5 text-[15px] font-semibold text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-studio-600 to-linkedin-600 hover:from-studio-700 hover:to-linkedin-700 disabled:opacity-50">
-                  <IconLinkedIn size={20} /> {sessionAutoConnecting ? 'Opening Browser...' : 'Connect LinkedIn Session'}
+                <button onClick={autoConnectSession} disabled={sessionAutoConnecting} className="h-auto md:h-[72px] rounded-2xl px-6 py-4 inline-flex items-center justify-center text-center text-[16px] font-semibold leading-tight text-white shadow-sm hover:shadow-md transition-all duration-200 bg-gradient-to-r from-studio-600 to-linkedin-600 hover:from-studio-700 hover:to-linkedin-700 disabled:opacity-50">
+                  <div className="flex items-center justify-center gap-3">
+                    <IconLinkedIn className="w-5 h-5 shrink-0" />
+                    <span className="whitespace-normal md:whitespace-nowrap">{
+                      sessionAutoConnecting ? 'Opening Browser...' : 'Connect LinkedIn Session'
+                    }</span>
+                  </div>
                 </button>
-                <button onClick={() => handleTabChange('manual')} className="h-14 rounded-2xl px-5 py-4 inline-flex items-center justify-center gap-2.5 text-[15px] font-semibold text-gray-700 bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
-                  <IconSearch size={20} /> Manual Search
+                <button onClick={() => handleTabChange('manual')} className="h-auto md:h-[72px] rounded-2xl px-6 py-4 inline-flex items-center justify-center text-center text-[16px] font-semibold leading-tight text-gray-700 bg-white border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 hover:bg-gray-50 transition-all duration-200">
+                  <div className="flex items-center justify-center gap-3">
+                    <IconSearch className="w-5 h-5 shrink-0" />
+                    <span className="whitespace-nowrap">Manual Search</span>
+                  </div>
                 </button>
               </div>
             </div>
             <div className="space-y-1">
-              <button onClick={() => setShowAdvancedCsvImport(v => !v)} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
-                <IconUpload size={16} /> {showAdvancedCsvImport ? 'Hide Upload CSV' : 'Upload CSV'}
+              <button onClick={() => setShowAdvancedCsvImport(v => !v)} className="inline-flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-gray-900 hover:bg-gray-100 transition">
+                <IconUpload className="w-5 h-5 shrink-0" /> <span>{showAdvancedCsvImport ? 'Hide Upload CSV' : 'Upload CSV'}</span>
               </button>
               <div className="text-xs text-gray-500">Import LinkedIn exported connections</div>
             </div>

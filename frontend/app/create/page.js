@@ -84,15 +84,11 @@ const ASPECT_RATIOS = [
 ];
 
 const IMAGE_PROVIDERS = [
-  { value: 'google-imagen-3', label: 'Imagen 3' },
-  { value: 'google-imagen-4', label: 'Imagen 4' },
-  { value: 'google-imagen-4-fast', label: 'Imagen 4 Fast' },
-  { value: 'google-imagen-4-ultra', label: 'Imagen 4 Ultra' },
+  { value: 'xai-image', label: 'xAI Image Generation' },
 ];
 
 const VIDEO_PROVIDERS = [
-  { value: 'google-veo', label: 'Veo' },
-  { value: 'google-veo-lite', label: 'Veo Lite' },
+  { value: 'xai-video', label: 'xAI Video Generation' },
 ];
 
 const VIDEO_DURATIONS = [
@@ -210,11 +206,11 @@ function CreatePageContent() {
   const [generateVid, setGenerateVid] = useState(false);
 
   // Image options
-  const [imageProvider, setImageProvider] = useState('google-imagen-3');
+  const [imageProvider, setImageProvider] = useState('xai-image');
   const [imagePrompt, setImagePrompt] = useState('');
 
   // Video options
-  const [videoProvider, setVideoProvider] = useState('google-veo');
+  const [videoProvider, setVideoProvider] = useState('xai-video');
   const [videoDuration, setVideoDuration] = useState('30');
   const [videoStyle, setVideoStyle] = useState('corporate');
   const [videoScript, setVideoScript] = useState('');
@@ -247,39 +243,19 @@ function CreatePageContent() {
   const [prefillNotice, setPrefillNotice] = useState('');
 
   const pollRef = useRef(null);
+  const autofillRef = useRef(null);
+  const autofillSeqRef = useRef(0);
+  const hasPrefilledRef = useRef(false);
 
-  useEffect(() => {
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
-  }, []);
-
-  useEffect(() => {
-    const saved = typeof window !== 'undefined' ? localStorage.getItem(LINKEDIN_PROFILE_KEY) : '';
-    setProfileUrl(saved || '');
-    if (!saved) setShowProfileModal(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const t = searchParams.get('topic');
-    const prefill = searchParams.get('prefill') === 'true';
-    const hook = searchParams.get('hook');
-    const type = searchParams.get('type');
-    if (type && CONTENT_TYPES.some(ct => ct.value === type)) {
-      setContentType(type);
-      if (type === 'image') setGenerateImg(true);
-      if (type === 'video') setGenerateVid(true);
-    }
-    if (t) {
-      setTopic(decodeURIComponent(t));
-      if (hook && !suggestedTitle) setSuggestedTitle(decodeURIComponent(hook));
-      if (prefill) {
-        (async () => {
-          setAiCompleting(true);
-          try {
-            const out = await aiGenerate({
-              system: "Return strict JSON only. No markdown.",
-              prompt: `Given this LinkedIn content topic, generate recommended metadata fields only. Do not generate full post content.
-Topic: ${decodeURIComponent(t)}
+  const prefillMetadataFromXAI = async (topicValue, hookValue = '', sourceContentType = contentType) => {
+    const t = (topicValue || '').trim();
+    if (!t) return null;
+    const out = await aiGenerate({
+      system: "Return strict JSON only. No markdown.",
+      prompt: `Given this LinkedIn content topic, generate recommended metadata fields only. Do not generate full post content.
+Topic: ${t}
+Hook Context: ${hookValue || ''}
+Content Type: ${sourceContentType}
 Return ONLY valid JSON:
 {
   "targetAudience": "",
@@ -290,28 +266,145 @@ Return ONLY valid JSON:
   "writingStyle": "",
   "visualStyle": "",
   "brandColors": ["#0A66C2", "#FFFFFF"],
-  "hashtags": []
+  "hashtags": [],
+  "pollQuestion": "",
+  "pollOptions": [],
+  "carouselSlides": []
 }`,
-            });
-            let pkg = {};
-            try { pkg = JSON.parse((out?.text || "{}").replace(/```json|```/g, "").trim()); } catch {}
-            if (!audience?.trim() && pkg.targetAudience) setAudience(pkg.targetAudience);
-            if ((!tone || tone === 'professional') && pkg.tone) setTone(pkg.tone);
-            if ((!goal || goal === 'engagement') && pkg.goal) setGoal(pkg.goal);
-            if (!ctaInput?.trim() && pkg.callToAction) setCtaInput(pkg.callToAction);
-            if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
-            if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
-            if ((!visualStyle || visualStyle === 'corporate') && pkg.visualStyle) setVisualStyle(pkg.visualStyle);
-            if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
-            if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
+    });
+    let pkg = {};
+    try { pkg = JSON.parse((out?.text || "{}").replace(/```json|```/g, "").trim()); } catch {}
+    return pkg;
+  };
+
+  useEffect(() => {
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (autofillRef.current) clearTimeout(autofillRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem(LINKEDIN_PROFILE_KEY) : '';
+    setProfileUrl(saved || '');
+    if (!saved) setShowProfileModal(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const topicParam = searchParams.get('topic');
+    const prefillParam = searchParams.get('prefill') === 'true';
+    const hookParam = searchParams.get('hook');
+    const type = searchParams.get('type');
+    console.log("CREATE_PREFILL_PARAMS", { topicParam, prefillParam, hookParam, type });
+    if (type && CONTENT_TYPES.some(ct => ct.value === type)) {
+      setContentType(type);
+      if (type === 'image') setGenerateImg(true);
+      if (type === 'video') setGenerateVid(true);
+    }
+    if (topicParam) {
+      const decodedTopic = decodeURIComponent(topicParam);
+      setTopic(decodedTopic);
+      if (hookParam) setSuggestedTitle(decodeURIComponent(hookParam));
+      if (prefillParam && !hasPrefilledRef.current) {
+        hasPrefilledRef.current = true;
+        (async () => {
+          setAiCompleting(true);
+          setError('');
+          setPrefillNotice('xAI is auto-filling recommended settings...');
+          try {
+            const result = await prefillMetadataFromXAI(decodedTopic, decodeURIComponent(hookParam || ''), type || contentType);
+            console.log("CREATE_PREFILL_RESULT", result);
+            if (!audience?.trim() && result?.targetAudience) setAudience(result.targetAudience);
+            if ((!tone || tone === 'professional') && result?.tone) setTone(result.tone);
+            if ((!goal || goal === 'engagement') && result?.goal) setGoal(result.goal);
+            if (!ctaInput?.trim() && result?.callToAction) setCtaInput(result.callToAction);
+            if (!keywords?.trim() && Array.isArray(result?.keywords)) setKeywords(result.keywords.join(', '));
+            if (!writingStyle?.trim() && result?.writingStyle) setWritingStyle(result.writingStyle);
+            if ((!visualStyle || visualStyle === 'corporate') && result?.visualStyle) setVisualStyle(result.visualStyle);
+            if (!brandColors?.trim() && Array.isArray(result?.brandColors)) setBrandColors(result.brandColors.join(', '));
+            if ((!hashtags || hashtags.length === 0) && Array.isArray(result?.hashtags)) setHashtags(result.hashtags);
+            if ((type || contentType) === 'poll') {
+              if (!pollQuestion?.trim() && result?.pollQuestion) setPollQuestion(result.pollQuestion);
+              if ((!pollOptions || pollOptions.length === 0) && Array.isArray(result?.pollOptions)) setPollOptions(result.pollOptions);
+            }
+            if ((type || contentType) === 'carousel' && (!carouselSlides || carouselSlides.length === 0) && Array.isArray(result?.carouselSlides)) {
+              setCarouselSlides(result.carouselSlides);
+            }
             setPrefillNotice('xAI filled recommended settings. Review and click Generate Content.');
-          } catch {}
-          setAiCompleting(false);
+          } catch (e) {
+            setError(e?.message || 'xAI metadata prefill failed');
+            setPrefillNotice('xAI metadata prefill failed.');
+          } finally {
+            setAiCompleting(false);
+          }
         })();
       }
-      return;
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    const t = (topic || '').trim();
+    if (!t) return;
+    if (busy) return;
+
+    if (autofillRef.current) clearTimeout(autofillRef.current);
+    autofillRef.current = setTimeout(async () => {
+      const seq = ++autofillSeqRef.current;
+      setAiCompleting(true);
+      setPrefillNotice('xAI is auto-filling recommended settings...');
+      try {
+        const out = await aiGenerate({
+          system: "Return strict JSON only. No markdown.",
+          prompt: `Given this LinkedIn content topic, generate recommended metadata fields only. Do not generate full post content.
+Topic: ${t}
+Content Type: ${contentType}
+Return ONLY valid JSON:
+{
+  "targetAudience": "",
+  "tone": "",
+  "goal": "",
+  "callToAction": "",
+  "keywords": [],
+  "writingStyle": "",
+  "visualStyle": "",
+  "brandColors": ["#0A66C2", "#FFFFFF"],
+  "hashtags": [],
+  "pollQuestion": "",
+  "pollOptions": [],
+  "carouselSlides": []
+}`,
+        });
+        if (seq !== autofillSeqRef.current) return;
+        let pkg = {};
+        try { pkg = JSON.parse((out?.text || "{}").replace(/```json|```/g, "").trim()); } catch {}
+        if (!audience?.trim() && pkg.targetAudience) setAudience(pkg.targetAudience);
+        if ((!tone || tone === 'professional') && pkg.tone) setTone(pkg.tone);
+        if ((!goal || goal === 'engagement') && pkg.goal) setGoal(pkg.goal);
+        if (!ctaInput?.trim() && pkg.callToAction) setCtaInput(pkg.callToAction);
+        if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
+        if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
+        if ((!visualStyle || visualStyle === 'corporate') && pkg.visualStyle) setVisualStyle(pkg.visualStyle);
+        if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
+        if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
+        if (contentType === 'poll') {
+          if (!pollQuestion?.trim() && pkg.pollQuestion) setPollQuestion(pkg.pollQuestion);
+          if ((!pollOptions || pollOptions.length === 0) && Array.isArray(pkg.pollOptions)) setPollOptions(pkg.pollOptions);
+        }
+        if (contentType === 'carousel' && (!carouselSlides || carouselSlides.length === 0) && Array.isArray(pkg.carouselSlides)) {
+          setCarouselSlides(pkg.carouselSlides);
+        }
+        setPrefillNotice('xAI filled recommended settings. Review and click Generate Content.');
+      } catch {
+        if (seq === autofillSeqRef.current) setPrefillNotice('Auto-fill could not complete. You can continue manually or click Generate Content.');
+      } finally {
+        if (seq === autofillSeqRef.current) setAiCompleting(false);
+      }
+    }, 700);
+  }, [topic, contentType]);
 
   const saveProfile = (url) => {
     localStorage.setItem(LINKEDIN_PROFILE_KEY, url);
@@ -348,6 +441,7 @@ Return ONLY valid JSON:
       setAiCompleting(true);
       const completionPrompt = `Given this LinkedIn content topic, generate a complete publishing package.
 Topic: ${topic.trim()}
+Content Type: ${contentType}
 Return ONLY valid JSON:
 {
   "targetAudience": "",
@@ -365,7 +459,7 @@ Return ONLY valid JSON:
 }
 Rules:
 - Post must be 1200-2500 chars, LinkedIn-ready, professional, practical, and current.
-- If carouselSlides is present, return 4-7 slides with heading/body/bullets.`;
+- If Content Type is carousel, carouselSlides is REQUIRED and must include 4-7 slides with heading/body/bullets.`;
       const aiOut = await aiGenerate({
         prompt: completionPrompt,
         system: "Return strict JSON only. No markdown.",
@@ -641,6 +735,10 @@ Rules:
           image_url: s.image_url || s.imageUrl || '',
         }));
       }
+      if (contentType === 'poll' && pollQuestion.trim()) {
+        savePayload.poll_question = pollQuestion.trim();
+        savePayload.poll_options = (pollOptions || []).map((o) => String(o || '').trim()).filter(Boolean);
+      }
       await savePost(savePayload);
       window.location.href = '/publish';
     } catch (e) {
@@ -760,7 +858,7 @@ Rules:
                     className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
                   <div>
                     <span className="font-semibold text-sm text-gray-900">Add AI Image</span>
-                    <span className="text-xs text-gray-500 ml-2">AI visual enhancement</span>
+                    <span className="text-xs text-gray-500 ml-2">xAI visual enhancement</span>
                   </div>
                 </label>
 
@@ -796,7 +894,7 @@ Rules:
                     className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
                   <div>
                     <span className="font-semibold text-sm text-gray-900">Add AI Video</span>
-                    <span className="text-xs text-gray-500 ml-2">AI video enhancement</span>
+                    <span className="text-xs text-gray-500 ml-2">xAI video enhancement</span>
                   </div>
                 </label>
 

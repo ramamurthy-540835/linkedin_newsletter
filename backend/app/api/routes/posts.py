@@ -125,6 +125,10 @@ async def save_post(req: SavePostRequest) -> SavePostResponse:
         payload["media"] = req.media.model_dump(exclude_none=True)
     if req.carousel_slides:
         payload["carousel_slides"] = [s.model_dump() for s in req.carousel_slides]
+    if req.poll_question:
+        payload["poll_question"] = req.poll_question
+    if req.poll_options:
+        payload["poll_options"] = req.poll_options
     rows = []
     if POSTS_FILE.exists():
         rows = json.loads(POSTS_FILE.read_text(encoding="utf-8"))
@@ -261,6 +265,12 @@ async def list_posts() -> list[Post]:
         }
         if row.get("media"):
             safe["media"] = row["media"]
+        if row.get("carousel_slides"):
+            safe["carousel_slides"] = row["carousel_slides"]
+        if row.get("poll_question"):
+            safe["poll_question"] = row["poll_question"]
+        if row.get("poll_options"):
+            safe["poll_options"] = row["poll_options"]
         try:
             normalized.append(Post(**safe))
         except Exception:

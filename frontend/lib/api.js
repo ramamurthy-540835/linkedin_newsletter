@@ -71,6 +71,8 @@ export const savePost = (data) =>
       content_type: data.content_type || 'text',
       media: data.media || null,
       carousel_slides: data.carousel_slides || null,
+      poll_question: data.poll_question || null,
+      poll_options: data.poll_options || null,
     }),
   });
 

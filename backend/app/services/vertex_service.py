@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from app.core.config import settings
+from app.services.xai_usage_service import assert_budget_allows_request, record_xai_usage
 
 
 class VertexService:
@@ -24,6 +25,7 @@ class VertexService:
         return (settings.ai_provider or "auto").strip().lower()
 
     async def _generate_with_xai(self, prompt: str) -> dict[str, Any]:
+        summary = assert_budget_allows_request()
         base = (settings.xai_base_url or "").rstrip("/")
         key = (settings.xai_api_key or "").strip()
         model = (settings.xai_model or "").strip()
@@ -49,6 +51,11 @@ class VertexService:
                 raise RuntimeError(f"xAI error {resp.status_code}: {resp.text}")
             data = resp.json()
             text = (((data.get("choices") or [{}])[0].get("message") or {}).get("content") or "{}").strip()
+            record_xai_usage(feature="content_plan", model=model, usage=data.get("usage") or {})
+            soft = float(settings.xai_soft_stop_usd or 0)
+            used = float(summary.get("used_usd") or 0)
+            if soft > 0 and used >= soft:
+                print(f"[xai-budget] soft stop reached before request: used=${used:.4f} soft=${soft:.4f}")
             return self._parse_json(text)
 
     async def generate_json(self, prompt: str) -> dict[str, Any]:

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routes import admin, ai, auth, config, content_plan, discovery_reports, media, models, posts, published_posts, serp, trends
+from app.api.routes import admin, ai, auth, config, content_plan, discovery_reports, media, models, posts, published_posts, serp, trends, xai
 
 api_router = APIRouter()
 api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -15,3 +15,4 @@ api_router.include_router(discovery_reports.router, prefix="/discovery-reports",
 api_router.include_router(media.router, prefix="/media", tags=["media"])
 api_router.include_router(content_plan.router, prefix="/generate", tags=["generate"])
 api_router.include_router(trends.router, prefix="/trends", tags=["trends"])
+api_router.include_router(xai.router, prefix="/xai", tags=["xai"])

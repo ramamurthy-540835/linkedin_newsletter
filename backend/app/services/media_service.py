@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.core.config import settings
+from app.services.xai_usage_service import XAIBudgetError, assert_budget_allows_request, record_xai_usage
 from app.services.local_store import get_media_job, save_media_job, update_media_job
 
 MEDIA_DIR = Path(__file__).resolve().parents[2] / "data" / "media"
@@ -219,13 +220,84 @@ async def generate_images_with_options(
     ar = ASPECT_RATIOS.get(aspect_ratio, "16:9")
     styled_prompt = _styled_image_prompt(prompt, style, brand_colors)
 
-    if provider == "openai":
+    if provider in ("xai-image", "xai"):
+        return await _generate_images_xai(styled_prompt, count, ar)
+    elif provider == "openai":
         return await _generate_images_openai(styled_prompt, count, ar)
     elif provider == "gemini":
         return await _generate_images_gemini(styled_prompt, count, ar)
     else:
         model = IMAGEN_MODELS.get(provider, IMAGEN_MODEL)
         return await asyncio.to_thread(_generate_images_sync_model, styled_prompt, count, ar, model)
+
+
+async def _generate_images_xai(prompt: str, count: int, aspect_ratio: str) -> list[dict]:
+    """Generate images using xAI's OpenAI-compatible images API."""
+    import base64
+    import httpx
+
+    try:
+        budget = assert_budget_allows_request()
+    except XAIBudgetError as e:
+        raise ValueError(str(e))
+    api_key = (settings.xai_api_key or "").strip()
+    base = (settings.xai_base_url or "").rstrip("/")
+    model = (settings.xai_image_model or "").strip()
+
+    if not api_key:
+        raise ValueError("XAI_API_KEY missing")
+    if not base:
+        raise ValueError("XAI_BASE_URL not configured")
+    if not model:
+        raise ValueError("XAI_IMAGE_MODEL is required for image generation")
+
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+
+    ratio_hint = {
+        "16:9": "Create as a LinkedIn landscape 16:9 visual.",
+        "1:1": "Create as a LinkedIn square 1:1 visual.",
+        "9:16": "Create as a LinkedIn portrait 9:16 visual.",
+    }.get(aspect_ratio, "Create as a LinkedIn landscape 16:9 visual.")
+    final_prompt = f"{prompt}. {ratio_hint}"
+
+    results = []
+    async with httpx.AsyncClient(timeout=90) as client:
+        payload = {
+            "model": model,
+            "prompt": final_prompt,
+            "n": 1,
+            "response_format": "b64_json",
+        }
+        print("XAI_IMAGE_PAYLOAD_KEYS", list(payload.keys()))
+        resp = await client.post(
+            f"{base}/images/generations",
+            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+            json=payload,
+        )
+        if resp.status_code >= 400:
+            raise ValueError(f"xAI image API error: {resp.text}")
+        data = resp.json()
+        record_xai_usage(feature="image_generate", model=model, usage=data.get("usage") or {})
+        soft = float(settings.xai_soft_stop_usd or 0)
+        used = float(budget.get("used_usd") or 0)
+        if soft > 0 and used >= soft:
+            print(f"[xai-budget] soft stop reached before image request: used=${used:.4f} soft=${soft:.4f}")
+        images = data.get("data") or []
+        if not images:
+            raise ValueError("xAI image API returned empty image payload")
+        for i, item in enumerate(images):
+            b64 = (item.get("b64_json") or "").strip()
+            if not b64:
+                continue
+            mime = (item.get("mime_type") or "image/png").strip().lower()
+            img_bytes = base64.b64decode(b64)
+            filename = f"img_{uuid.uuid4().hex[:8]}_{i}.png"
+            path = MEDIA_DIR / filename
+            path.write_bytes(img_bytes)
+            results.append({"filename": filename, "url": f"/api/media/file/{filename}", "mime_type": mime})
+    if not results:
+        raise ValueError("xAI image API returned empty image payload")
+    return results
 
 
 def _generate_images_sync_model(prompt: str, count: int, aspect_ratio: str, model: str) -> list[dict]:

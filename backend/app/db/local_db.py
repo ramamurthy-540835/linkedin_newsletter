@@ -103,6 +103,16 @@ def init_local_db() -> None:
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS xai_usage (
+                id TEXT PRIMARY KEY,
+                feature TEXT NOT NULL,
+                model TEXT NOT NULL,
+                prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                completion_tokens INTEGER NOT NULL DEFAULT 0,
+                total_tokens INTEGER NOT NULL DEFAULT 0,
+                cost_usd REAL NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            );
             """
         )
     seed_if_empty()
@@ -182,3 +192,71 @@ def save_draft(payload: dict[str, Any]) -> dict[str, Any]:
             ),
         )
     return payload
+
+
+def add_xai_usage(
+    usage_id: str,
+    feature: str,
+    model: str,
+    prompt_tokens: int,
+    completion_tokens: int,
+    total_tokens: int,
+    cost_usd: float,
+    created_at: str,
+) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """
+            INSERT INTO xai_usage (
+                id, feature, model, prompt_tokens, completion_tokens, total_tokens, cost_usd, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                usage_id,
+                feature,
+                model,
+                int(prompt_tokens or 0),
+                int(completion_tokens or 0),
+                int(total_tokens or 0),
+                float(cost_usd or 0),
+                created_at,
+            ),
+        )
+
+
+def xai_usage_summary_month(month_prefix: str) -> dict[str, Any]:
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            SELECT
+                COALESCE(SUM(cost_usd), 0) AS used_usd,
+                COALESCE(SUM(total_tokens), 0) AS total_tokens,
+                COALESCE(COUNT(1), 0) AS request_count
+            FROM xai_usage
+            WHERE created_at LIKE ?
+            """,
+            (f"{month_prefix}%",),
+        ).fetchone()
+        last = conn.execute(
+            """
+            SELECT cost_usd, total_tokens, created_at, model, feature
+            FROM xai_usage
+            ORDER BY created_at DESC
+            LIMIT 1
+            """
+        ).fetchone()
+    out = {
+        "used_usd": float(row["used_usd"] or 0),
+        "total_tokens": int(row["total_tokens"] or 0),
+        "request_count": int(row["request_count"] or 0),
+        "last_request": None,
+    }
+    if last:
+        out["last_request"] = {
+            "cost_usd": float(last["cost_usd"] or 0),
+            "total_tokens": int(last["total_tokens"] or 0),
+            "created_at": last["created_at"],
+            "model": last["model"],
+            "feature": last["feature"],
+        }
+    return out

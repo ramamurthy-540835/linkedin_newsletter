@@ -37,6 +37,8 @@ async def config_status() -> dict:
     xai_key = (settings.xai_api_key or "").strip()
     xai_base = (settings.xai_base_url or "").strip()
     xai_model = (settings.xai_model or "").strip()
+    xai_image_model = (settings.xai_image_model or "").strip()
+    xai_video_model = (settings.xai_video_model or "").strip()
     vertex_model = (settings.vertex_ai_model or "").strip()
     gcp_disabled = settings.local_dev_mode or settings.disable_gcp
     bq_disabled = gcp_disabled or settings.disable_bigquery
@@ -57,6 +59,8 @@ async def config_status() -> dict:
         "xai": "connected" if bool(xai_key) else "missing",
         "xai_base_url": xai_base,
         "xai_model": xai_model,
+        "xai_image_model": xai_image_model,
+        "xai_video_model": xai_video_model,
         "active_provider": "xai" if (ai_provider == "xai" or gcp_disabled) else ai_provider,
         "active_model": xai_model if (ai_provider == "xai" or gcp_disabled) else vertex_model,
         "active_base_url": xai_base if ai_provider == "xai" else "",
