@@ -78,6 +78,29 @@ const VISUAL_STYLES = [
   { value: 'linkedin_brand', label: 'LinkedIn Personal Brand' },
 ];
 
+const normalizeVisualStyle = (value, topicValue = '') => {
+  const v = String(value || '').trim().toLowerCase().replace(/\s+/g, '_');
+  const aliases = {
+    architecture: 'archiect',
+    architectural: 'archiect',
+    systems: 'archiect',
+    corporate: 'corporate',
+    modern_saas: 'modern_saas',
+    saas: 'modern_saas',
+    infographic: 'infographic',
+    futuristic_ai: 'futuristic_ai',
+    futuristic: 'futuristic_ai',
+    professional_business: 'professional_business',
+    minimal: 'minimal',
+    linkedin_brand: 'linkedin_brand',
+  };
+  const mapped = aliases[v] || '';
+  if (mapped) return mapped;
+  const seed = `${topicValue || ''}`.toLowerCase();
+  if (/(ai|codex|openai|agent|llm|cloud|architecture|system|platform|api)/.test(seed)) return 'futuristic_ai';
+  return 'modern_saas';
+};
+
 const ASPECT_RATIOS = [
   { value: '16:9', label: 'Landscape (16:9)' },
   { value: '1:1', label: 'Square (1:1)' },
@@ -265,7 +288,7 @@ Return ONLY valid JSON:
   "callToAction": "",
   "keywords": [],
   "writingStyle": "",
-  "visualStyle": "",
+  "visualStyle": "Pick ONE from: archiect, futuristic_ai, modern_saas, infographic, linkedin_brand, minimal, professional_business, corporate. Prefer futuristic_ai or modern_saas for AI/tech topics.",
   "brandColors": ["#0A66C2", "#FFFFFF"],
   "hashtags": [],
   "pollQuestion": "",
@@ -290,7 +313,7 @@ Return ONLY valid JSON:
       callToAction: 'Share your perspective in the comments',
       keywords: [topicValue].filter(Boolean),
       writingStyle: 'Concise, insight-driven',
-      visualStyle: 'archiect',
+      visualStyle: 'futuristic_ai',
       brandColors: ['#0A66C2', '#FFFFFF'],
       hashtags: [],
     };
@@ -342,7 +365,9 @@ Return ONLY valid JSON:
             if (!ctaInput?.trim() && result?.callToAction) setCtaInput(result.callToAction);
             if (!keywords?.trim() && Array.isArray(result?.keywords)) setKeywords(result.keywords.join(', '));
             if (!writingStyle?.trim() && result?.writingStyle) setWritingStyle(result.writingStyle);
-            if ((!visualStyle || visualStyle === 'corporate') && result?.visualStyle) setVisualStyle(result.visualStyle);
+            if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && result?.visualStyle) {
+              setVisualStyle(normalizeVisualStyle(result.visualStyle, topicParam));
+            }
             if (!brandColors?.trim() && Array.isArray(result?.brandColors)) setBrandColors(result.brandColors.join(', '));
             if ((!hashtags || hashtags.length === 0) && Array.isArray(result?.hashtags)) setHashtags(result.hashtags);
             if ((type || contentType) === 'poll') {
@@ -361,7 +386,9 @@ Return ONLY valid JSON:
             if (!ctaInput?.trim() && fallback?.callToAction) setCtaInput(fallback.callToAction);
             if (!keywords?.trim() && Array.isArray(fallback?.keywords)) setKeywords(fallback.keywords.join(', '));
             if (!writingStyle?.trim() && fallback?.writingStyle) setWritingStyle(fallback.writingStyle);
-            if ((!visualStyle || visualStyle === 'corporate') && fallback?.visualStyle) setVisualStyle(fallback.visualStyle);
+            if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && fallback?.visualStyle) {
+              setVisualStyle(normalizeVisualStyle(fallback.visualStyle, topicParam));
+            }
             if (!brandColors?.trim() && Array.isArray(fallback?.brandColors)) setBrandColors(fallback.brandColors.join(', '));
             setError(e?.message || 'AI metadata prefill failed');
             setPrefillNotice('AI prefill could not complete fully. Default recommendations were applied. Review and click Generate Content.');
@@ -399,7 +426,7 @@ Return ONLY valid JSON:
   "callToAction": "",
   "keywords": [],
   "writingStyle": "",
-  "visualStyle": "",
+  "visualStyle": "Pick ONE from: archiect, futuristic_ai, modern_saas, infographic, linkedin_brand, minimal, professional_business, corporate. Prefer futuristic_ai or modern_saas for AI/tech topics.",
   "brandColors": ["#0A66C2", "#FFFFFF"],
   "hashtags": [],
   "pollQuestion": "",
@@ -416,7 +443,9 @@ Return ONLY valid JSON:
         if (!ctaInput?.trim() && pkg.callToAction) setCtaInput(pkg.callToAction);
         if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
         if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
-        if ((!visualStyle || visualStyle === 'corporate') && pkg.visualStyle) setVisualStyle(pkg.visualStyle);
+        if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && pkg.visualStyle) {
+          setVisualStyle(normalizeVisualStyle(pkg.visualStyle, topic));
+        }
         if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
         if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
         if (contentType === 'poll') {
@@ -479,7 +508,7 @@ Return ONLY valid JSON:
   "callToAction": "",
   "keywords": [],
   "writingStyle": "",
-  "visualStyle": "",
+  "visualStyle": "Pick ONE from: archiect, futuristic_ai, modern_saas, infographic, linkedin_brand, minimal, professional_business, corporate. Prefer futuristic_ai or modern_saas for AI/tech topics.",
   "brandColors": ["#0A66C2", "#FFFFFF"],
   "hashtags": [],
   "post": "",
@@ -509,7 +538,9 @@ Rules:
       if (!ctaInput?.trim() && pkg.callToAction) setCtaInput(pkg.callToAction);
       if (!keywords?.trim() && Array.isArray(pkg.keywords)) setKeywords(pkg.keywords.join(', '));
       if (!writingStyle?.trim() && pkg.writingStyle) setWritingStyle(pkg.writingStyle);
-      if ((!visualStyle || visualStyle === 'corporate') && pkg.visualStyle) setVisualStyle(pkg.visualStyle);
+      if ((!visualStyle || visualStyle === 'corporate' || visualStyle === 'archiect') && pkg.visualStyle) {
+        setVisualStyle(normalizeVisualStyle(pkg.visualStyle, topic));
+      }
       if (!brandColors?.trim() && Array.isArray(pkg.brandColors)) setBrandColors(pkg.brandColors.join(', '));
       if ((!hashtags || hashtags.length === 0) && Array.isArray(pkg.hashtags)) setHashtags(pkg.hashtags);
       if (!postText?.trim() && pkg.post) setPostText(pkg.post);

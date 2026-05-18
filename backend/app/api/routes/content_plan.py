@@ -33,7 +33,7 @@ class ContentPlanRequest(BaseModel):
     tone: str = "professional"
     contentType: str = "text"
     brandColors: str = ""
-    visualStyle: str = "archiect"
+    visualStyle: str = "futuristic_ai"
     aspectRatio: str = "16:9"
     generateImage: bool = False
     generateVideo: bool = False
