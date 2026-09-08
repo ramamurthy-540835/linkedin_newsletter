@@ -18,7 +18,7 @@ from app.services.local_store import get_media_job, save_media_job, update_media
 
 MEDIA_DIR = Path(__file__).resolve().parents[2] / "data" / "media"
 
-IMAGEN_MODEL = "imagen-3.0-generate-001"
+IMAGEN_MODEL = "imagen-4.0-ultra-generate-001"
 VEO_MODEL = "veo-2.0-generate-001"
 
 _client = None

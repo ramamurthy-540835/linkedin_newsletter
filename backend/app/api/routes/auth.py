@@ -12,6 +12,36 @@ router = APIRouter()
 _linkedin = LinkedInService()
 
 
+@router.get("/linkedin/inject")
+async def linkedin_inject() -> RedirectResponse:
+    """Skip OAuth — use token already in .env and redirect frontend as if OAuth completed."""
+    token = settings.linkedin_access_token
+    author_urn = settings.linkedin_author_urn
+    frontend_url = os.getenv("FRONTEND_URL", "http://10.100.15.27:3007")
+    if not token:
+        raise HTTPException(400, "LINKEDIN_ACCESS_TOKEN not set in .env")
+    name, headline = "Arun Kumar G", "LinkedIn Member"
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get("https://api.linkedin.com/v2/userinfo",
+                                 headers={"Authorization": f"Bearer {token}"})
+            if r.status_code == 200:
+                u = r.json()
+                name = u.get("name", name)
+                if not author_urn:
+                    author_urn = f"urn:li:person:{u.get('sub','')}"
+    except Exception:
+        pass
+    settings.linkedin_access_token = token
+    settings.linkedin_author_urn = author_urn
+    profile_url = "https://www.linkedin.com/in/arunkumargofficial"
+    q = urlencode({"name": name, "headline": headline,
+                   "profile_url": profile_url,
+                   "access_token": token, "author_urn": author_urn,
+                   "fresh": "1"})
+    return RedirectResponse(f"{frontend_url}/?{q}")
+
+
 @router.get("/linkedin/url")
 async def linkedin_auth_url(state: str = Query(default="dev-state")) -> dict:
     return {"url": _linkedin.get_auth_url(state)}

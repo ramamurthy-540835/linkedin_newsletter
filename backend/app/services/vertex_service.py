@@ -15,7 +15,7 @@ class VertexService:
     def _ensure_init(self) -> None:
         if self._initialized:
             return
-        if settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai:
+        if settings.disable_vertex_ai and settings.ai_provider not in ("vertex","gemini","google"):
             raise RuntimeError("Vertex AI disabled in local mode")
         import vertexai
         vertexai.init(project=settings.gcp_project_id, location=settings.gcp_region)
@@ -58,12 +58,41 @@ class VertexService:
                 print(f"[xai-budget] soft stop reached before request: used=${used:.4f} soft=${soft:.4f}")
             return self._parse_json(text)
 
+    async def _generate_with_vertex(self, prompt: str) -> dict[str, Any]:
+        import vertexai
+        from vertexai.generative_models import GenerativeModel
+        model_name = (settings.vertex_ai_model or "gemini-2.5-pro").strip()
+        vertexai.init(project=settings.gcp_project_id or "ctoteam",
+                      location=settings.gcp_region or "us-central1")
+        model = GenerativeModel(model_name)
+        response = model.generate_content(
+            f"Return valid JSON only. No markdown fences.\n\n{prompt}"
+        )
+        return self._parse_json((response.text or "{}").strip())
+
+    async def _generate_with_gemini(self, prompt: str) -> dict[str, Any]:
+        import google.generativeai as genai
+        key = (settings.google_api_key or "").strip() or (getattr(settings, "gemini_api_key", "") or "").strip()
+        if not key:
+            raise RuntimeError("GOOGLE_API_KEY not configured")
+        model_name = (settings.vertex_ai_model or "gemini-2.5-flash").strip()
+        genai.configure(api_key=key)
+        model = genai.GenerativeModel(model_name)
+        response = model.generate_content(
+            f"Return valid JSON only. No markdown fences.\n\n{prompt}"
+        )
+        return self._parse_json((response.text or "{}").strip())
+
     async def generate_json(self, prompt: str) -> dict[str, Any]:
         provider = self._provider()
         if provider == "xai":
             return await self._generate_with_xai(prompt)
-        if settings.local_dev_mode or settings.disable_gcp or settings.disable_vertex_ai:
-            raise RuntimeError("AI_PROVIDER must be xai in local mode; Vertex is disabled")
+        if provider in ("gemini", "google"):
+            return await self._generate_with_gemini(prompt)
+        if provider == "vertex":
+            return await self._generate_with_vertex(prompt)
+        if settings.disable_vertex_ai and settings.ai_provider not in ("vertex","gemini","google"):
+            raise RuntimeError("AI_PROVIDER must be xai, gemini, or vertex in local mode; Vertex is disabled")
 
         try:
             self._ensure_init()

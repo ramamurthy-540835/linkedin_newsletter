@@ -8,7 +8,7 @@ set -e
 # Configuration
 FRONTEND_PORT=3007
 BACKEND_PORT=8007
-HOST_IP=10.100.15.44
+HOST_IP=10.100.15.27
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKEND_DIR="${PROJECT_ROOT}/backend"
 FRONTEND_DIR="${PROJECT_ROOT}/frontend"

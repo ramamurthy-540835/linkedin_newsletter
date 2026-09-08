@@ -102,4 +102,19 @@ async def ai_generate(body: GenerateBody) -> dict:
                 except Exception as openai_exc:
                     raise HTTPException(status_code=502, detail=f"xAI failed: {str(e)}; OpenAI fallback failed: {str(openai_exc)}")
             raise HTTPException(status_code=502, detail=f"xAI generation failed: {str(e)}")
-    raise HTTPException(status_code=400, detail="AI_PROVIDER must be xai for local mode")
+    # Vertex AI / Gemini path
+    if ai_provider in ("vertex", "gemini", "google"):
+        try:
+            import vertexai
+            from vertexai.generative_models import GenerativeModel
+            model_name = (settings.vertex_ai_model or "gemini-2.5-pro").strip()
+            vertexai.init(project=settings.gcp_project_id or "ctoteam",
+                          location=settings.gcp_region or "us-central1")
+            model = GenerativeModel(model_name)
+            prompt = f"System: {body.system}\n\nUser: {body.prompt}" if body.system else body.prompt
+            response = model.generate_content(prompt)
+            text = (response.text or "").strip()
+            return {"text": text, "usage": {}, "provider": ai_provider, "model": model_name}
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Vertex AI generation failed: {str(e)}")
+    raise HTTPException(status_code=400, detail=f"Unsupported AI_PROVIDER: {ai_provider}. Use vertex, gemini, or xai.")

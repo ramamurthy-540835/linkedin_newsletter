@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     local_dev_mode: bool = False
     local_db_path: str = "backend/data/content_studio.db"
 
-    vertex_ai_model: str = ""
+    vertex_ai_model: str = "gemini-2.5-pro"
+    vertex_model: str = "gemini-2.5-pro"
     ai_provider: str = "auto"
 
     linkedin_client_id: str = ""
@@ -39,6 +40,9 @@ class Settings(BaseSettings):
     devto_api_key: str = ""
 
     serp_api_key: str = ""
+    serpapi_key: str = ""
+    google_api_key: str = ""
+    gemini_api_key: str = ""
     openai_api_key: str = ""
     xai_api_key: str = ""
     xai_base_url: str = ""

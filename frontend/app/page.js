@@ -336,7 +336,7 @@ function MyFeed() {
   };
 
   const loadFromProfile = async () => {
-    const profileUrl = localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala';
+    const profileUrl = localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/arunkumargofficial';
     const localSerpKey = localStorage.getItem('SERP_API_KEY') || '';
     let backendSerpConfigured = false;
     try {
@@ -556,7 +556,7 @@ function TopicSuggestions({ onToast, onAddTopic }) {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setProfileUrl(localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala');
+      setProfileUrl(localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/arunkumargofficial');
       try {
         const cached = JSON.parse(localStorage.getItem(SUGGESTIONS_KEY) || '[]');
         if (Array.isArray(cached) && cached.length > 0) setSuggestions(cached);
@@ -567,7 +567,7 @@ function TopicSuggestions({ onToast, onAddTopic }) {
   useEffect(() => {
     const onFocus = () => {
       if (typeof window !== 'undefined') {
-        setProfileUrl(localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala');
+        setProfileUrl(localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/arunkumargofficial');
       }
     };
     window.addEventListener('focus', onFocus);
@@ -576,7 +576,7 @@ function TopicSuggestions({ onToast, onAddTopic }) {
   }, []);
 
   const loadSuggestions = async () => {
-    const url = profileUrl || localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala';
+    const url = profileUrl || localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/arunkumargofficial';
     const serpKey = localStorage.getItem('SERP_API_KEY') || '';
     if (!url) { onToast('Please set your LinkedIn profile URL first'); return; }
     setLoading(true);
@@ -1256,7 +1256,7 @@ function MyConnections({ onToast }) {
     else if (activeTab === 'company') doCompanySearch(1, newSize);
   };
 
-  const profileHandle = profileUrl().split('/in/')[1]?.replace(/\/$/, '') || 'ramavala';
+  const profileHandle = profileUrl().split('/in/')[1]?.replace(/\/$/, '') || 'arunkumargofficial';
   const sourceLabelMap = {
     oauth: 'LinkedIn OAuth',
     session: 'LinkedIn Session',
@@ -1652,6 +1652,14 @@ export default function Dashboard() {
       const accessToken = params.get('access_token');
       const authorUrn = params.get('author_urn');
       const oauthError = params.get('oauth_error');
+      const freshLogin = params.get('fresh') === '1';
+
+      // Clear all cached LinkedIn state when fresh login is triggered
+      if (freshLogin || accessToken) {
+        ['linkedin_oauth','linkedin_profile_url','linkedin_profile_data',
+         'linkedin_topics','linkedin_csv_connections','linkedin_notification_entries',
+         '_triggerProfileLoad'].forEach(k => localStorage.removeItem(k));
+      }
 
       try {
         const storedOauth = JSON.parse(localStorage.getItem('linkedin_oauth') || '{}');
@@ -1673,7 +1681,7 @@ export default function Dashboard() {
         }
         window.history.replaceState({}, document.title, window.location.pathname);
       } else {
-        const stored = localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/ramavala';
+        const stored = localStorage.getItem('linkedin_profile_url') || 'https://www.linkedin.com/in/arunkumargofficial';
         const hasProfile = stored !== null && stored.trim().length > 0;
         const topicsStr = localStorage.getItem('linkedin_topics');
         const hasTopics = topicsStr ? JSON.parse(topicsStr).length > 0 : false;
