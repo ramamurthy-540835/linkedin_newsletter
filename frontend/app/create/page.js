@@ -138,7 +138,10 @@ const ASPECT_RATIOS = [
 ];
 
 const IMAGE_PROVIDERS = [
-  { value: 'xai-image', label: 'xAI Image Generation' },
+  { value: 'google-imagen-4-ultra', label: 'Imagen 4 Ultra (Highest Quality)' },
+  { value: 'google-imagen-4', label: 'Imagen 4' },
+  { value: 'google-imagen-4-fast', label: 'Imagen 4 Fast' },
+  { value: 'gemini', label: 'Gemini Image Generation' },
 ];
 
 const VIDEO_PROVIDERS = [
@@ -260,7 +263,7 @@ function CreatePageContent() {
   const [generateVid, setGenerateVid] = useState(false);
 
   // Image options
-  const [imageProvider, setImageProvider] = useState('xai-image');
+  const [imageProvider, setImageProvider] = useState('google-imagen-4-ultra');
   const [imagePrompt, setImagePrompt] = useState('');
 
   // Video options
@@ -716,7 +719,7 @@ Rules:
 
   const generateLongImagePromptFromXAI = async () => {
     if (!topic.trim()) return '';
-      const prompt = `Generate a professional LinkedIn visual prompt for xAI image generation.
+      const prompt = `Generate a professional LinkedIn visual prompt for Imagen 4 Ultra image generation.
 Include:
 - exact business topic
 - enterprise AI architecture context
@@ -751,11 +754,8 @@ Output requirements:
       system: 'You are a senior enterprise visual prompt engineer. Return only the final long-form image prompt text.',
       prompt,
     });
-    if (out?.provider && out.provider !== 'xai') {
-      throw new Error('xAI-only prompt generation required for image prompts. Configure xAI and retry.');
-    }
     const generated = String(out?.text || '').trim();
-    if (!generated) throw new Error('xAI returned an empty image prompt.');
+    if (!generated) throw new Error('Gemini returned an empty image prompt. Try again.');
     return generated;
   };
 
@@ -1006,7 +1006,7 @@ Output requirements:
                     className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
                   <div>
                     <span className="font-semibold text-sm text-gray-900">Add AI Image</span>
-                    <span className="text-xs text-gray-500 ml-2">xAI visual enhancement</span>
+                    <span className="text-xs text-gray-500 ml-2">Gemini · Imagen 4 Ultra visual enhancement</span>
                   </div>
                 </label>
 
@@ -1021,7 +1021,7 @@ Output requirements:
                     </div>
                     <div className="flex gap-2">
                       <Button onClick={generateImagePromptOnly} variant="outline" size="sm" disabled={!topic.trim() || busy}>
-                        Generate Prompt with xAI
+                        Auto-generate Prompt with Gemini
                       </Button>
                       <Button onClick={generateImageOnly} variant="outline" size="sm" disabled={!imagePrompt.trim() || imageLoading} loading={imageLoading}>
                         Generate Image
@@ -1042,7 +1042,7 @@ Output requirements:
                     className="rounded border-gray-300 text-studio-600 focus:ring-studio-500 w-5 h-5" />
                   <div>
                     <span className="font-semibold text-sm text-gray-900">Add AI Video</span>
-                    <span className="text-xs text-gray-500 ml-2">xAI video enhancement</span>
+                    <span className="text-xs text-gray-500 ml-2">Gemini video enhancement</span>
                   </div>
                 </label>
 
