@@ -138,9 +138,9 @@ const ASPECT_RATIOS = [
 ];
 
 const IMAGE_PROVIDERS = [
-  { value: 'google-imagen-4-ultra', label: 'Imagen 4 Ultra (Highest Quality)' },
+  { value: 'flux', label: 'Flux (Recommended — Fast & Free)' },
+  { value: 'google-imagen-4-ultra', label: 'Imagen 4 Ultra' },
   { value: 'google-imagen-4', label: 'Imagen 4' },
-  { value: 'google-imagen-4-fast', label: 'Imagen 4 Fast' },
   { value: 'gemini', label: 'Gemini Image Generation' },
 ];
 
@@ -263,7 +263,7 @@ function CreatePageContent() {
   const [generateVid, setGenerateVid] = useState(false);
 
   // Image options
-  const [imageProvider, setImageProvider] = useState('google-imagen-4-ultra');
+  const [imageProvider, setImageProvider] = useState('flux');
   const [imagePrompt, setImagePrompt] = useState('');
 
   // Video options

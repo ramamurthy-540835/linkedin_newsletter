@@ -9,8 +9,11 @@ import json
 import threading
 import time
 import uuid
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
+
+import httpx
 
 from app.core.config import settings
 from app.services.xai_usage_service import XAIBudgetError, assert_budget_allows_request, record_xai_usage
@@ -222,9 +225,45 @@ async def generate_images_with_options(
         return await _generate_images_openai(styled_prompt, count, ar)
     elif provider == "gemini":
         return await _generate_images_gemini(styled_prompt, count, ar)
+    elif provider in ("pollinations", "flux"):
+        return await _generate_images_pollinations(styled_prompt, count, ar)
     else:
+        # Try Imagen via Vertex AI, fall back to Pollinations if not available
         model = IMAGEN_MODELS.get(provider, IMAGEN_MODEL)
-        return await asyncio.to_thread(_generate_images_sync_model, styled_prompt, count, ar, model)
+        try:
+            return await asyncio.to_thread(_generate_images_sync_model, styled_prompt, count, ar, model)
+        except Exception as e:
+            if "NOT_FOUND" in str(e) or "404" in str(e) or "does not have access" in str(e):
+                print(f"[media] Imagen not available ({e}), falling back to Pollinations/Flux")
+                return await _generate_images_pollinations(styled_prompt, count, ar)
+            raise
+
+
+async def _generate_images_pollinations(prompt: str, count: int, aspect_ratio: str) -> list[dict]:
+    """Generate images via Pollinations.ai (free, no API key, uses Flux model)."""
+    ar_map = {"16:9": (1280, 720), "1:1": (1024, 1024), "9:16": (720, 1280)}
+    w, h = ar_map.get(aspect_ratio, (1280, 720))
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    results = []
+    seeds = [42, 99, 137, 256]
+    async with httpx.AsyncClient(timeout=60) as client:
+        for i in range(min(count, 4)):
+            enc_prompt = urllib.parse.quote(prompt[:500])
+            seed = seeds[i % len(seeds)]
+            url = (
+                f"https://image.pollinations.ai/prompt/{enc_prompt}"
+                f"?width={w}&height={h}&model=flux&nologo=true&seed={seed}"
+            )
+            try:
+                r = await client.get(url)
+                if r.status_code == 200 and len(r.content) > 1000:
+                    filename = f"img_{uuid.uuid4().hex[:8]}_{i}.png"
+                    path = MEDIA_DIR / filename
+                    path.write_bytes(r.content)
+                    results.append({"filename": filename, "url": f"/api/media/file/{filename}", "provider": "flux"})
+            except Exception as e:
+                print(f"[pollinations] image {i} failed: {e}")
+    return results
 
 
 async def _generate_images_xai(prompt: str, count: int, aspect_ratio: str) -> list[dict]:
